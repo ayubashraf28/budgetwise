@@ -1,0 +1,191 @@
+import 'package:flutter/foundation.dart';
+
+/// Transaction type enum
+enum TransactionType {
+  expense,
+  income;
+
+  String get value => name;
+
+  static TransactionType fromString(String value) {
+    return TransactionType.values.firstWhere(
+      (e) => e.name == value,
+      orElse: () => TransactionType.expense,
+    );
+  }
+}
+
+@immutable
+class Transaction {
+  final String id;
+  final String userId;
+  final String monthId;
+  final String? categoryId;
+  final String? itemId;
+  final String? incomeSourceId;
+  final TransactionType type;
+  final double amount;
+  final DateTime date;
+  final String? note;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+
+  // Populated by joins (not stored in DB)
+  final String? categoryName;
+  final String? categoryColor;
+  final String? itemName;
+  final String? incomeSourceName;
+
+  const Transaction({
+    required this.id,
+    required this.userId,
+    required this.monthId,
+    this.categoryId,
+    this.itemId,
+    this.incomeSourceId,
+    required this.type,
+    required this.amount,
+    required this.date,
+    this.note,
+    required this.createdAt,
+    required this.updatedAt,
+    this.categoryName,
+    this.categoryColor,
+    this.itemName,
+    this.incomeSourceName,
+  });
+
+  factory Transaction.fromJson(Map<String, dynamic> json) {
+    // Handle nested category data from joins
+    String? categoryName;
+    String? categoryColor;
+    if (json['categories'] != null) {
+      categoryName = json['categories']['name'] as String?;
+      categoryColor = json['categories']['color'] as String?;
+    }
+
+    // Handle nested item data
+    String? itemName;
+    if (json['items'] != null) {
+      itemName = json['items']['name'] as String?;
+    }
+
+    // Handle nested income source data
+    String? incomeSourceName;
+    if (json['income_sources'] != null) {
+      incomeSourceName = json['income_sources']['name'] as String?;
+    }
+
+    return Transaction(
+      id: json['id'] as String,
+      userId: json['user_id'] as String,
+      monthId: json['month_id'] as String,
+      categoryId: json['category_id'] as String?,
+      itemId: json['item_id'] as String?,
+      incomeSourceId: json['income_source_id'] as String?,
+      type: TransactionType.fromString(json['type'] as String),
+      amount: (json['amount'] as num).toDouble(),
+      date: DateTime.parse(json['date'] as String),
+      note: json['note'] as String?,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      updatedAt: DateTime.parse(json['updated_at'] as String),
+      categoryName: categoryName ?? json['category_name'] as String?,
+      categoryColor: categoryColor ?? json['category_color'] as String?,
+      itemName: itemName ?? json['item_name'] as String?,
+      incomeSourceName:
+          incomeSourceName ?? json['income_source_name'] as String?,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'month_id': monthId,
+      'category_id': categoryId,
+      'item_id': itemId,
+      'income_source_id': incomeSourceId,
+      'type': type.value,
+      'amount': amount,
+      'date': _formatDate(date),
+      'note': note,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
+
+  String _formatDate(DateTime date) {
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  }
+
+  Transaction copyWith({
+    String? id,
+    String? userId,
+    String? monthId,
+    String? categoryId,
+    String? itemId,
+    String? incomeSourceId,
+    TransactionType? type,
+    double? amount,
+    DateTime? date,
+    String? note,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    String? categoryName,
+    String? categoryColor,
+    String? itemName,
+    String? incomeSourceName,
+  }) {
+    return Transaction(
+      id: id ?? this.id,
+      userId: userId ?? this.userId,
+      monthId: monthId ?? this.monthId,
+      categoryId: categoryId ?? this.categoryId,
+      itemId: itemId ?? this.itemId,
+      incomeSourceId: incomeSourceId ?? this.incomeSourceId,
+      type: type ?? this.type,
+      amount: amount ?? this.amount,
+      date: date ?? this.date,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      categoryName: categoryName ?? this.categoryName,
+      categoryColor: categoryColor ?? this.categoryColor,
+      itemName: itemName ?? this.itemName,
+      incomeSourceName: incomeSourceName ?? this.incomeSourceName,
+    );
+  }
+
+  /// Is this an expense?
+  bool get isExpense => type == TransactionType.expense;
+
+  /// Is this income?
+  bool get isIncome => type == TransactionType.income;
+
+  /// Display name for UI
+  String get displayName {
+    if (isIncome && incomeSourceName != null) return incomeSourceName!;
+    if (itemName != null) return itemName!;
+    if (categoryName != null) return categoryName!;
+    return isIncome ? 'Income' : 'Expense';
+  }
+
+  /// Formatted amount with sign
+  String formattedAmount(String currencySymbol) {
+    final sign = isIncome ? '+' : '-';
+    return '$sign$currencySymbol${amount.toStringAsFixed(2)}';
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Transaction && other.id == id;
+  }
+
+  @override
+  int get hashCode => id.hashCode;
+
+  @override
+  String toString() =>
+      'Transaction(id: $id, type: $type, amount: $amount, date: $date)';
+}
