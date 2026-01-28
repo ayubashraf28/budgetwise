@@ -6,6 +6,8 @@ import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/income/income_screen.dart';
+import '../screens/expenses/expenses_overview_screen.dart';
+import '../screens/expenses/category_detail_screen.dart';
 import '../providers/auth_provider.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -52,6 +54,19 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/income',
         name: 'income',
         builder: (context, state) => const IncomeScreen(),
+      ),
+      GoRoute(
+        path: '/expenses',
+        name: 'expenses',
+        builder: (context, state) => const ExpensesOverviewScreen(),
+      ),
+      GoRoute(
+        path: '/category/:id',
+        name: 'category',
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return CategoryDetailScreen(categoryId: id);
+        },
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

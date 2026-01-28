@@ -10,11 +10,13 @@ import 'difference_indicator.dart';
 class CategoryListItem extends StatelessWidget {
   final Category category;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const CategoryListItem({
     super.key,
     required this.category,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
@@ -23,6 +25,7 @@ class CategoryListItem extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         child: Container(
           padding: AppSpacing.cardPadding,

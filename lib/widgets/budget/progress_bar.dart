@@ -8,6 +8,7 @@ class BudgetProgressBar extends StatelessWidget {
   final double actual;
   final Color color;
   final double height;
+  final Color? backgroundColor;
 
   const BudgetProgressBar({
     super.key,
@@ -15,6 +16,7 @@ class BudgetProgressBar extends StatelessWidget {
     required this.actual,
     required this.color,
     this.height = 8,
+    this.backgroundColor,
   });
 
   @override
@@ -25,7 +27,7 @@ class BudgetProgressBar extends StatelessWidget {
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
+        color: backgroundColor ?? AppColors.surfaceLight,
         borderRadius: BorderRadius.circular(height / 2),
       ),
       child: FractionallySizedBox(
