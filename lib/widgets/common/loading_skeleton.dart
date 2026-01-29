@@ -132,32 +132,32 @@ class DashboardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.md),
+    return const SingleChildScrollView(
+      padding: EdgeInsets.all(AppSpacing.md),
       child: Column(
         children: [
           // Balance card skeleton
-          const CardSkeleton(height: 180),
-          const SizedBox(height: AppSpacing.lg),
+          CardSkeleton(height: 180),
+          SizedBox(height: AppSpacing.lg),
 
           // Quick stats row
-          const Row(
+          Row(
             children: [
               Expanded(child: CardSkeleton(height: 80)),
               SizedBox(width: AppSpacing.md),
               Expanded(child: CardSkeleton(height: 80)),
             ],
           ),
-          const SizedBox(height: AppSpacing.lg),
+          SizedBox(height: AppSpacing.lg),
 
           // Categories section
-          const LoadingSkeleton(width: 120, height: 24),
-          const SizedBox(height: AppSpacing.md),
-          const ListItemSkeleton(),
-          const SizedBox(height: AppSpacing.sm),
-          const ListItemSkeleton(),
-          const SizedBox(height: AppSpacing.sm),
-          const ListItemSkeleton(),
+          LoadingSkeleton(width: 120, height: 24),
+          SizedBox(height: AppSpacing.md),
+          ListItemSkeleton(),
+          SizedBox(height: AppSpacing.sm),
+          ListItemSkeleton(),
+          SizedBox(height: AppSpacing.sm),
+          ListItemSkeleton(),
         ],
       ),
     );

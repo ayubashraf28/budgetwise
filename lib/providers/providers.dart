@@ -2,6 +2,7 @@
 library;
 
 export 'auth_provider.dart';
+export 'profile_provider.dart';
 export 'month_provider.dart';
 export 'income_provider.dart';
 export 'category_provider.dart';

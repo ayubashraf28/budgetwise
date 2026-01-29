@@ -13,7 +13,11 @@ import '../screens/expenses/expenses_overview_screen.dart';
 import '../screens/expenses/category_detail_screen.dart';
 import '../screens/transactions/transactions_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import '../screens/onboarding/welcome_screen.dart';
+import '../screens/onboarding/template_selection_screen.dart';
+import '../screens/onboarding/setup_complete_screen.dart';
 import '../widgets/navigation/app_shell.dart';
+import '../services/profile_service.dart';
 
 /// A Listenable that notifies when auth state changes
 class GoRouterRefreshStream extends ChangeNotifier {
@@ -45,11 +49,12 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/login',
     debugLogDiagnostics: true,
     refreshListenable: refreshListenable,
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final session = Supabase.instance.client.auth.currentSession;
       final isLoggedIn = session != null;
       final isLoggingIn = state.matchedLocation == '/login';
       final isRegistering = state.matchedLocation == '/register';
+      final isOnboarding = state.matchedLocation.startsWith('/onboarding');
 
       // If not logged in, redirect to login (unless already there or registering)
       if (!isLoggedIn) {
@@ -57,9 +62,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/login';
       }
 
-      // If logged in and on auth pages, redirect to home
+      // If logged in and on auth pages, check onboarding status
       if (isLoggedIn && (isLoggingIn || isRegistering)) {
+        final profileService = ProfileService();
+        final onboardingCompleted = await profileService.isOnboardingCompleted();
+
+        if (!onboardingCompleted) {
+          return '/onboarding';
+        }
         return '/home';
+      }
+
+      // If logged in but not on onboarding, check if onboarding is needed
+      if (isLoggedIn && !isOnboarding) {
+        final profileService = ProfileService();
+        final onboardingCompleted = await profileService.isOnboardingCompleted();
+
+        if (!onboardingCompleted) {
+          return '/onboarding';
+        }
       }
 
       return null;
@@ -75,6 +96,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/register',
         name: 'register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+
+      // Onboarding routes (no bottom navigation)
+      GoRoute(
+        path: '/onboarding',
+        name: 'onboarding',
+        builder: (context, state) => const WelcomeScreen(),
+        routes: [
+          GoRoute(
+            path: 'template',
+            name: 'onboarding-template',
+            builder: (context, state) => const TemplateSelectionScreen(),
+          ),
+          GoRoute(
+            path: 'complete',
+            name: 'onboarding-complete',
+            builder: (context, state) => const SetupCompleteScreen(),
+          ),
+        ],
       ),
 
       // Main app shell with bottom navigation
