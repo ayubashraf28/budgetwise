@@ -92,12 +92,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                     ),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.md,
-                      kToolbarHeight + 24,
-                      AppSpacing.md,
-                      AppSpacing.sm,
-                    ),
+                    padding: const EdgeInsets.all(AppSpacing.md),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
                       crossAxisAlignment: CrossAxisAlignment.start,
