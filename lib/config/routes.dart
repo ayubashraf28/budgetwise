@@ -12,6 +12,8 @@ import '../screens/income/income_screen.dart';
 import '../screens/expenses/expenses_overview_screen.dart';
 import '../screens/expenses/category_detail_screen.dart';
 import '../screens/transactions/transactions_screen.dart';
+import '../screens/settings/settings_screen.dart';
+import '../widgets/navigation/app_shell.dart';
 
 /// A Listenable that notifies when auth state changes
 class GoRouterRefreshStream extends ChangeNotifier {
@@ -63,6 +65,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      // Auth routes (no bottom navigation)
       GoRoute(
         path: '/login',
         name: 'login',
@@ -73,33 +76,53 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: 'register',
         builder: (context, state) => const RegisterScreen(),
       ),
-      GoRoute(
-        path: '/home',
-        name: 'home',
-        builder: (context, state) => const HomeScreen(),
-      ),
-      GoRoute(
-        path: '/income',
-        name: 'income',
-        builder: (context, state) => const IncomeScreen(),
-      ),
-      GoRoute(
-        path: '/expenses',
-        name: 'expenses',
-        builder: (context, state) => const ExpensesOverviewScreen(),
-      ),
-      GoRoute(
-        path: '/category/:id',
-        name: 'category',
-        builder: (context, state) {
-          final id = state.pathParameters['id']!;
-          return CategoryDetailScreen(categoryId: id);
-        },
-      ),
-      GoRoute(
-        path: '/transactions',
-        name: 'transactions',
-        builder: (context, state) => const TransactionsScreen(),
+
+      // Main app shell with bottom navigation
+      ShellRoute(
+        builder: (context, state, child) => AppShell(child: child),
+        routes: [
+          GoRoute(
+            path: '/home',
+            name: 'home',
+            builder: (context, state) => const HomeScreen(),
+          ),
+          GoRoute(
+            path: '/income',
+            name: 'income',
+            builder: (context, state) => const IncomeScreen(),
+          ),
+          GoRoute(
+            path: '/transactions',
+            name: 'transactions',
+            builder: (context, state) => const TransactionsScreen(),
+          ),
+          GoRoute(
+            path: '/budget',
+            name: 'budget',
+            builder: (context, state) => const ExpensesOverviewScreen(),
+            routes: [
+              GoRoute(
+                path: 'category/:id',
+                name: 'category',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  return CategoryDetailScreen(categoryId: id);
+                },
+              ),
+            ],
+          ),
+          // Keep /expenses as alias for backwards compatibility
+          GoRoute(
+            path: '/expenses',
+            name: 'expenses',
+            redirect: (context, state) => '/budget',
+          ),
+          GoRoute(
+            path: '/settings',
+            name: 'settings',
+            builder: (context, state) => const SettingsScreen(),
+          ),
+        ],
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
