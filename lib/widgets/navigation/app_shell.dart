@@ -50,50 +50,49 @@ class _BottomNavBar extends StatelessWidget {
       shape: const CircularNotchedRectangle(),
       notchMargin: 8,
       elevation: 8,
-      child: SizedBox(
-        height: 60,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _NavItem(
-              icon: LucideIcons.home,
-              label: 'Home',
-              isSelected: location == '/home',
-              onTap: () {
-                HapticFeedback.selectionClick();
-                context.go('/home');
-              },
-            ),
-            _NavItem(
-              icon: LucideIcons.creditCard,
-              label: 'Transactions',
-              isSelected: location == '/transactions',
-              onTap: () {
-                HapticFeedback.selectionClick();
-                context.go('/transactions');
-              },
-            ),
-            const SizedBox(width: 48), // Space for FAB
-            _NavItem(
-              icon: LucideIcons.pieChart,
-              label: 'Budget',
-              isSelected: location.startsWith('/budget') || location.startsWith('/expenses'),
-              onTap: () {
-                HapticFeedback.selectionClick();
-                context.go('/budget');
-              },
-            ),
-            _NavItem(
-              icon: LucideIcons.settings,
-              label: 'Settings',
-              isSelected: location == '/settings',
-              onTap: () {
-                HapticFeedback.selectionClick();
-                context.go('/settings');
-              },
-            ),
-          ],
-        ),
+      padding: EdgeInsets.zero,
+      height: 64,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _NavItem(
+            icon: LucideIcons.home,
+            label: 'Home',
+            isSelected: location == '/home',
+            onTap: () {
+              HapticFeedback.selectionClick();
+              context.go('/home');
+            },
+          ),
+          _NavItem(
+            icon: LucideIcons.creditCard,
+            label: 'Transactions',
+            isSelected: location == '/transactions',
+            onTap: () {
+              HapticFeedback.selectionClick();
+              context.go('/transactions');
+            },
+          ),
+          const SizedBox(width: 48), // Space for FAB
+          _NavItem(
+            icon: LucideIcons.pieChart,
+            label: 'Budget',
+            isSelected: location.startsWith('/budget') || location.startsWith('/expenses'),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              context.go('/budget');
+            },
+          ),
+          _NavItem(
+            icon: LucideIcons.settings,
+            label: 'Settings',
+            isSelected: location == '/settings',
+            onTap: () {
+              HapticFeedback.selectionClick();
+              context.go('/settings');
+            },
+          ),
+        ],
       ),
     );
   }
