@@ -74,7 +74,7 @@ class HomeScreen extends ConsumerWidget {
                             category: category,
                             onTap: () {
                               // Navigate to category detail
-                              context.push('/category/${category.id}');
+                              context.push('/budget/category/${category.id}');
                             },
                           ),
                         );

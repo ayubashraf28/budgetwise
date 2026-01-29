@@ -237,7 +237,7 @@ class ExpensesOverviewScreen extends ConsumerWidget {
       child: CategoryListItem(
         category: category,
         onTap: () {
-          context.push('/category/${category.id}');
+          context.push('/budget/category/${category.id}');
         },
         onLongPress: () => _showEditSheet(context, ref, category),
       ),
