@@ -72,7 +72,7 @@ class CategoryDetailScreen extends ConsumerWidget {
           slivers: [
             // Colored Header
             SliverAppBar(
-              expandedHeight: 200,
+              expandedHeight: 220,
               pinned: true,
               leading: IconButton(
                 icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
@@ -91,41 +91,44 @@ class CategoryDetailScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                                ),
-                                child: Icon(
-                                  _getIcon(category.icon),
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      kToolbarHeight + 40, // Account for app bar + status bar
+                      AppSpacing.md,
+                      AppSpacing.md,
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                               ),
-                              const SizedBox(width: AppSpacing.md),
-                              Expanded(
-                                child: Text(
-                                  category.name,
-                                  style: AppTypography.h2.copyWith(color: Colors.white),
-                                ),
+                              child: Icon(
+                                _getIcon(category.icon),
+                                color: Colors.white,
+                                size: 24,
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          _buildSummaryCard(category),
-                        ],
-                      ),
+                            ),
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Text(
+                                category.name,
+                                style: AppTypography.h2.copyWith(color: Colors.white),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        _buildSummaryCard(category),
+                      ],
                     ),
                   ),
                 ),
