@@ -197,9 +197,9 @@ class _TemplateSelectionScreenState extends ConsumerState<TemplateSelectionScree
     setState(() => _isLoading = true);
 
     try {
-      // Create first month
+      // Get or create first month
       final monthService = MonthService();
-      final month = await monthService.createCurrentMonth();
+      final month = await monthService.getOrCreateCurrentMonth();
 
       // Create default categories for selected template
       final categoryService = CategoryService();
