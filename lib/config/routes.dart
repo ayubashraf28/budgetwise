@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
@@ -8,16 +11,41 @@ import '../screens/home/home_screen.dart';
 import '../screens/income/income_screen.dart';
 import '../screens/expenses/expenses_overview_screen.dart';
 import '../screens/expenses/category_detail_screen.dart';
-import '../providers/auth_provider.dart';
+import '../screens/transactions/transactions_screen.dart';
 
+/// A Listenable that notifies when auth state changes
+class GoRouterRefreshStream extends ChangeNotifier {
+  GoRouterRefreshStream(Stream<AuthState> stream) {
+    notifyListeners();
+    _subscription = stream.listen((_) => notifyListeners());
+  }
+
+  late final StreamSubscription<AuthState> _subscription;
+
+  @override
+  void dispose() {
+    _subscription.cancel();
+    super.dispose();
+  }
+}
+
+/// Provider for the auth refresh listenable
+final routerRefreshProvider = Provider<GoRouterRefreshStream>((ref) {
+  final stream = Supabase.instance.client.auth.onAuthStateChange;
+  return GoRouterRefreshStream(stream);
+});
+
+/// Main router provider
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final refreshListenable = ref.watch(routerRefreshProvider);
 
   return GoRouter(
     initialLocation: '/login',
     debugLogDiagnostics: true,
+    refreshListenable: refreshListenable,
     redirect: (context, state) {
-      final isLoggedIn = authState.valueOrNull != null;
+      final session = Supabase.instance.client.auth.currentSession;
+      final isLoggedIn = session != null;
       final isLoggingIn = state.matchedLocation == '/login';
       final isRegistering = state.matchedLocation == '/register';
 
@@ -67,6 +95,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           final id = state.pathParameters['id']!;
           return CategoryDetailScreen(categoryId: id);
         },
+      ),
+      GoRoute(
+        path: '/transactions',
+        name: 'transactions',
+        builder: (context, state) => const TransactionsScreen(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
