@@ -72,7 +72,7 @@ class CategoryDetailScreen extends ConsumerWidget {
           slivers: [
             // Colored Header
             SliverAppBar(
-              expandedHeight: 220,
+              expandedHeight: 260,
               pinned: true,
               leading: IconButton(
                 icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
@@ -94,9 +94,9 @@ class CategoryDetailScreen extends ConsumerWidget {
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(
                       AppSpacing.md,
-                      kToolbarHeight + 40, // Account for app bar + status bar
+                      kToolbarHeight + 24,
                       AppSpacing.md,
-                      AppSpacing.md,
+                      AppSpacing.sm,
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
@@ -105,28 +105,28 @@ class CategoryDetailScreen extends ConsumerWidget {
                         Row(
                           children: [
                             Container(
-                              width: 48,
-                              height: 48,
+                              width: 40,
+                              height: 40,
                               decoration: BoxDecoration(
                                 color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                                borderRadius: BorderRadius.circular(AppSizing.radiusSm),
                               ),
                               child: Icon(
                                 _getIcon(category.icon),
                                 color: Colors.white,
-                                size: 24,
+                                size: 20,
                               ),
                             ),
-                            const SizedBox(width: AppSpacing.md),
+                            const SizedBox(width: AppSpacing.sm),
                             Expanded(
                               child: Text(
                                 category.name,
-                                style: AppTypography.h2.copyWith(color: Colors.white),
+                                style: AppTypography.h3.copyWith(color: Colors.white),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: AppSpacing.md),
+                        const SizedBox(height: AppSpacing.sm),
                         _buildSummaryCard(category),
                       ],
                     ),
@@ -201,48 +201,35 @@ class CategoryDetailScreen extends ConsumerWidget {
     final isOverBudget = category.isOverBudget;
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+        borderRadius: BorderRadius.circular(AppSizing.radiusSm),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Budget',
-                style: AppTypography.bodyMedium.copyWith(color: Colors.white70),
+                'Spent',
+                style: AppTypography.bodySmall.copyWith(color: Colors.white70),
               ),
               Text(
-                '\u00A3${category.totalProjected.toStringAsFixed(0)}',
-                style: AppTypography.amountSmall.copyWith(color: Colors.white),
+                '\u00A3${category.totalActual.toStringAsFixed(0)} / \u00A3${category.totalProjected.toStringAsFixed(0)}',
+                style: AppTypography.labelMedium.copyWith(color: Colors.white),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.xs),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Spent',
-                style: AppTypography.bodyMedium.copyWith(color: Colors.white70),
-              ),
-              Text(
-                '\u00A3${category.totalActual.toStringAsFixed(0)}',
-                style: AppTypography.amountSmall.copyWith(color: Colors.white),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
           BudgetProgressBar(
             projected: category.totalProjected,
             actual: category.totalActual,
             color: Colors.white,
             backgroundColor: Colors.white.withValues(alpha: 0.3),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.xs),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -254,6 +241,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                 '${isOverBudget ? '+' : ''}\u00A3${category.difference.abs().toStringAsFixed(0)}',
                 style: TextStyle(
                   color: isOverBudget ? Colors.red.shade200 : Colors.white,
+                  fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
               ),
