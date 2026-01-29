@@ -205,9 +205,14 @@ class _TemplateSelectionScreenState extends ConsumerState<TemplateSelectionScree
       final categoryService = CategoryService();
       final itemService = ItemService();
 
-      final templateCategories = budgetTemplates[_selectedTemplate] ?? [];
+      // Check if categories already exist for this month (from previous attempt)
+      final existingCategories = await categoryService.getCategoriesForMonth(month.id);
 
-      for (final categoryName in templateCategories) {
+      // Only create categories if none exist
+      if (existingCategories.isEmpty) {
+        final templateCategories = budgetTemplates[_selectedTemplate] ?? [];
+
+        for (final categoryName in templateCategories) {
         // Find category template
         final categoryTemplate = defaultCategories.firstWhere(
           (c) => c['name'] == categoryName,
@@ -236,6 +241,7 @@ class _TemplateSelectionScreenState extends ConsumerState<TemplateSelectionScree
             name: itemMap['name'] as String,
             projected: (itemMap['projected'] as num?)?.toDouble() ?? 0,
           );
+        }
         }
       }
 

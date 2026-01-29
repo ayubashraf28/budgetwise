@@ -5,6 +5,36 @@ class ProfileService {
   final _client = SupabaseConfig.client;
   static const _table = 'profiles';
 
+  /// Ensure profile exists for the current user, create if not
+  Future<UserProfile> ensureProfileExists() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw Exception('User not authenticated');
+    }
+
+    // Check if profile exists
+    final existing = await getCurrentProfile();
+    if (existing != null) return existing;
+
+    // Create profile if it doesn't exist
+    final now = DateTime.now();
+    final response = await _client
+        .from(_table)
+        .insert({
+          'user_id': userId,
+          'display_name': _client.auth.currentUser?.email?.split('@').first ?? 'User',
+          'currency': 'USD',
+          'locale': 'en_US',
+          'onboarding_completed': false,
+          'created_at': now.toIso8601String(),
+          'updated_at': now.toIso8601String(),
+        })
+        .select()
+        .single();
+
+    return UserProfile.fromJson(response);
+  }
+
   /// Get the current user's profile
   Future<UserProfile?> getCurrentProfile() async {
     final userId = _client.auth.currentUser?.id;
@@ -43,6 +73,9 @@ class ProfileService {
     if (userId == null) {
       throw Exception('User not authenticated');
     }
+
+    // Ensure profile exists before updating
+    await ensureProfileExists();
 
     final updates = <String, dynamic>{};
     if (displayName != null) updates['display_name'] = displayName;
