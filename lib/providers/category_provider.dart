@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/category.dart';
+import '../models/transaction.dart';
 import '../services/category_service.dart';
+import '../services/transaction_service.dart';
 import 'auth_provider.dart';
 import 'month_provider.dart';
 
@@ -10,13 +12,41 @@ final categoryServiceProvider = Provider<CategoryService>((ref) {
   return CategoryService();
 });
 
-/// Categories for the active month (with items)
+/// Transaction service provider (for calculating actuals)
+final _transactionServiceProvider = Provider<TransactionService>((ref) {
+  return TransactionService();
+});
+
+/// Categories for the active month (with items and calculated actuals)
 final categoriesProvider = FutureProvider<List<Category>>((ref) async {
   final month = ref.watch(activeMonthProvider).value;
   if (month == null) return [];
 
-  final service = ref.read(categoryServiceProvider);
-  return service.getCategoriesForMonth(month.id);
+  final categoryService = ref.read(categoryServiceProvider);
+  final transactionService = ref.read(_transactionServiceProvider);
+
+  // Fetch categories with items
+  final categories = await categoryService.getCategoriesForMonth(month.id);
+
+  // Fetch all transactions for this month to calculate actuals
+  final transactions = await transactionService.getTransactionsForMonth(month.id);
+
+  // Calculate actuals for each item from transactions
+  return categories.map((category) {
+    final updatedItems = category.items?.map((item) {
+      // Sum transactions for this item
+      final itemTransactions = transactions.where(
+        (tx) => tx.itemId == item.id && tx.type == TransactionType.expense,
+      );
+      final actual = itemTransactions.fold<double>(
+        0.0,
+        (sum, tx) => sum + tx.amount,
+      );
+      return item.copyWith(actual: actual);
+    }).toList();
+
+    return category.copyWith(items: updatedItems);
+  }).toList();
 });
 
 /// Get a single category by ID

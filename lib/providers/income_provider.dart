@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/income_source.dart';
+import '../models/transaction.dart';
 import '../services/income_service.dart';
+import '../services/transaction_service.dart';
 import 'auth_provider.dart';
 import 'month_provider.dart';
 
@@ -10,13 +12,36 @@ final incomeServiceProvider = Provider<IncomeService>((ref) {
   return IncomeService();
 });
 
-/// Income sources for the active month
+/// Transaction service provider (for calculating actuals)
+final _transactionServiceProvider = Provider<TransactionService>((ref) {
+  return TransactionService();
+});
+
+/// Income sources for the active month (with calculated actuals from transactions)
 final incomeSourcesProvider = FutureProvider<List<IncomeSource>>((ref) async {
   final month = ref.watch(activeMonthProvider).value;
   if (month == null) return [];
 
-  final service = ref.read(incomeServiceProvider);
-  return service.getIncomeSourcesForMonth(month.id);
+  final incomeService = ref.read(incomeServiceProvider);
+  final transactionService = ref.read(_transactionServiceProvider);
+
+  // Fetch income sources
+  final sources = await incomeService.getIncomeSourcesForMonth(month.id);
+
+  // Fetch all transactions for this month to calculate actuals
+  final transactions = await transactionService.getTransactionsForMonth(month.id);
+
+  // Calculate actuals for each income source from transactions
+  return sources.map((source) {
+    final sourceTransactions = transactions.where(
+      (tx) => tx.incomeSourceId == source.id && tx.type == TransactionType.income,
+    );
+    final actual = sourceTransactions.fold<double>(
+      0.0,
+      (sum, tx) => sum + tx.amount,
+    );
+    return source.copyWith(actual: actual);
+  }).toList();
 });
 
 /// Total projected income for active month
