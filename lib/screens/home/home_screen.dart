@@ -32,9 +32,12 @@ class HomeScreen extends ConsumerWidget {
 
             // Quick Stats Row
             SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                child: _buildQuickStats(context, ref, summary),
+              child: Transform.translate(
+                offset: const Offset(0, -AppSpacing.md),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                  child: _buildQuickStats(context, ref, summary),
+                ),
               ),
             ),
 
@@ -118,6 +121,10 @@ class HomeScreen extends ConsumerWidget {
     return Container(
       decoration: const BoxDecoration(
         gradient: AppColors.primaryGradient,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(AppSizing.radiusXl),
+          bottomRight: Radius.circular(AppSizing.radiusXl),
+        ),
       ),
       child: SafeArea(
         bottom: false,
@@ -162,7 +169,7 @@ class HomeScreen extends ConsumerWidget {
                 projectedBalance: summary?.projectedBalance ?? 0,
                 actualBalance: summary?.actualBalance ?? 0,
               ),
-              const SizedBox(height: AppSpacing.md),
+              const SizedBox(height: AppSpacing.lg),
             ],
           ),
         ),

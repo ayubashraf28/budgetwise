@@ -72,7 +72,7 @@ class CategoryDetailScreen extends ConsumerWidget {
           slivers: [
             // Colored Header
             SliverAppBar(
-              expandedHeight: 260,
+              expandedHeight: 200,
               pinned: true,
               leading: IconButton(
                 icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
@@ -81,49 +81,52 @@ class CategoryDetailScreen extends ConsumerWidget {
               backgroundColor: category.colorValue,
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        category.colorValue,
-                        category.colorValue.withValues(alpha: 0.8),
-                      ],
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                  color: category.colorValue,
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.md,
+                        kToolbarHeight,
+                        AppSpacing.md,
+                        AppSpacing.md,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Icon and Name
+                          Row(
+                            children: [
+                              Container(
+                                width: 48,
+                                height: 48,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.2),
+                                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                                ),
+                                child: Icon(
+                                  _getIcon(category.icon),
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
                               ),
-                              child: Icon(
-                                _getIcon(category.icon),
-                                color: Colors.white,
-                                size: 20,
+                              const SizedBox(width: AppSpacing.md),
+                              Expanded(
+                                child: Text(
+                                  category.name,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            Expanded(
-                              child: Text(
-                                category.name,
-                                style: AppTypography.h3.copyWith(color: Colors.white),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        _buildSummaryCard(category),
-                      ],
+                            ],
+                          ),
+                          const Spacer(),
+                          // Budget Summary
+                          _buildSummaryCard(category),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -195,55 +198,53 @@ class CategoryDetailScreen extends ConsumerWidget {
   Widget _buildSummaryCard(Category category) {
     final isOverBudget = category.isOverBudget;
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Spent',
-                style: AppTypography.bodySmall.copyWith(color: Colors.white70),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Amount display
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              '\u00A3${category.totalActual.toStringAsFixed(0)}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
               ),
-              Text(
-                '\u00A3${category.totalActual.toStringAsFixed(0)} / \u00A3${category.totalProjected.toStringAsFixed(0)}',
-                style: AppTypography.labelMedium.copyWith(color: Colors.white),
+            ),
+            Text(
+              ' / \u00A3${category.totalProjected.toStringAsFixed(0)}',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.7),
+                fontSize: 18,
+                fontWeight: FontWeight.w500,
               ),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        // Progress bar
+        BudgetProgressBar(
+          projected: category.totalProjected,
+          actual: category.totalActual,
+          color: Colors.white,
+          backgroundColor: Colors.white.withValues(alpha: 0.3),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        // Status text
+        Text(
+          isOverBudget
+              ? '\u00A3${category.difference.abs().toStringAsFixed(0)} over budget'
+              : '\u00A3${category.difference.abs().toStringAsFixed(0)} remaining',
+          style: TextStyle(
+            color: isOverBudget ? Colors.red.shade200 : Colors.white.withValues(alpha: 0.8),
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
           ),
-          const SizedBox(height: AppSpacing.xs),
-          BudgetProgressBar(
-            projected: category.totalProjected,
-            actual: category.totalActual,
-            color: Colors.white,
-            backgroundColor: Colors.white.withValues(alpha: 0.3),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                isOverBudget ? 'Over budget' : 'Remaining',
-                style: AppTypography.bodySmall.copyWith(color: Colors.white70),
-              ),
-              Text(
-                '${isOverBudget ? '+' : ''}\u00A3${category.difference.abs().toStringAsFixed(0)}',
-                style: TextStyle(
-                  color: isOverBudget ? Colors.red.shade200 : Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

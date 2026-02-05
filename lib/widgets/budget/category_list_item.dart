@@ -37,6 +37,13 @@ class CategoryListItem extends StatelessWidget {
             border: category.isOverBudget
                 ? Border.all(color: AppColors.error.withValues(alpha: 0.3))
                 : null,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             children: [
@@ -47,6 +54,13 @@ class CategoryListItem extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: category.colorValue,
                   borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                  boxShadow: [
+                    BoxShadow(
+                      color: category.colorValue.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
                 ),
                 child: Icon(
                   _getIcon(category.icon),

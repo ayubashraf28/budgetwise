@@ -47,7 +47,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     initialLocation: '/login',
-    debugLogDiagnostics: true,
+    debugLogDiagnostics: false,
     refreshListenable: refreshListenable,
     redirect: (context, state) async {
       final session = Supabase.instance.client.auth.currentSession;

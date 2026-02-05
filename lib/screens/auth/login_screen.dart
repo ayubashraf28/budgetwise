@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/constants.dart';
 import '../../config/theme.dart';
@@ -62,13 +63,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   String _getErrorMessage(String error) {
-    if (error.contains('Invalid login credentials')) {
-      return 'Invalid email or password';
+    final errorLower = error.toLowerCase();
+
+    if (errorLower.contains('invalid login credentials') ||
+        errorLower.contains('invalid email or password')) {
+      return 'The email or password you entered is incorrect';
     }
-    if (error.contains('Email not confirmed')) {
+    if (errorLower.contains('email not confirmed')) {
       return 'Please verify your email before logging in';
     }
-    return 'An error occurred. Please try again.';
+    if (errorLower.contains('user not found')) {
+      return 'No account found with this email address';
+    }
+    if (errorLower.contains('too many requests')) {
+      return 'Too many login attempts. Please try again later';
+    }
+    if (errorLower.contains('network') || errorLower.contains('connection')) {
+      return 'Network error. Please check your internet connection';
+    }
+    return 'Unable to sign in. Please try again';
   }
 
   @override
@@ -108,33 +121,84 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                   // Error Message
                   if (_errorMessage != null) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.errorColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            color: AppTheme.errorColor,
-                            size: 20,
+                    TweenAnimationBuilder<double>(
+                      duration: const Duration(milliseconds: 300),
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      curve: Curves.easeOutBack,
+                      builder: (context, value, child) {
+                        return Transform.scale(
+                          scale: value,
+                          child: Opacity(
+                            opacity: value,
+                            child: child,
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _errorMessage!,
-                              style: const TextStyle(
-                                color: AppTheme.errorColor,
-                                fontSize: 14,
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                          border: Border.all(
+                            color: AppColors.error.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: AppColors.error,
+                                borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                              ),
+                              child: const Icon(
+                                LucideIcons.alertCircle,
+                                color: Colors.white,
+                                size: 20,
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: AppSpacing.md),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Login Failed',
+                                    style: TextStyle(
+                                      color: AppColors.error,
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _errorMessage!,
+                                    style: TextStyle(
+                                      color: AppColors.error.withValues(alpha: 0.8),
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                LucideIcons.x,
+                                size: 18,
+                                color: AppColors.error,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _errorMessage = null;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSpacing.md),
                   ],
 
                   // Email Field
