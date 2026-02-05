@@ -55,6 +55,8 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final currencySymbol = ref.watch(currencySymbolProvider);
+
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -125,9 +127,9 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                   const SizedBox(height: AppSpacing.sm),
                   TextFormField(
                     controller: _projectedController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: '0.00',
-                      prefixText: '\u00A3 ',
+                      prefixText: '$currencySymbol ',
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
@@ -262,24 +264,25 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
           isRecurring: _isRecurring,
           notes: notes.isEmpty ? null : notes,
         );
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Income source updated')),
+          );
+        }
       } else {
-        await notifier.addIncomeSource(
+        final newSource = await notifier.addIncomeSource(
           name: name,
           projected: projected,
           isRecurring: _isRecurring,
           notes: notes.isEmpty ? null : notes,
         );
-      }
-
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isEditing ? 'Income source updated' : 'Income source added',
-            ),
-          ),
-        );
+        if (mounted) {
+          Navigator.of(context).pop(newSource.id); // Return ID for transaction form
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Income source added')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

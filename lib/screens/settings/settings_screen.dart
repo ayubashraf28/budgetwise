@@ -5,6 +5,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
 import '../../providers/providers.dart';
+import 'currency_picker_sheet.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -13,6 +14,8 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authStateProvider);
     final user = authState.valueOrNull;
+    final currentCurrency = ref.watch(currencyProvider);
+    final currentSymbol = ref.watch(currencySymbolProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -62,15 +65,16 @@ class SettingsScreen extends ConsumerWidget {
               _SettingsTile(
                 icon: LucideIcons.poundSterling,
                 title: 'Currency',
-                trailing: const Text(
-                  'GBP',
-                  style: TextStyle(color: AppColors.textSecondary),
+                trailing: Text(
+                  '$currentSymbol $currentCurrency',
+                  style: const TextStyle(color: AppColors.textSecondary),
                 ),
                 onTap: () {
                   HapticFeedback.selectionClick();
-                  // TODO: Show currency picker
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Currency settings coming soon')),
+                  showModalBottomSheet(
+                    context: context,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) => const CurrencyPickerSheet(),
                   );
                 },
               ),

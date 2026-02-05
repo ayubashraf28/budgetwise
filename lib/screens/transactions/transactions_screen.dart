@@ -16,20 +16,11 @@ class TransactionsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final transactionsAsync = ref.watch(transactionsProvider);
     final transactionsByDate = ref.watch(transactionsByDateProvider);
+    final currencySymbol = ref.watch(currencySymbolProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Transactions'),
-        leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.plus),
-            onPressed: () => _showAddSheet(context, ref),
-          ),
-        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -40,16 +31,11 @@ class TransactionsScreen extends ConsumerWidget {
             if (transactions.isEmpty) {
               return _buildEmptyState(context, ref);
             }
-            return _buildTransactionsList(context, ref, transactionsByDate);
+            return _buildTransactionsList(context, ref, transactionsByDate, currencySymbol);
           },
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (error, stack) => _buildErrorState(error.toString()),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddSheet(context, ref),
-        backgroundColor: AppColors.primary,
-        child: const Icon(LucideIcons.plus, color: Colors.white),
       ),
     );
   }
@@ -58,6 +44,7 @@ class TransactionsScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     Map<DateTime, List<Transaction>> transactionsByDate,
+    String currencySymbol,
   ) {
     final sortedDates = transactionsByDate.keys.toList();
 
@@ -127,7 +114,21 @@ class TransactionsScreen extends ConsumerWidget {
                         },
                         child: TransactionListItem(
                           transaction: transaction,
-                          onTap: () => _showEditSheet(context, ref, transaction),
+                          currencySymbol: currencySymbol,
+                          onEdit: () => _showEditSheet(context, ref, transaction),
+                          onDelete: () async {
+                            final confirmed = await _showDeleteConfirmation(context);
+                            if (confirmed) {
+                              ref
+                                  .read(transactionNotifierProvider.notifier)
+                                  .deleteTransaction(transaction.id);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Transaction deleted')),
+                                );
+                              }
+                            }
+                          },
                         ),
                       ),
                       if (!isLast)

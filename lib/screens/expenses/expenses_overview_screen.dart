@@ -18,14 +18,11 @@ class ExpensesOverviewScreen extends ConsumerWidget {
     final totalProjected = ref.watch(totalProjectedExpensesProvider);
     final totalActual = ref.watch(totalActualExpensesProvider);
     final overBudgetCategories = ref.watch(overBudgetCategoriesProvider);
+    final currencySymbol = ref.watch(currencySymbolProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Expenses'),
-        leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -37,7 +34,7 @@ class ExpensesOverviewScreen extends ConsumerWidget {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
-                child: _buildSummaryCard(totalProjected, totalActual),
+                child: _buildSummaryCard(totalProjected, totalActual, currencySymbol),
               ),
             ),
 
@@ -82,7 +79,7 @@ class ExpensesOverviewScreen extends ConsumerWidget {
                         final category = categoryList[index];
                         return Padding(
                           padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                          child: _buildCategoryItem(context, ref, category),
+                          child: _buildCategoryItem(context, ref, category, currencySymbol),
                         );
                       },
                       childCount: categoryList.length,
@@ -121,7 +118,7 @@ class ExpensesOverviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryCard(double totalProjected, double totalActual) {
+  Widget _buildSummaryCard(double totalProjected, double totalActual, String currencySymbol) {
     final difference = totalProjected - totalActual;
     final isUnderBudget = difference >= 0;
 
@@ -140,9 +137,9 @@ class ExpensesOverviewScreen extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          _buildSummaryRow('Total Budget', totalProjected),
+          _buildSummaryRow('Total Budget', totalProjected, currencySymbol),
           const SizedBox(height: AppSpacing.sm),
-          _buildSummaryRow('Total Spent', totalActual),
+          _buildSummaryRow('Total Spent', totalActual, currencySymbol),
           const Divider(height: AppSpacing.lg, color: AppColors.border),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -160,7 +157,7 @@ class ExpensesOverviewScreen extends ConsumerWidget {
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Text(
-                    '\u00A3${difference.abs().toStringAsFixed(0)}',
+                    '$currencySymbol${difference.abs().toStringAsFixed(0)}',
                     style: AppTypography.amountSmall.copyWith(
                       color: isUnderBudget ? AppColors.success : AppColors.error,
                     ),
@@ -174,13 +171,13 @@ class ExpensesOverviewScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryRow(String label, double amount) {
+  Widget _buildSummaryRow(String label, double amount, String currencySymbol) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: AppTypography.bodyMedium),
         Text(
-          '\u00A3${amount.toStringAsFixed(0)}',
+          '$currencySymbol${amount.toStringAsFixed(0)}',
           style: AppTypography.amountSmall,
         ),
       ],
@@ -219,6 +216,7 @@ class ExpensesOverviewScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     Category category,
+    String currencySymbol,
   ) {
     return Dismissible(
       key: Key(category.id),
@@ -243,6 +241,7 @@ class ExpensesOverviewScreen extends ConsumerWidget {
       },
       child: CategoryListItem(
         category: category,
+        currencySymbol: currencySymbol,
         onTap: () {
           context.push('/budget/category/${category.id}');
         },

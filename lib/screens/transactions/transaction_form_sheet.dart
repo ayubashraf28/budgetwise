@@ -10,6 +10,9 @@ import '../../models/category.dart';
 import '../../models/item.dart';
 import '../../models/income_source.dart';
 import '../../providers/providers.dart';
+import '../expenses/category_form_sheet.dart';
+import '../expenses/item_form_sheet.dart';
+import '../income/income_form_sheet.dart';
 
 class TransactionFormSheet extends ConsumerStatefulWidget {
   final Transaction? transaction;
@@ -65,6 +68,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   Widget build(BuildContext context) {
     final categories = ref.watch(categoriesProvider).value ?? [];
     final incomeSources = ref.watch(incomeSourcesProvider).value ?? [];
+    final currencySymbol = ref.watch(currencySymbolProvider);
 
     // Get items for selected category
     List<Item> items = [];
@@ -132,9 +136,9 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   const SizedBox(height: AppSpacing.sm),
                   TextFormField(
                     controller: _amountController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: '0.00',
-                      prefixText: '\u00A3 ',
+                      prefixText: '$currencySymbol ',
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
@@ -156,19 +160,101 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   // Show Category/Item for expenses, Income Source for income
                   if (_transactionType == TransactionType.expense) ...[
                     // Category Dropdown
-                    _buildLabel('Category'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildLabel('Category'),
+                        InkWell(
+                          onTap: () => _handleAddCategory(context),
+                          borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: 2),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(LucideIcons.plus, size: 16, color: AppColors.primary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'New',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: AppSpacing.sm),
                     _buildCategoryDropdown(categories),
                     const SizedBox(height: AppSpacing.lg),
 
                     // Item Dropdown
-                    _buildLabel('Item'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildLabel('Item'),
+                        if (_selectedCategoryId != null)
+                          InkWell(
+                            onTap: () => _handleAddItem(context),
+                            borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: 2),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(LucideIcons.plus, size: 16, color: AppColors.primary),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'New',
+                                    style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                     const SizedBox(height: AppSpacing.sm),
                     _buildItemDropdown(items),
                     const SizedBox(height: AppSpacing.lg),
                   ] else ...[
                     // Income Source Dropdown
-                    _buildLabel('Income Source'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        _buildLabel('Income Source'),
+                        InkWell(
+                          onTap: () => _handleAddIncomeSource(context),
+                          borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: 2),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(LucideIcons.plus, size: 16, color: AppColors.primary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'New',
+                                  style: TextStyle(
+                                    color: AppColors.primary,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                     const SizedBox(height: AppSpacing.sm),
                     _buildIncomeSourceDropdown(incomeSources),
                     const SizedBox(height: AppSpacing.lg),
@@ -524,6 +610,62 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     return icons[iconName] ?? LucideIcons.wallet;
   }
 
+  Future<void> _handleAddCategory(BuildContext context) async {
+    final newCategoryId = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const CategoryFormSheet(),
+    );
+    if (newCategoryId != null && mounted) {
+      // Wait for new categories to load BEFORE setting the selected ID
+      await ref.refresh(categoriesProvider.future);
+      if (mounted) {
+        setState(() {
+          _selectedCategoryId = newCategoryId;
+          _selectedItemId = null;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleAddItem(BuildContext context) async {
+    if (_selectedCategoryId == null) return;
+    final newItemId = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ItemFormSheet(categoryId: _selectedCategoryId!),
+    );
+    if (newItemId != null && mounted) {
+      // Wait for categories (with items) to load BEFORE setting the selected ID
+      await ref.refresh(categoriesProvider.future);
+      if (mounted) {
+        setState(() {
+          _selectedItemId = newItemId;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleAddIncomeSource(BuildContext context) async {
+    final newSourceId = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const IncomeFormSheet(),
+    );
+    if (newSourceId != null && mounted) {
+      // Wait for income sources to load BEFORE setting the selected ID
+      await ref.refresh(incomeSourcesProvider.future);
+      if (mounted) {
+        setState(() {
+          _selectedIncomeSourceId = newSourceId;
+        });
+      }
+    }
+  }
+
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -575,6 +717,17 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       }
 
       if (mounted) {
+        // Refresh category and income data to update actual amounts
+        // Use refresh().future to WAIT for data to load before closing
+        await ref.refresh(categoriesProvider.future);
+        await ref.refresh(incomeSourcesProvider.future);
+
+        // Also refresh specific category to update item-level amounts
+        if (_selectedCategoryId != null) {
+          await ref.refresh(categoryByIdProvider(_selectedCategoryId!).future);
+        }
+
+        if (!mounted) return;
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

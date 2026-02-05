@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/constants.dart';
 import '../models/user_profile.dart';
 import '../services/profile_service.dart';
 
@@ -72,4 +73,16 @@ class ProfileNotifier extends AsyncNotifier<UserProfile?> {
 
 final profileNotifierProvider = AsyncNotifierProvider<ProfileNotifier, UserProfile?>(() {
   return ProfileNotifier();
+});
+
+/// Provider for the current currency code (e.g., 'GBP', 'USD')
+final currencyProvider = Provider<String>((ref) {
+  final profile = ref.watch(userProfileProvider).valueOrNull;
+  return profile?.currency ?? AppConstants.defaultCurrency;
+});
+
+/// Provider for the current currency symbol (e.g., '£', '$')
+final currencySymbolProvider = Provider<String>((ref) {
+  final currency = ref.watch(currencyProvider);
+  return AppConstants.currencySymbols[currency] ?? '\u00A3';
 });

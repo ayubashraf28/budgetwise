@@ -24,6 +24,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _obscurePassword = true;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _isCredentialError = false;
 
   @override
   void dispose() {
@@ -38,6 +39,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _isCredentialError = false;
     });
 
     try {
@@ -52,6 +54,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e) {
       setState(() {
         _errorMessage = _getErrorMessage(e.toString());
+        _isCredentialError = e.toString().toLowerCase().contains('invalid login credentials') ||
+            e.toString().toLowerCase().contains('invalid email or password');
       });
     } finally {
       if (mounted) {
@@ -67,7 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     if (errorLower.contains('invalid login credentials') ||
         errorLower.contains('invalid email or password')) {
-      return 'The email or password you entered is incorrect';
+      return 'The email or password you entered is incorrect. Please check your email address exists and your password is correct.';
     }
     if (errorLower.contains('email not confirmed')) {
       return 'Please verify your email before logging in';
@@ -127,9 +131,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       curve: Curves.easeOutBack,
                       builder: (context, value, child) {
                         return Transform.scale(
-                          scale: value,
+                          scale: value.clamp(0.0, 1.0),
                           child: Opacity(
-                            opacity: value,
+                            opacity: value.clamp(0.0, 1.0),
                             child: child,
                           ),
                         );
@@ -137,10 +141,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       child: Container(
                         padding: const EdgeInsets.all(AppSpacing.md),
                         decoration: BoxDecoration(
-                          color: AppColors.error.withValues(alpha: 0.1),
+                          color: AppColors.error.withAlpha(25),
                           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                           border: Border.all(
-                            color: AppColors.error.withValues(alpha: 0.3),
+                            color: AppColors.error.withAlpha(76),
                             width: 1,
                           ),
                         ),
@@ -175,10 +179,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   Text(
                                     _errorMessage!,
                                     style: TextStyle(
-                                      color: AppColors.error.withValues(alpha: 0.8),
+                                      color: AppColors.error.withAlpha(204),
                                       fontSize: 13,
                                     ),
                                   ),
+                                  if (_isCredentialError) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      "If you don't have an account, sign up below.",
+                                      style: TextStyle(
+                                        color: AppColors.error.withAlpha(178),
+                                        fontSize: 12,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -191,6 +206,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               onPressed: () {
                                 setState(() {
                                   _errorMessage = null;
+                                  _isCredentialError = false;
                                 });
                               },
                             ),
@@ -202,39 +218,61 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   ],
 
                   // Email Field
-                  AppTextField(
-                    controller: _emailController,
-                    labelText: 'Email',
-                    hintText: 'Enter your email',
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    prefixIcon: const Icon(Icons.email_outlined),
-                    validator: EmailValidator.validate,
+                  Container(
+                    decoration: _isCredentialError
+                        ? BoxDecoration(
+                            border: Border.all(color: AppColors.error, width: 1.5),
+                            borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                          )
+                        : null,
+                    child: AppTextField(
+                      controller: _emailController,
+                      labelText: 'Email',
+                      hintText: 'Enter your email',
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.next,
+                      prefixIcon: Icon(
+                        Icons.email_outlined,
+                        color: _isCredentialError ? AppColors.error : null,
+                      ),
+                      validator: EmailValidator.validate,
+                    ),
                   ),
                   const SizedBox(height: 16),
 
                   // Password Field
-                  AppTextField(
-                    controller: _passwordController,
-                    labelText: 'Password',
-                    hintText: 'Enter your password',
-                    obscureText: _obscurePassword,
-                    textInputAction: TextInputAction.done,
-                    prefixIcon: const Icon(Icons.lock_outlined),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
+                  Container(
+                    decoration: _isCredentialError
+                        ? BoxDecoration(
+                            border: Border.all(color: AppColors.error, width: 1.5),
+                            borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                          )
+                        : null,
+                    child: AppTextField(
+                      controller: _passwordController,
+                      labelText: 'Password',
+                      hintText: 'Enter your password',
+                      obscureText: _obscurePassword,
+                      textInputAction: TextInputAction.done,
+                      prefixIcon: Icon(
+                        Icons.lock_outlined,
+                        color: _isCredentialError ? AppColors.error : null,
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _obscurePassword = !_obscurePassword;
-                        });
-                      },
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _obscurePassword = !_obscurePassword;
+                          });
+                        },
+                      ),
+                      validator: PasswordValidator.validate,
+                      onSubmitted: (_) => _handleLogin(),
                     ),
-                    validator: PasswordValidator.validate,
-                    onSubmitted: (_) => _handleLogin(),
                   ),
                   const SizedBox(height: 8),
 

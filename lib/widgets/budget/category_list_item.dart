@@ -11,12 +11,14 @@ class CategoryListItem extends StatelessWidget {
   final Category category;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+  final String currencySymbol;
 
   const CategoryListItem({
     super.key,
     required this.category,
     this.onTap,
     this.onLongPress,
+    this.currencySymbol = '\u00A3',
   });
 
   @override
@@ -86,7 +88,7 @@ class CategoryListItem extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '\u00A3${category.totalActual.toStringAsFixed(0)} / \u00A3${category.totalProjected.toStringAsFixed(0)}',
+                          '$currencySymbol${category.totalActual.toStringAsFixed(0)} / $currencySymbol${category.totalProjected.toStringAsFixed(0)}',
                           style: const TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 14,
@@ -104,6 +106,7 @@ class CategoryListItem extends StatelessWidget {
                     DifferenceIndicator(
                       projected: category.totalProjected,
                       actual: category.totalActual,
+                      currencySymbol: currencySymbol,
                     ),
                   ],
                 ),

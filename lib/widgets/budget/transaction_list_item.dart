@@ -9,12 +9,18 @@ class TransactionListItem extends StatelessWidget {
   final Transaction transaction;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
+  final String currencySymbol;
 
   const TransactionListItem({
     super.key,
     required this.transaction,
     this.onTap,
     this.onLongPress,
+    this.onEdit,
+    this.onDelete,
+    this.currencySymbol = '\u00A3',
   });
 
   @override
@@ -75,17 +81,62 @@ class TransactionListItem extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
-
               // Amount
               Text(
-                transaction.formattedAmount('\u00A3'),
+                transaction.formattedAmount(currencySymbol),
                 style: TextStyle(
                   color: amountColor,
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                 ),
               ),
+
+              // More options menu
+              if (onEdit != null || onDelete != null)
+                PopupMenuButton<String>(
+                  icon: const Icon(
+                    LucideIcons.moreVertical,
+                    size: 20,
+                    color: AppColors.textMuted,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  color: AppColors.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                  ),
+                  onSelected: (value) {
+                    if (value == 'edit' && onEdit != null) {
+                      onEdit!();
+                    } else if (value == 'delete' && onDelete != null) {
+                      onDelete!();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    if (onEdit != null)
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(LucideIcons.pencil, size: 18, color: AppColors.textSecondary),
+                            SizedBox(width: 12),
+                            Text('Edit'),
+                          ],
+                        ),
+                      ),
+                    if (onDelete != null)
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(LucideIcons.trash2, size: 18, color: AppColors.error),
+                            SizedBox(width: 12),
+                            Text('Delete', style: TextStyle(color: AppColors.error)),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
             ],
           ),
         ),

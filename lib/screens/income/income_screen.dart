@@ -16,6 +16,7 @@ class IncomeScreen extends ConsumerWidget {
     final incomeSources = ref.watch(incomeSourcesProvider);
     final totalProjected = ref.watch(totalProjectedIncomeProvider);
     final totalActual = ref.watch(totalActualIncomeProvider);
+    final currencySymbol = ref.watch(currencySymbolProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -35,7 +36,7 @@ class IncomeScreen extends ConsumerWidget {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.md),
-                child: _buildSummaryCard(totalProjected, totalActual),
+                child: _buildSummaryCard(totalProjected, totalActual, currencySymbol),
               ),
             ),
 
@@ -71,7 +72,7 @@ class IncomeScreen extends ConsumerWidget {
                         final source = sources[index];
                         return Padding(
                           padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                          child: _buildIncomeSourceItem(context, ref, source),
+                          child: _buildIncomeSourceItem(context, ref, source, currencySymbol),
                         );
                       },
                       childCount: sources.length,
@@ -110,7 +111,7 @@ class IncomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryCard(double totalProjected, double totalActual) {
+  Widget _buildSummaryCard(double totalProjected, double totalActual, String currencySymbol) {
     final difference = totalActual - totalProjected;
     final isAhead = difference >= 0;
 
@@ -129,9 +130,9 @@ class IncomeScreen extends ConsumerWidget {
       ),
       child: Column(
         children: [
-          _buildSummaryRow('Total Projected', totalProjected),
+          _buildSummaryRow('Total Projected', totalProjected, currencySymbol),
           const SizedBox(height: AppSpacing.sm),
-          _buildSummaryRow('Total Actual', totalActual),
+          _buildSummaryRow('Total Actual', totalActual, currencySymbol),
           const Divider(height: AppSpacing.lg, color: AppColors.border),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -149,7 +150,7 @@ class IncomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Text(
-                    '${isAhead ? '+' : ''}\u00A3${difference.toStringAsFixed(0)}',
+                    '${isAhead ? '+' : ''}$currencySymbol${difference.toStringAsFixed(0)}',
                     style: AppTypography.amountSmall.copyWith(
                       color: isAhead ? AppColors.success : AppColors.error,
                     ),
@@ -163,13 +164,13 @@ class IncomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryRow(String label, double amount) {
+  Widget _buildSummaryRow(String label, double amount, String currencySymbol) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: AppTypography.bodyMedium),
         Text(
-          '\u00A3${amount.toStringAsFixed(0)}',
+          '$currencySymbol${amount.toStringAsFixed(0)}',
           style: AppTypography.amountSmall,
         ),
       ],
@@ -180,6 +181,7 @@ class IncomeScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     IncomeSource source,
+    String currencySymbol,
   ) {
     return Dismissible(
       key: Key(source.id),
@@ -228,7 +230,7 @@ class IncomeScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  '\u00A3${source.actual.toStringAsFixed(0)} / \u00A3${source.projected.toStringAsFixed(0)}',
+                  '$currencySymbol${source.actual.toStringAsFixed(0)} / $currencySymbol${source.projected.toStringAsFixed(0)}',
                   style: AppTypography.bodyMedium,
                 ),
                 const SizedBox(height: AppSpacing.sm),

@@ -350,23 +350,24 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
           icon: _selectedIcon,
           color: _selectedColor,
         );
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Category updated')),
+          );
+        }
       } else {
-        await notifier.addCategory(
+        final newCategory = await notifier.addCategory(
           name: name,
           icon: _selectedIcon,
           color: _selectedColor,
         );
-      }
-
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isEditing ? 'Category updated' : 'Category added',
-            ),
-          ),
-        );
+        if (mounted) {
+          Navigator.of(context).pop(newCategory.id); // Return ID for transaction form
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Category added')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

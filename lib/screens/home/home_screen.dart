@@ -15,6 +15,7 @@ class HomeScreen extends ConsumerWidget {
     final activeMonth = ref.watch(activeMonthProvider);
     final summary = ref.watch(monthlySummaryProvider);
     final categories = ref.watch(categoriesProvider);
+    final currencySymbol = ref.watch(currencySymbolProvider);
 
     return Scaffold(
       body: RefreshIndicator(
@@ -27,17 +28,19 @@ class HomeScreen extends ConsumerWidget {
           slivers: [
             // Gradient Header
             SliverToBoxAdapter(
-              child: _buildHeader(context, ref, activeMonth, summary),
+              child: _buildHeader(context, ref, activeMonth, summary, currencySymbol),
             ),
 
             // Quick Stats Row
             SliverToBoxAdapter(
-              child: Transform.translate(
-                offset: const Offset(0, -AppSpacing.md),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  child: _buildQuickStats(context, ref, summary),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  AppSpacing.sm,
+                  AppSpacing.md,
+                  0,
                 ),
+                child: _buildQuickStats(context, ref, summary, currencySymbol),
               ),
             ),
 
@@ -46,7 +49,7 @@ class HomeScreen extends ConsumerWidget {
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
                   AppSpacing.md,
-                  AppSpacing.lg,
+                  AppSpacing.md,
                   AppSpacing.md,
                   AppSpacing.sm,
                 ),
@@ -75,6 +78,7 @@ class HomeScreen extends ConsumerWidget {
                           padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                           child: CategoryListItem(
                             category: category,
+                            currencySymbol: currencySymbol,
                             onTap: () {
                               // Navigate to category detail
                               context.push('/budget/category/${category.id}');
@@ -115,6 +119,7 @@ class HomeScreen extends ConsumerWidget {
     WidgetRef ref,
     AsyncValue<dynamic> activeMonth,
     dynamic summary,
+    String currencySymbol,
   ) {
     final monthName = activeMonth.value?.name ?? 'Loading...';
 
@@ -168,6 +173,7 @@ class HomeScreen extends ConsumerWidget {
               BalanceCard(
                 projectedBalance: summary?.projectedBalance ?? 0,
                 actualBalance: summary?.actualBalance ?? 0,
+                currencySymbol: currencySymbol,
               ),
               const SizedBox(height: AppSpacing.lg),
             ],
@@ -181,6 +187,7 @@ class HomeScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     dynamic summary,
+    String currencySymbol,
   ) {
     final projectedIncome = summary?.projectedIncome ?? 0.0;
     final actualIncome = summary?.actualIncome ?? 0.0;
@@ -195,6 +202,7 @@ class HomeScreen extends ConsumerWidget {
           actual: actualIncome,
           projected: projectedIncome,
           color: AppColors.success,
+          currencySymbol: currencySymbol,
           onTap: () {
             context.push('/income');
           },
@@ -206,6 +214,7 @@ class HomeScreen extends ConsumerWidget {
           actual: actualExpenses,
           projected: projectedExpenses,
           color: AppColors.error,
+          currencySymbol: currencySymbol,
           onTap: () {
             context.push('/expenses');
           },

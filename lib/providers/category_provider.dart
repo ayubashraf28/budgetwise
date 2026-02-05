@@ -49,11 +49,31 @@ final categoriesProvider = FutureProvider<List<Category>>((ref) async {
   }).toList();
 });
 
-/// Get a single category by ID
+/// Get a single category by ID (with calculated actuals from transactions)
 final categoryByIdProvider =
     FutureProvider.family<Category?, String>((ref, categoryId) async {
   final service = ref.read(categoryServiceProvider);
-  return service.getCategoryById(categoryId);
+  final transactionService = ref.read(_transactionServiceProvider);
+
+  final category = await service.getCategoryById(categoryId);
+  if (category == null) return null;
+
+  // Fetch transactions for this category's month to calculate actuals
+  final transactions = await transactionService.getTransactionsForMonth(category.monthId);
+
+  // Calculate actuals for each item from transactions
+  final updatedItems = category.items?.map((item) {
+    final itemTransactions = transactions.where(
+      (tx) => tx.itemId == item.id && tx.type == TransactionType.expense,
+    );
+    final actual = itemTransactions.fold<double>(
+      0.0,
+      (sum, tx) => sum + tx.amount,
+    );
+    return item.copyWith(actual: actual);
+  }).toList();
+
+  return category.copyWith(items: updatedItems);
 });
 
 /// Categories that are over budget

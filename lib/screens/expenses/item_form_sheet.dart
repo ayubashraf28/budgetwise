@@ -52,6 +52,8 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final currencySymbol = ref.watch(currencySymbolProvider);
+
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
@@ -122,9 +124,9 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                   const SizedBox(height: AppSpacing.sm),
                   TextFormField(
                     controller: _projectedController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: '0.00',
-                      prefixText: '\u00A3 ',
+                      prefixText: '$currencySymbol ',
                     ),
                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
@@ -239,24 +241,25 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
           isRecurring: _isRecurring,
           notes: notes.isEmpty ? null : notes,
         );
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Item updated')),
+          );
+        }
       } else {
-        await notifier.addItem(
+        final newItem = await notifier.addItem(
           name: name,
           projected: projected,
           isRecurring: _isRecurring,
           notes: notes.isEmpty ? null : notes,
         );
-      }
-
-      if (mounted) {
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isEditing ? 'Item updated' : 'Item added',
-            ),
-          ),
-        );
+        if (mounted) {
+          Navigator.of(context).pop(newItem.id); // Return ID for transaction form
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Item added')),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {

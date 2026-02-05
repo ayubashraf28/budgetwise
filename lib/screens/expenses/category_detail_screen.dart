@@ -7,6 +7,7 @@ import '../../models/category.dart';
 import '../../models/item.dart';
 import '../../providers/providers.dart';
 import '../../widgets/budget/budget_widgets.dart';
+import 'category_form_sheet.dart';
 import 'item_form_sheet.dart';
 
 class CategoryDetailScreen extends ConsumerWidget {
@@ -20,6 +21,7 @@ class CategoryDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final categoryAsync = ref.watch(categoryByIdProvider(categoryId));
+    final currencySymbol = ref.watch(currencySymbolProvider);
 
     return categoryAsync.when(
       data: (category) {
@@ -36,7 +38,7 @@ class CategoryDetailScreen extends ConsumerWidget {
             ),
           );
         }
-        return _buildScreen(context, ref, category);
+        return _buildScreen(context, ref, category, currencySymbol);
       },
       loading: () => Scaffold(
         appBar: AppBar(
@@ -59,7 +61,7 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildScreen(BuildContext context, WidgetRef ref, Category category) {
+  Widget _buildScreen(BuildContext context, WidgetRef ref, Category category, String currencySymbol) {
     final items = category.items ?? [];
 
     return Scaffold(
@@ -72,12 +74,48 @@ class CategoryDetailScreen extends ConsumerWidget {
           slivers: [
             // Colored Header
             SliverAppBar(
-              expandedHeight: 200,
+              expandedHeight: 280,
               pinned: true,
               leading: IconButton(
                 icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
                 onPressed: () => Navigator.of(context).pop(),
               ),
+              actions: [
+                PopupMenuButton<String>(
+                  icon: const Icon(LucideIcons.moreVertical, color: Colors.white),
+                  color: AppColors.surface,
+                  onSelected: (value) {
+                    switch (value) {
+                      case 'edit':
+                        _showEditCategorySheet(context, ref, category);
+                      case 'delete':
+                        _showDeleteCategoryConfirmation(context, ref, category);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(LucideIcons.pencil, size: 18),
+                          SizedBox(width: 8),
+                          Text('Edit Category'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(LucideIcons.trash2, size: 18, color: AppColors.error),
+                          SizedBox(width: 8),
+                          Text('Delete Category', style: TextStyle(color: AppColors.error)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
               backgroundColor: category.colorValue,
               flexibleSpace: FlexibleSpaceBar(
                 background: Container(
@@ -122,9 +160,9 @@ class CategoryDetailScreen extends ConsumerWidget {
                               ),
                             ],
                           ),
-                          const Spacer(),
+                          const SizedBox(height: AppSpacing.md),
                           // Budget Summary
-                          _buildSummaryCard(category),
+                          _buildSummaryCard(category, currencySymbol),
                         ],
                       ),
                     ),
@@ -169,7 +207,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                       final item = items[index];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: _buildItemCard(context, ref, category, item),
+                        child: _buildItemCard(context, ref, category, item, currencySymbol),
                       );
                     },
                     childCount: items.length,
@@ -195,7 +233,7 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryCard(Category category) {
+  Widget _buildSummaryCard(Category category, String currencySymbol) {
     final isOverBudget = category.isOverBudget;
 
     return Column(
@@ -207,7 +245,7 @@ class CategoryDetailScreen extends ConsumerWidget {
           textBaseline: TextBaseline.alphabetic,
           children: [
             Text(
-              '\u00A3${category.totalActual.toStringAsFixed(0)}',
+              '$currencySymbol${category.totalActual.toStringAsFixed(0)}',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 32,
@@ -215,7 +253,7 @@ class CategoryDetailScreen extends ConsumerWidget {
               ),
             ),
             Text(
-              ' / \u00A3${category.totalProjected.toStringAsFixed(0)}',
+              ' / $currencySymbol${category.totalProjected.toStringAsFixed(0)}',
               style: TextStyle(
                 color: Colors.white.withValues(alpha: 0.7),
                 fontSize: 18,
@@ -236,8 +274,8 @@ class CategoryDetailScreen extends ConsumerWidget {
         // Status text
         Text(
           isOverBudget
-              ? '\u00A3${category.difference.abs().toStringAsFixed(0)} over budget'
-              : '\u00A3${category.difference.abs().toStringAsFixed(0)} remaining',
+              ? '$currencySymbol${category.difference.abs().toStringAsFixed(0)} over budget'
+              : '$currencySymbol${category.difference.abs().toStringAsFixed(0)} remaining',
           style: TextStyle(
             color: isOverBudget ? Colors.red.shade200 : Colors.white.withValues(alpha: 0.8),
             fontSize: 14,
@@ -253,6 +291,7 @@ class CategoryDetailScreen extends ConsumerWidget {
     WidgetRef ref,
     Category category,
     Item item,
+    String currencySymbol,
   ) {
     return Dismissible(
       key: Key(item.id),
@@ -271,27 +310,24 @@ class CategoryDetailScreen extends ConsumerWidget {
       },
       onDismissed: (direction) {
         ref.read(itemNotifierProvider(categoryId).notifier).deleteItem(item.id);
+        // Refresh the category data after delete
+        ref.invalidate(categoryByIdProvider(categoryId));
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${item.name} deleted')),
         );
       },
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _showEditSheet(context, ref, category, item),
+      child: Container(
+        padding: AppSpacing.cardPadding,
+        decoration: BoxDecoration(
+          color: item.isOverBudget
+              ? AppColors.error.withValues(alpha: 0.1)
+              : AppColors.surface,
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          child: Container(
-            padding: AppSpacing.cardPadding,
-            decoration: BoxDecoration(
-              color: item.isOverBudget
-                  ? AppColors.error.withValues(alpha: 0.1)
-                  : AppColors.surface,
-              borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-              border: item.isOverBudget
-                  ? Border.all(color: AppColors.error.withValues(alpha: 0.3))
-                  : null,
-            ),
-            child: Column(
+          border: item.isOverBudget
+              ? Border.all(color: AppColors.error.withValues(alpha: 0.3))
+              : null,
+        ),
+        child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
@@ -303,12 +339,12 @@ class CategoryDetailScreen extends ConsumerWidget {
                         style: AppTypography.labelLarge,
                       ),
                     ),
-                    _buildItemStatusBadge(item),
+                    _buildItemStatusBadge(item, currencySymbol),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  '\u00A3${item.actual.toStringAsFixed(0)} / \u00A3${item.projected.toStringAsFixed(0)}',
+                  '$currencySymbol${item.actual.toStringAsFixed(0)} / $currencySymbol${item.projected.toStringAsFixed(0)}',
                   style: AppTypography.bodyMedium,
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -326,15 +362,94 @@ class CategoryDetailScreen extends ConsumerWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
+                const SizedBox(height: AppSpacing.sm),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {}, // Consume tap to prevent parent InkWell from triggering
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      InkWell(
+                        onTap: () async {
+                          await _showEditSheet(context, ref, category, item);
+                          // Refresh the category data after edit
+                          ref.invalidate(categoryByIdProvider(categoryId));
+                        },
+                        borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm,
+                            vertical: AppSpacing.xs,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                LucideIcons.pencil,
+                                size: 14,
+                                color: AppColors.textSecondary,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Edit',
+                                style: TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      InkWell(
+                        onTap: () async {
+                          final confirmed = await _showDeleteConfirmation(context, item);
+                          if (confirmed && context.mounted) {
+                            await ref.read(itemNotifierProvider(categoryId).notifier).deleteItem(item.id);
+                            // Refresh the category data after delete
+                            ref.invalidate(categoryByIdProvider(categoryId));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('${item.name} deleted')),
+                              );
+                            }
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: AppSpacing.sm,
+                            vertical: AppSpacing.xs,
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                LucideIcons.trash2,
+                                size: 14,
+                                color: AppColors.error,
+                              ),
+                              SizedBox(width: 4),
+                              Text(
+                                'Delete',
+                                style: TextStyle(
+                                  color: AppColors.error,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
-        ),
-      ),
-    );
+        );
   }
 
-  Widget _buildItemStatusBadge(Item item) {
+  Widget _buildItemStatusBadge(Item item, String currencySymbol) {
     String label;
     Color color;
 
@@ -342,7 +457,7 @@ class CategoryDetailScreen extends ConsumerWidget {
       label = 'No budget';
       color = AppColors.textMuted;
     } else if (item.isOverBudget) {
-      label = '+\u00A3${(item.actual - item.projected).toStringAsFixed(0)}';
+      label = '+$currencySymbol${(item.actual - item.projected).toStringAsFixed(0)}';
       color = AppColors.error;
     } else if (item.actual == item.projected) {
       label = 'On budget';
@@ -442,22 +557,24 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
   }
 
-  void _showAddSheet(BuildContext context, WidgetRef ref, Category category) {
-    showModalBottomSheet(
+  Future<void> _showAddSheet(BuildContext context, WidgetRef ref, Category category) async {
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => ItemFormSheet(categoryId: category.id),
     );
+    // Refresh the category data after adding item
+    ref.invalidate(categoryByIdProvider(categoryId));
   }
 
-  void _showEditSheet(
+  Future<void> _showEditSheet(
     BuildContext context,
     WidgetRef ref,
     Category category,
     Item item,
-  ) {
-    showModalBottomSheet(
+  ) async {
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -491,6 +608,53 @@ class CategoryDetailScreen extends ConsumerWidget {
           ),
         ) ??
         false;
+  }
+
+  void _showEditCategorySheet(BuildContext context, WidgetRef ref, Category category) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CategoryFormSheet(category: category),
+    );
+  }
+
+  Future<void> _showDeleteCategoryConfirmation(
+    BuildContext context,
+    WidgetRef ref,
+    Category category,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text('Delete Category?'),
+        content: Text(
+          'This will permanently delete "${category.name}" and all its items and transactions.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      await ref.read(categoryNotifierProvider.notifier).deleteCategory(category.id);
+      if (context.mounted) {
+        Navigator.of(context).pop(); // Navigate back after deletion
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${category.name} deleted')),
+        );
+      }
+    }
   }
 
   IconData _getIcon(String iconName) {
