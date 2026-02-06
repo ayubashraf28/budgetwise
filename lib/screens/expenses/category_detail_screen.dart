@@ -356,7 +356,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                 ),
                 child: Icon(
-                  LucideIcons.receipt,
+                  _getItemIcon(item.name),
                   color: color,
                   size: 20,
                 ),
@@ -787,5 +787,147 @@ class CategoryDetailScreen extends ConsumerWidget {
       'book': LucideIcons.book,
     };
     return icons[iconName] ?? LucideIcons.wallet;
+  }
+
+  IconData _getItemIcon(String itemName) {
+    final name = itemName.toLowerCase().trim();
+
+    // Housing & Utilities
+    if (name.contains('rent') || name.contains('mortgage')) {
+      return LucideIcons.home;
+    }
+    if (name.contains('electricity') || name.contains('electric')) {
+      return LucideIcons.zap;
+    }
+    if (name.contains('gas')) {
+      return LucideIcons.flame;
+    }
+    if (name.contains('water')) {
+      return LucideIcons.droplet;
+    }
+    if (name.contains('internet') || name.contains('wifi') || name.contains('broadband')) {
+      return LucideIcons.wifi;
+    }
+    if (name.contains('council') || name.contains('tax')) {
+      return LucideIcons.fileText;
+    }
+    if (name.contains('insurance')) {
+      return LucideIcons.shield;
+    }
+    if (name.contains('maintenance') || name.contains('repair')) {
+      return LucideIcons.wrench;
+    }
+
+    // Food & Dining
+    if (name.contains('grocery') || name.contains('groceries') || name.contains('food')) {
+      return LucideIcons.shoppingCart;
+    }
+    if (name.contains('dining') || name.contains('restaurant') || name.contains('eat out')) {
+      return LucideIcons.utensilsCrossed;
+    }
+    if (name.contains('coffee') || name.contains('cafe')) {
+      return LucideIcons.coffee;
+    }
+    if (name.contains('takeaway') || name.contains('takeout') || name.contains('delivery')) {
+      return LucideIcons.package;
+    }
+
+    // Transport
+    if (name.contains('fuel') || name.contains('petrol') || name.contains('gasoline')) {
+      return LucideIcons.fuel;
+    }
+    if (name.contains('public transport') || name.contains('bus') || name.contains('train') || name.contains('metro')) {
+      return LucideIcons.bus;
+    }
+    if (name.contains('uber') || name.contains('taxi') || name.contains('cab')) {
+      return LucideIcons.car;
+    }
+    if (name.contains('parking')) {
+      return LucideIcons.parkingCircle;
+    }
+
+    // Subscriptions & Services
+    if (name.contains('netflix') || name.contains('streaming') || name.contains('video')) {
+      return LucideIcons.tv;
+    }
+    if (name.contains('spotify') || name.contains('music') || name.contains('audio')) {
+      return LucideIcons.music;
+    }
+    if (name.contains('gym') || name.contains('fitness') || name.contains('workout')) {
+      return LucideIcons.dumbbell;
+    }
+    if (name.contains('phone') || name.contains('mobile')) {
+      return LucideIcons.smartphone;
+    }
+    if (name.contains('cloud') || name.contains('storage')) {
+      return LucideIcons.cloud;
+    }
+
+    // Personal & Shopping
+    if (name.contains('clothing') || name.contains('clothes') || name.contains('apparel')) {
+      return LucideIcons.shirt;
+    }
+    if (name.contains('haircut') || name.contains('hair') || name.contains('salon')) {
+      return LucideIcons.scissors;
+    }
+    if (name.contains('health') || name.contains('medicine') || name.contains('medical')) {
+      return LucideIcons.heartPulse;
+    }
+    if (name.contains('personal care') || name.contains('hygiene')) {
+      return LucideIcons.sparkles;
+    }
+
+    // Entertainment
+    if (name.contains('game') || name.contains('gaming')) {
+      return LucideIcons.gamepad2;
+    }
+    if (name.contains('movie') || name.contains('cinema') || name.contains('theater')) {
+      return LucideIcons.film;
+    }
+    if (name.contains('event') || name.contains('concert') || name.contains('show')) {
+      return LucideIcons.ticket;
+    }
+    if (name.contains('hobby') || name.contains('hobbies')) {
+      return LucideIcons.palette;
+    }
+
+    // Savings & Investments
+    if (name.contains('saving') || name.contains('emergency fund')) {
+      return LucideIcons.piggyBank;
+    }
+    if (name.contains('investment') || name.contains('stock') || name.contains('crypto')) {
+      return LucideIcons.trendingUp;
+    }
+    if (name.contains('holiday') || name.contains('vacation') || name.contains('travel')) {
+      return LucideIcons.plane;
+    }
+
+    // Education
+    if (name.contains('education') || name.contains('school') || name.contains('tuition')) {
+      return LucideIcons.graduationCap;
+    }
+    if (name.contains('book') || name.contains('course') || name.contains('learning')) {
+      return LucideIcons.bookOpen;
+    }
+
+    // Other common items
+    if (name.contains('subscription') || name.contains('membership')) {
+      return LucideIcons.repeat;
+    }
+    if (name.contains('bill') || name.contains('payment')) {
+      return LucideIcons.fileText;
+    }
+    if (name.contains('bank') || name.contains('fee') || name.contains('charge')) {
+      return LucideIcons.landmark;
+    }
+    if (name.contains('gift') || name.contains('present')) {
+      return LucideIcons.gift;
+    }
+    if (name.contains('charity') || name.contains('donation')) {
+      return LucideIcons.heartHandshake;
+    }
+
+    // Default fallback
+    return LucideIcons.receipt;
   }
 }
