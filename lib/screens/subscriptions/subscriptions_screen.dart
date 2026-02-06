@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 
@@ -19,142 +18,251 @@ class SubscriptionsScreen extends ConsumerWidget {
     final currencySymbol = ref.watch(currencySymbolProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Subscriptions'),
-        actions: [
-          IconButton(
-            icon: const Icon(LucideIcons.plus),
-            onPressed: () => _showAddSheet(context, ref),
-          ),
-        ],
-      ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(subscriptionsProvider);
         },
-        child: subscriptionsAsync.when(
-          data: (subscriptions) {
-            final active = subscriptions.where((s) => s.isActive).toList();
-            final paused = subscriptions.where((s) => !s.isActive).toList();
-
-            return CustomScrollView(
-              slivers: [
-                // Summary Card
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    child: _buildSummaryCard(totalCost, active.length, currencySymbol),
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
+            // Custom header
+            SliverToBoxAdapter(
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.lg,
+                    AppSpacing.lg,
+                    AppSpacing.sm,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Subscriptions', style: AppTypography.h2),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Manage recurring payments',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Add button
+                      GestureDetector(
+                        onTap: () => _showAddSheet(context, ref),
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.savings.withValues(alpha: 0.15),
+                            borderRadius:
+                                BorderRadius.circular(AppSizing.radiusMd),
+                            border: Border.all(
+                              color: AppColors.savings.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: const Icon(
+                            LucideIcons.plus,
+                            size: 18,
+                            color: AppColors.savings,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+              ),
+            ),
 
-                // Active Section
-                if (active.isNotEmpty) ...[
+            // Content
+            ...subscriptionsAsync.when(
+              data: (subscriptions) {
+                final active =
+                    subscriptions.where((s) => s.isActive).toList();
+                final paused =
+                    subscriptions.where((s) => !s.isActive).toList();
+
+                return <Widget>[
+                  // Summary Card
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.md,
-                        AppSpacing.sm,
-                        AppSpacing.md,
-                        AppSpacing.sm,
-                      ),
-                      child: const Text('Active', style: AppTypography.h3),
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: _buildSummaryCard(
+                          totalCost, active.length, currencySymbol),
                     ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final sub = active[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                            child: _buildSubscriptionCard(context, ref, sub, currencySymbol),
-                          );
-                        },
-                        childCount: active.length,
-                      ),
-                    ),
-                  ),
-                ],
-
-                // Paused Section
-                if (paused.isNotEmpty) ...[
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.md,
-                        AppSpacing.lg,
-                        AppSpacing.md,
-                        AppSpacing.sm,
-                      ),
-                      child: const Text('Paused', style: AppTypography.h3),
-                    ),
-                  ),
-                  SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate(
-                        (context, index) {
-                          final sub = paused[index];
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                            child: _buildSubscriptionCard(context, ref, sub, currencySymbol),
-                          );
-                        },
-                        childCount: paused.length,
-                      ),
-                    ),
-                  ),
-                ],
-
-                // Empty State
-                if (subscriptions.isEmpty)
-                  SliverToBoxAdapter(
-                    child: _buildEmptyState(context, ref),
                   ),
 
-                // Bottom padding
+                  // Active Section
+                  if (active.isNotEmpty) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.md,
+                          AppSpacing.sm,
+                          AppSpacing.md,
+                          AppSpacing.sm,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Active', style: AppTypography.h3),
+                            Text(
+                              '${active.length} ${active.length == 1 ? 'subscription' : 'subscriptions'}',
+                              style: AppTypography.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final sub = active[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(
+                                  bottom: AppSpacing.sm),
+                              child: _buildSubscriptionCard(
+                                  context, ref, sub, currencySymbol),
+                            );
+                          },
+                          childCount: active.length,
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  // Paused Section
+                  if (paused.isNotEmpty) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.md,
+                          AppSpacing.lg,
+                          AppSpacing.md,
+                          AppSpacing.sm,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Paused', style: AppTypography.h3),
+                            Text(
+                              '${paused.length} ${paused.length == 1 ? 'subscription' : 'subscriptions'}',
+                              style: AppTypography.bodySmall,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            final sub = paused[index];
+                            return Padding(
+                              padding: const EdgeInsets.only(
+                                  bottom: AppSpacing.sm),
+                              child: _buildSubscriptionCard(
+                                  context, ref, sub, currencySymbol),
+                            );
+                          },
+                          childCount: paused.length,
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  // Empty State
+                  if (subscriptions.isEmpty)
+                    SliverToBoxAdapter(
+                      child: _buildEmptyState(context, ref),
+                    ),
+
+                  // Bottom padding
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: AppSpacing.xl),
+                  ),
+                ];
+              },
+              loading: () => [
                 const SliverToBoxAdapter(
-                  child: SizedBox(height: AppSpacing.xl),
+                  child: SizedBox(
+                    height: 400,
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
                 ),
               ],
-            );
-          },
-          loading: () => const SliverToBoxAdapter(
-            child: SizedBox(
-              height: 400,
-              child: Center(child: CircularProgressIndicator()),
+              error: (error, stack) => [
+                SliverToBoxAdapter(
+                  child: _buildErrorState(error.toString()),
+                ),
+              ],
             ),
-          ),
-          error: (error, stack) => SliverToBoxAdapter(
-            child: _buildErrorState(error.toString()),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildSummaryCard(double totalCost, int activeCount, String currencySymbol) {
+  Widget _buildSummaryCard(
+      double totalCost, int activeCount, String currencySymbol) {
+    const color = AppColors.savings;
+
     return Container(
-      padding: AppSpacing.cardPadding,
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Total Monthly Cost', style: AppTypography.bodySmall),
-          const SizedBox(height: AppSpacing.xs),
+          // Icon + title row
+          Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                ),
+                child: const Icon(LucideIcons.repeat, size: 18, color: color),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              const Text(
+                'Monthly Cost',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          // Amount
           Text(
             '$currencySymbol${totalCost.toStringAsFixed(0)}',
-            style: AppTypography.amountLarge,
+            style: AppTypography.amountMedium.copyWith(color: color),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: 2),
           Text(
             '$activeCount ${activeCount == 1 ? 'active subscription' : 'active subscriptions'}',
-            style: AppTypography.bodyMedium,
+            style: TextStyle(
+              fontSize: 12,
+              color: color.withValues(alpha: 0.7),
+            ),
           ),
         ],
       ),
@@ -167,6 +275,8 @@ class SubscriptionsScreen extends ConsumerWidget {
     Subscription sub,
     String currencySymbol,
   ) {
+    final color = sub.colorValue;
+
     return Dismissible(
       key: Key(sub.id),
       direction: DismissDirection.endToStart,
@@ -181,82 +291,71 @@ class SubscriptionsScreen extends ConsumerWidget {
       ),
       confirmDismiss: (direction) => _showDeleteConfirmation(context, sub),
       onDismissed: (_) {
-        ref.read(subscriptionNotifierProvider.notifier).deleteSubscription(sub.id);
+        ref
+            .read(subscriptionNotifierProvider.notifier)
+            .deleteSubscription(sub.id);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${sub.name} deleted')),
         );
       },
       child: Container(
-        padding: AppSpacing.cardPadding,
+        padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Row(
           children: [
             // Icon
             Container(
-              width: 48,
-              height: 48,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                color: sub.colorValue.withValues(alpha: 0.15),
+                color: color.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
               ),
               child: Icon(
                 _getIcon(sub.icon),
-                color: sub.colorValue,
-                size: 24,
+                color: color,
+                size: 20,
               ),
             ),
-            const SizedBox(width: AppSpacing.md),
+            const SizedBox(width: AppSpacing.sm),
             // Details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(sub.name, style: AppTypography.labelLarge),
+                  Text(
+                    sub.name,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                  ),
                   const SizedBox(height: 2),
                   Text(
                     '$currencySymbol${sub.amount.toStringAsFixed(0)} / ${sub.billingCycleLabel.toLowerCase()}',
-                    style: AppTypography.bodyMedium,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: color.withValues(alpha: 0.7),
+                    ),
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(
-                        LucideIcons.calendar,
-                        size: 12,
-                        color: sub.isOverdue
-                            ? AppColors.error
-                            : sub.isDueToday
-                                ? AppColors.warning
-                                : AppColors.textMuted,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        sub.isDueToday
-                            ? 'Due today'
-                            : sub.isOverdue
-                                ? 'Overdue ${sub.daysUntilDue.abs()} days'
-                                : 'Due ${DateFormat('d MMM').format(sub.nextDueDate)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: sub.isOverdue
-                              ? AppColors.error
-                              : sub.isDueToday
-                                  ? AppColors.warning
-                                  : AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
+                  // Due date chip
+                  _buildDueDateChip(sub),
                 ],
               ),
             ),
             // Menu
             PopupMenuButton<String>(
-              icon: const Icon(LucideIcons.moreVertical, size: 20),
+              icon: Icon(
+                LucideIcons.moreVertical,
+                size: 18,
+                color: color.withValues(alpha: 0.7),
+              ),
               color: AppColors.surface,
               onSelected: (value) {
                 switch (value) {
@@ -272,7 +371,9 @@ class SubscriptionsScreen extends ConsumerWidget {
                   case 'delete':
                     _showDeleteConfirmation(context, sub).then((confirmed) {
                       if (confirmed == true && context.mounted) {
-                        ref.read(subscriptionNotifierProvider.notifier).deleteSubscription(sub.id);
+                        ref
+                            .read(subscriptionNotifierProvider.notifier)
+                            .deleteSubscription(sub.id);
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('${sub.name} deleted')),
                         );
@@ -320,9 +421,11 @@ class SubscriptionsScreen extends ConsumerWidget {
                   value: 'delete',
                   child: Row(
                     children: [
-                      Icon(LucideIcons.trash2, size: 18, color: AppColors.error),
+                      Icon(LucideIcons.trash2,
+                          size: 18, color: AppColors.error),
                       SizedBox(width: 8),
-                      Text('Delete', style: TextStyle(color: AppColors.error)),
+                      Text('Delete',
+                          style: TextStyle(color: AppColors.error)),
                     ],
                   ),
                 ),
@@ -334,36 +437,111 @@ class SubscriptionsScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildDueDateChip(Subscription sub) {
+    final Color chipColor;
+    if (sub.isOverdue) {
+      chipColor = AppColors.error;
+    } else if (sub.isDueToday) {
+      chipColor = AppColors.warning;
+    } else {
+      chipColor = AppColors.textMuted;
+    }
+
+    final String text;
+    if (sub.isDueToday) {
+      text = 'Due today';
+    } else if (sub.isOverdue) {
+      text = 'Overdue ${sub.daysUntilDue.abs()} days';
+    } else {
+      text = 'Due ${DateFormat('d MMM').format(sub.nextDueDate)}';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: chipColor.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(LucideIcons.calendar, size: 10, color: chipColor),
+          const SizedBox(width: 3),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 11,
+              color: chipColor,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+    const color = AppColors.savings;
+
     return Container(
       margin: const EdgeInsets.all(AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            LucideIcons.repeat,
-            size: 48,
-            color: AppColors.textMuted,
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+            ),
+            child: const Icon(LucideIcons.repeat, size: 24, color: color),
           ),
           const SizedBox(height: AppSpacing.md),
-          const Text('No subscriptions yet', style: AppTypography.h3),
-          const SizedBox(height: AppSpacing.sm),
+          const Text(
+            'No subscriptions yet',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
           const Text(
             'Add your first subscription to track recurring payments',
-            style: AppTypography.bodyMedium,
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.lg),
-          ElevatedButton.icon(
-            onPressed: () => _showAddSheet(context, ref),
-            icon: const Icon(LucideIcons.plus, size: 18),
-            label: const Text('Add Subscription'),
+          SizedBox(
+            width: double.infinity,
+            height: 44,
+            child: ElevatedButton.icon(
+              onPressed: () => _showAddSheet(context, ref),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white.withValues(alpha: 0.12),
+                foregroundColor: color,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                  side: BorderSide(color: color.withValues(alpha: 0.3)),
+                ),
+              ),
+              icon: const Icon(LucideIcons.plus, size: 18),
+              label: const Text(
+                'Add Subscription',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
           ),
         ],
       ),
@@ -371,24 +549,49 @@ class SubscriptionsScreen extends ConsumerWidget {
   }
 
   Widget _buildErrorState(String error) {
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.all(AppSpacing.md),
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(LucideIcons.alertCircle, size: 48, color: AppColors.error),
-            const SizedBox(height: AppSpacing.md),
-            const Text('Something went wrong', style: AppTypography.h3),
-            const SizedBox(height: AppSpacing.sm),
-            Text(error, style: AppTypography.bodyMedium, textAlign: TextAlign.center),
-          ],
-        ),
+    return Container(
+      margin: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: AppColors.error.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+            ),
+            child: const Icon(
+              LucideIcons.alertCircle,
+              size: 24,
+              color: AppColors.error,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          const Text(
+            'Something went wrong',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.error,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            error,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.error.withValues(alpha: 0.7),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -427,7 +630,8 @@ class SubscriptionsScreen extends ConsumerWidget {
     );
   }
 
-  void _showEditSheet(BuildContext context, WidgetRef ref, Subscription sub) {
+  void _showEditSheet(
+      BuildContext context, WidgetRef ref, Subscription sub) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -436,9 +640,12 @@ class SubscriptionsScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _markAsPaid(BuildContext context, WidgetRef ref, Subscription sub) async {
+  Future<void> _markAsPaid(
+      BuildContext context, WidgetRef ref, Subscription sub) async {
     try {
-      await ref.read(subscriptionNotifierProvider.notifier).markAsPaid(sub.id);
+      await ref
+          .read(subscriptionNotifierProvider.notifier)
+          .markAsPaid(sub.id);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${sub.name} marked as paid')),
@@ -456,16 +663,20 @@ class SubscriptionsScreen extends ConsumerWidget {
     }
   }
 
-  Future<void> _toggleActive(BuildContext context, WidgetRef ref, Subscription sub) async {
+  Future<void> _toggleActive(
+      BuildContext context, WidgetRef ref, Subscription sub) async {
     try {
-      await ref.read(subscriptionNotifierProvider.notifier).updateSubscription(
+      await ref
+          .read(subscriptionNotifierProvider.notifier)
+          .updateSubscription(
             subscriptionId: sub.id,
             isActive: !sub.isActive,
           );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${sub.name} ${sub.isActive ? 'paused' : 'resumed'}'),
+            content: Text(
+                '${sub.name} ${sub.isActive ? 'paused' : 'resumed'}'),
           ),
         );
       }
@@ -481,13 +692,15 @@ class SubscriptionsScreen extends ConsumerWidget {
     }
   }
 
-  Future<bool> _showDeleteConfirmation(BuildContext context, Subscription sub) async {
+  Future<bool> _showDeleteConfirmation(
+      BuildContext context, Subscription sub) async {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
             backgroundColor: AppColors.surface,
             title: const Text('Delete Subscription?'),
-            content: Text('This will permanently delete "${sub.name}". This action cannot be undone.'),
+            content: Text(
+                'This will permanently delete "${sub.name}". This action cannot be undone.'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
@@ -495,7 +708,8 @@ class SubscriptionsScreen extends ConsumerWidget {
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                style:
+                    TextButton.styleFrom(foregroundColor: AppColors.error),
                 child: const Text('Delete'),
               ),
             ],
@@ -504,4 +718,3 @@ class SubscriptionsScreen extends ConsumerWidget {
         false;
   }
 }
-
