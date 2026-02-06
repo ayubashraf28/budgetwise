@@ -305,10 +305,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       ),
       child: Row(
         children: [
-          // Total Income card
+          // Income card
           Expanded(
             child: _buildSummaryCard(
-              title: 'Total Income',
+              title: 'Income',
               amount: actualIncome,
               currencySymbol: currencySymbol,
               icon: LucideIcons.trendingUp,
@@ -317,10 +317,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          // Total Expenses card
+          // Expenses card
           Expanded(
             child: _buildSummaryCard(
-              title: 'Total Expenses',
+              title: 'Expenses',
               amount: actualExpenses,
               currencySymbol: currencySymbol,
               icon: LucideIcons.trendingDown,
@@ -347,13 +347,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         child: Container(
-          padding: AppSpacing.cardPaddingCompact,
+          padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: color.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-            border: Border(
-              left: BorderSide(color: color, width: 4),
-            ),
+            border: Border.all(color: color.withValues(alpha: 0.3)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -362,26 +360,39 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               Row(
                 children: [
                   Container(
-                    width: 32,
-                    height: 32,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                      color: color.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                     ),
-                    child: Icon(icon, size: 16, color: color),
+                    child: Icon(icon, size: 18, color: color),
                   ),
                   const SizedBox(width: AppSpacing.sm),
-                  Text(title, style: AppTypography.labelMedium),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                  ),
                 ],
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.md),
               // Amount
               Text(
                 '$currencySymbol${_formatAmount(amount)}',
-                style: AppTypography.amountSmall.copyWith(color: color),
+                style: AppTypography.amountMedium.copyWith(color: color),
               ),
               const SizedBox(height: 2),
-              const Text('This month', style: AppTypography.bodySmall),
+              Text(
+                'This month',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: color.withValues(alpha: 0.7),
+                ),
+              ),
             ],
           ),
         ),
