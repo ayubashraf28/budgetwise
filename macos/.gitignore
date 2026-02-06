@@ -1,0 +1,11 @@
+# Flutter-related
+**/Flutter/ephemeral/
+**/Pods/
+
+# Xcode-related
+**/dgph
+**/xcuserdata/
+
+# Xcode workspace settings (user/machine specific)
+**/IDEWorkspaceChecks.plist
+**/WorkspaceSettings.xcsettings

@@ -36,6 +36,11 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Build outputs / installables (do not commit)
+*.apk
+*.aab
+*.ipa
+
 # Symbolication related
 app.*.symbols
 
