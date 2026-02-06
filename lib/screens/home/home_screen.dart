@@ -54,19 +54,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
 
-            // Quick Stats Row (Income / Expenses)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.md,
-                  0,
-                  AppSpacing.md,
-                  AppSpacing.md,
-                ),
-                child: _buildQuickStats(context, ref, summary, currencySymbol),
-              ),
-            ),
-
             // Upcoming Payments
             SliverToBoxAdapter(
               child: _buildUpcomingPayments(ref, currencySymbol, upcoming),
@@ -459,46 +446,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildQuickStats(
-    BuildContext context,
-    WidgetRef ref,
-    dynamic summary,
-    String currencySymbol,
-  ) {
-    final projectedIncome = summary?.projectedIncome ?? 0.0;
-    final actualIncome = summary?.actualIncome ?? 0.0;
-    final projectedExpenses = summary?.projectedExpenses ?? 0.0;
-    final actualExpenses = summary?.actualExpenses ?? 0.0;
-
-    return Row(
-      children: [
-        QuickStatCard(
-          title: 'Income',
-          icon: LucideIcons.trendingUp,
-          actual: actualIncome,
-          projected: projectedIncome,
-          color: AppColors.success,
-          currencySymbol: currencySymbol,
-          onTap: () {
-            context.push('/income');
-          },
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        QuickStatCard(
-          title: 'Expenses',
-          icon: LucideIcons.trendingDown,
-          actual: actualExpenses,
-          projected: projectedExpenses,
-          color: AppColors.error,
-          currencySymbol: currencySymbol,
-          onTap: () {
-            context.push('/expenses');
-          },
-        ),
-      ],
     );
   }
 

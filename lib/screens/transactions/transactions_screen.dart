@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 
@@ -313,6 +314,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               icon: LucideIcons.trendingUp,
               badgeLabel: '+Income',
               color: AppColors.success,
+              onTap: () => context.push('/income'),
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
@@ -325,6 +327,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               icon: LucideIcons.trendingDown,
               badgeLabel: '-Expense',
               color: AppColors.error,
+              onTap: () => context.push('/expenses'),
             ),
           ),
         ],
@@ -339,8 +342,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     required IconData icon,
     required String badgeLabel,
     required Color color,
+    VoidCallback? onTap,
   }) {
-    return Container(
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+        child: Container(
       padding: AppSpacing.cardPaddingCompact,
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -394,6 +403,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           const SizedBox(height: 2),
           const Text('This month', style: AppTypography.bodySmall),
         ],
+      ),
+        ),
       ),
     );
   }
