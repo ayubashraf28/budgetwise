@@ -116,18 +116,14 @@ class _ItemDetailScaffold extends ConsumerWidget {
           physics: const AlwaysScrollableScrollPhysics(),
           slivers: [
             SliverAppBar(
-              expandedHeight: 240,
               pinned: true,
               leading: IconButton(
-                icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
+                icon: const Icon(LucideIcons.arrowLeft),
                 onPressed: () => Navigator.of(context).pop(),
               ),
               actions: [
                 PopupMenuButton<String>(
-                  icon: const Icon(
-                    LucideIcons.moreVertical,
-                    color: Colors.white,
-                  ),
+                  icon: const Icon(LucideIcons.moreVertical),
                   color: AppColors.surface,
                   onSelected: (value) {
                     switch (value) {
@@ -168,44 +164,11 @@ class _ItemDetailScaffold extends ConsumerWidget {
                   ],
                 ),
               ],
-              backgroundColor: categoryColor,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  color: categoryColor,
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.md,
-                        kToolbarHeight,
-                        AppSpacing.md,
-                        AppSpacing.md,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  item.name,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              _buildStatusBadge(item),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          _buildSummaryCard(item),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              backgroundColor: AppColors.background,
+            ),
+            // Glass Summary Card
+            SliverToBoxAdapter(
+              child: _buildGlassSummaryCard(item),
             ),
             SliverToBoxAdapter(
               child: Padding(
@@ -249,84 +212,130 @@ class _ItemDetailScaffold extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryCard(Item item) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
+  Widget _buildGlassSummaryCard(Item item) {
+    final color = categoryColor;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '$currencySymbol${item.actual.toStringAsFixed(0)}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-              ),
+            // Icon + item name + status badge
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                  ),
+                  child: Icon(
+                    LucideIcons.receipt,
+                    size: 18,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    item.name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                  ),
+                ),
+                _buildStatusBadge(item),
+              ],
             ),
+            const SizedBox(height: AppSpacing.md),
+            // Amount
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  '$currencySymbol${item.actual.toStringAsFixed(0)}',
+                  style: AppTypography.amountMedium.copyWith(color: color),
+                ),
+                Text(
+                  ' / $currencySymbol${item.projected.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    color: color.withValues(alpha: 0.6),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            // Progress bar
+            BudgetProgressBar(
+              projected: item.projected,
+              actual: item.actual,
+              color: color,
+              backgroundColor: color.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            // Status text
             Text(
-              ' / $currencySymbol${item.projected.toStringAsFixed(0)}',
+              item.isOverBudget
+                  ? '$currencySymbol${(item.actual - item.projected).toStringAsFixed(0)} over budget'
+                  : '$currencySymbol${item.remaining.toStringAsFixed(0)} remaining',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 18,
+                fontSize: 12,
+                color: item.isOverBudget
+                    ? AppColors.error
+                    : color.withValues(alpha: 0.7),
                 fontWeight: FontWeight.w500,
               ),
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.sm),
-        BudgetProgressBar(
-          projected: item.projected,
-          actual: item.actual,
-          color: Colors.white,
-          backgroundColor: Colors.white.withValues(alpha: 0.3),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          item.isOverBudget
-              ? '$currencySymbol${(item.actual - item.projected).toStringAsFixed(0)} over budget'
-              : '$currencySymbol${item.remaining.toStringAsFixed(0)} remaining',
-          style: TextStyle(
-            color: item.isOverBudget
-                ? Colors.red.shade200
-                : Colors.white.withValues(alpha: 0.8),
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildStatusBadge(Item item) {
     final label = item.status;
-    final Color color;
+    final Color badgeColor;
     switch (label) {
       case 'Over budget':
-        color = AppColors.error;
+        badgeColor = AppColors.error;
       case 'On budget':
       case 'Under budget':
-        color = AppColors.success;
+        badgeColor = AppColors.success;
       case 'Not started':
       case 'No budget':
       default:
-        color = AppColors.textMuted;
+        badgeColor = AppColors.textMuted;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.2),
+        color: badgeColor.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(AppSizing.radiusFull),
         border: Border.all(
-          color: color.withValues(alpha: 0.4),
+          color: badgeColor.withValues(alpha: 0.3),
         ),
       ),
       child: Text(
         label,
-        style: const TextStyle(
-          color: Colors.white,
+        style: TextStyle(
+          color: badgeColor,
           fontSize: 12,
           fontWeight: FontWeight.w500,
         ),

@@ -66,6 +66,8 @@ class CategoryDetailScreen extends ConsumerWidget {
       String currencySymbol) {
     final items = category.items ?? [];
 
+    final color = category.colorValue;
+
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async {
@@ -74,18 +76,16 @@ class CategoryDetailScreen extends ConsumerWidget {
         },
         child: CustomScrollView(
           slivers: [
-            // Colored Header
+            // App Bar
             SliverAppBar(
-              expandedHeight: 280,
               pinned: true,
               leading: IconButton(
-                icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
+                icon: const Icon(LucideIcons.arrowLeft),
                 onPressed: () => Navigator.of(context).pop(),
               ),
               actions: [
                 PopupMenuButton<String>(
-                  icon:
-                      const Icon(LucideIcons.moreVertical, color: Colors.white),
+                  icon: const Icon(LucideIcons.moreVertical),
                   color: AppColors.surface,
                   onSelected: (value) {
                     switch (value) {
@@ -121,60 +121,12 @@ class CategoryDetailScreen extends ConsumerWidget {
                   ],
                 ),
               ],
-              backgroundColor: category.colorValue,
-              flexibleSpace: FlexibleSpaceBar(
-                background: Container(
-                  color: category.colorValue,
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.md,
-                        kToolbarHeight,
-                        AppSpacing.md,
-                        AppSpacing.md,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Icon and Name
-                          Row(
-                            children: [
-                              Container(
-                                width: 48,
-                                height: 48,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius:
-                                      BorderRadius.circular(AppSizing.radiusMd),
-                                ),
-                                child: Icon(
-                                  _getIcon(category.icon),
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: AppSpacing.md),
-                              Expanded(
-                                child: Text(
-                                  category.name,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: AppSpacing.md),
-                          // Budget Summary
-                          _buildSummaryCard(category, currencySymbol),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
+              backgroundColor: AppColors.background,
+            ),
+
+            // Glass Summary Card
+            SliverToBoxAdapter(
+              child: _buildGlassSummaryCard(category, currencySymbol),
             ),
 
             // Items Section Title
@@ -240,58 +192,99 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryCard(Category category, String currencySymbol) {
+  Widget _buildGlassSummaryCard(Category category, String currencySymbol) {
+    final color = category.colorValue;
     final isOverBudget = category.isOverBudget;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Amount display
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.baseline,
-          textBaseline: TextBaseline.alphabetic,
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '$currencySymbol${category.totalActual.toStringAsFixed(0)}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-              ),
+            // Icon + Category name row
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                  ),
+                  child: Icon(
+                    _getIcon(category.icon),
+                    size: 18,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    category.name,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: color,
+                    ),
+                  ),
+                ),
+              ],
             ),
+            const SizedBox(height: AppSpacing.md),
+            // Amount
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  '$currencySymbol${category.totalActual.toStringAsFixed(0)}',
+                  style: AppTypography.amountMedium.copyWith(color: color),
+                ),
+                Text(
+                  ' / $currencySymbol${category.totalProjected.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    color: color.withValues(alpha: 0.6),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            // Progress bar
+            BudgetProgressBar(
+              projected: category.totalProjected,
+              actual: category.totalActual,
+              color: color,
+              backgroundColor: color.withValues(alpha: 0.3),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            // Status text
             Text(
-              ' / $currencySymbol${category.totalProjected.toStringAsFixed(0)}',
+              isOverBudget
+                  ? '$currencySymbol${category.difference.abs().toStringAsFixed(0)} over budget'
+                  : '$currencySymbol${category.difference.abs().toStringAsFixed(0)} remaining',
               style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.7),
-                fontSize: 18,
+                fontSize: 12,
+                color: isOverBudget
+                    ? AppColors.error
+                    : color.withValues(alpha: 0.7),
                 fontWeight: FontWeight.w500,
               ),
             ),
           ],
         ),
-        const SizedBox(height: AppSpacing.sm),
-        // Progress bar
-        BudgetProgressBar(
-          projected: category.totalProjected,
-          actual: category.totalActual,
-          color: Colors.white,
-          backgroundColor: Colors.white.withValues(alpha: 0.3),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        // Status text
-        Text(
-          isOverBudget
-              ? '$currencySymbol${category.difference.abs().toStringAsFixed(0)} over budget'
-              : '$currencySymbol${category.difference.abs().toStringAsFixed(0)} remaining',
-          style: TextStyle(
-            color: isOverBudget
-                ? Colors.red.shade200
-                : Colors.white.withValues(alpha: 0.8),
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
