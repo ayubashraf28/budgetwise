@@ -23,20 +23,24 @@ class BudgetProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final percentage = projected > 0 ? (actual / projected).clamp(0.0, 1.0) : 0.0;
     final isOver = actual > projected;
+    final trackColor = backgroundColor ?? color.withOpacity(0.2);
 
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        color: backgroundColor ?? AppColors.surfaceLight,
-        borderRadius: BorderRadius.circular(height / 2),
-      ),
-      child: FractionallySizedBox(
-        alignment: Alignment.centerLeft,
-        widthFactor: percentage,
-        child: Container(
-          decoration: BoxDecoration(
-            color: isOver ? AppColors.error : color,
-            borderRadius: BorderRadius.circular(height / 2),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(height / 2),
+      child: Container(
+        height: height,
+        decoration: BoxDecoration(
+          color: trackColor,
+        ),
+        child: Align(
+          alignment: Alignment.centerLeft,
+          child: FractionallySizedBox(
+            widthFactor: percentage,
+            child: Container(
+              decoration: BoxDecoration(
+                color: isOver ? AppColors.error : color,
+              ),
+            ),
           ),
         ),
       ),
