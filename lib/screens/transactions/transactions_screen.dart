@@ -312,7 +312,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               amount: actualIncome,
               currencySymbol: currencySymbol,
               icon: LucideIcons.trendingUp,
-              badgeLabel: '+Income',
               color: AppColors.success,
               onTap: () => context.push('/income'),
             ),
@@ -325,7 +324,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               amount: actualExpenses,
               currencySymbol: currencySymbol,
               icon: LucideIcons.trendingDown,
-              badgeLabel: '-Expense',
               color: AppColors.error,
               onTap: () => context.push('/expenses'),
             ),
@@ -340,7 +338,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     required double amount,
     required String currencySymbol,
     required IconData icon,
-    required String badgeLabel,
     required Color color,
     VoidCallback? onTap,
   }) {
@@ -350,60 +347,43 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         child: Container(
-      padding: AppSpacing.cardPaddingCompact,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        border: Border(
-          left: BorderSide(color: color, width: 4),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Icon + badge row
-          Row(
+          padding: AppSpacing.cardPaddingCompact,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+            border: Border(
+              left: BorderSide(color: color, width: 4),
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-                ),
-                child: Icon(icon, size: 16, color: color),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-                ),
-                child: Text(
-                  badgeLabel,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: color,
+              // Icon + title row
+              Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                    ),
+                    child: Icon(icon, size: 16, color: color),
                   ),
-                ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Text(title, style: AppTypography.labelMedium),
+                ],
               ),
+              const SizedBox(height: AppSpacing.sm),
+              // Amount
+              Text(
+                '$currencySymbol${_formatAmount(amount)}',
+                style: AppTypography.amountSmall.copyWith(color: color),
+              ),
+              const SizedBox(height: 2),
+              const Text('This month', style: AppTypography.bodySmall),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          // Title
-          Text(title, style: AppTypography.labelMedium),
-          const SizedBox(height: AppSpacing.xs),
-          // Amount
-          Text(
-            '$currencySymbol${_formatAmount(amount)}',
-            style: AppTypography.amountSmall.copyWith(color: color),
-          ),
-          const SizedBox(height: 2),
-          const Text('This month', style: AppTypography.bodySmall),
-        ],
-      ),
         ),
       ),
     );
