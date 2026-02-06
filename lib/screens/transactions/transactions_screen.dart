@@ -164,33 +164,39 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         children: [
           // Search field
           Expanded(
-            child: Container(
-              height: 48,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                border: Border.all(color: AppColors.border),
-              ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: (value) => setState(() => _searchQuery = value),
-                style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textPrimary,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                  border: Border.all(color: AppColors.border),
                 ),
-                decoration: InputDecoration(
-                  hintText: 'Search by name or category...',
-                  hintStyle: AppTypography.bodyMedium.copyWith(
-                    color: AppColors.textMuted,
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: (value) => setState(() => _searchQuery = value),
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: AppColors.textPrimary,
                   ),
-                  prefixIcon: const Icon(
-                    LucideIcons.search,
-                    size: 18,
-                    color: AppColors.textMuted,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: 14,
+                  decoration: InputDecoration(
+                    hintText: 'Search by name or category...',
+                    hintStyle: AppTypography.bodyMedium.copyWith(
+                      color: AppColors.textMuted,
+                    ),
+                    prefixIcon: const Icon(
+                      LucideIcons.search,
+                      size: 18,
+                      color: AppColors.textMuted,
+                    ),
+                    filled: false,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: 14,
+                    ),
                   ),
                 ),
               ),
