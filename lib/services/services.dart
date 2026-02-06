@@ -8,3 +8,4 @@ export 'category_service.dart';
 export 'item_service.dart';
 export 'transaction_service.dart';
 export 'income_service.dart';
+export 'subscription_service.dart';

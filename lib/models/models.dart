@@ -8,3 +8,4 @@ export 'category.dart';
 export 'item.dart';
 export 'transaction.dart';
 export 'monthly_summary.dart';
+export 'subscription.dart';

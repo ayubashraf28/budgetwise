@@ -9,3 +9,4 @@ export 'category_provider.dart';
 export 'item_provider.dart';
 export 'transaction_provider.dart';
 export 'calculation_provider.dart';
+export 'subscription_provider.dart';

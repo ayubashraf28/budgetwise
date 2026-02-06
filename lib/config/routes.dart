@@ -14,6 +14,7 @@ import '../screens/expenses/category_detail_screen.dart';
 import '../screens/expenses/item_detail_screen.dart';
 import '../screens/transactions/transactions_screen.dart';
 import '../screens/settings/settings_screen.dart';
+import '../screens/subscriptions/subscriptions_screen.dart';
 import '../screens/onboarding/welcome_screen.dart';
 import '../screens/onboarding/template_selection_screen.dart';
 import '../screens/onboarding/setup_complete_screen.dart';
@@ -173,6 +174,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/expenses',
             name: 'expenses',
             redirect: (context, state) => '/budget',
+          ),
+          GoRoute(
+            path: '/subscriptions',
+            name: 'subscriptions',
+            builder: (context, state) => const SubscriptionsScreen(),
           ),
           GoRoute(
             path: '/settings',
