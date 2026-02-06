@@ -253,11 +253,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: ElevatedButton.icon(
               onPressed: () => _showAddTransaction(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: color,
-                foregroundColor: Colors.white,
+                backgroundColor: Colors.white.withValues(alpha: 0.12),
+                foregroundColor: color,
+                elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                  side: BorderSide(color: color.withValues(alpha: 0.3)),
                 ),
               ),
               icon: const Icon(LucideIcons.plus, size: 18),
