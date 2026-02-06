@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
@@ -28,6 +29,7 @@ class TransactionListItem extends StatelessWidget {
     final isIncome = transaction.isIncome;
     final amountColor = isIncome ? AppColors.success : AppColors.error;
     final categoryColor = _parseColor(transaction.categoryColor);
+    final iconBgColor = isIncome ? AppColors.success : categoryColor;
 
     return Material(
       color: Colors.transparent,
@@ -35,32 +37,56 @@ class TransactionListItem extends StatelessWidget {
         onTap: onTap,
         onLongPress: onLongPress,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        child: Container(
+        child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
+            vertical: AppSpacing.sm + 2,
           ),
           child: Row(
             children: [
-              // Icon
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: isIncome
-                      ? AppColors.success.withValues(alpha: 0.15)
-                      : categoryColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                ),
-                child: Icon(
-                  isIncome ? LucideIcons.trendingUp : _getCategoryIcon(transaction.categoryName),
-                  color: isIncome ? AppColors.success : categoryColor,
-                  size: 20,
-                ),
+              // Icon with status indicator dot
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: iconBgColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                    ),
+                    child: Icon(
+                      isIncome
+                          ? LucideIcons.trendingDown
+                          : _getCategoryIcon(transaction.categoryName),
+                      color: iconBgColor,
+                      size: 20,
+                    ),
+                  ),
+                  // Status dot — top-right corner
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: isIncome ? AppColors.success : AppColors.error,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppColors.surface, width: 2),
+                      ),
+                      child: Center(
+                        child: isIncome
+                            ? const Icon(LucideIcons.plus, size: 8, color: Colors.white)
+                            : const Icon(LucideIcons.minus, size: 8, color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(width: AppSpacing.md),
 
-              // Details
+              // Name + category badge + date
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -71,93 +97,69 @@ class TransactionListItem extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _buildSubtitle(),
-                      style: AppTypography.bodySmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        // Category/type badge chip
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isIncome
+                                ? AppColors.success.withValues(alpha: 0.15)
+                                : categoryColor.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+                          ),
+                          child: Text(
+                            isIncome ? 'Income' : (transaction.categoryName ?? 'Expense'),
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                              color: isIncome ? AppColors.success : categoryColor,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        // Calendar icon + date
+                        const Icon(
+                          LucideIcons.calendar,
+                          size: 12,
+                          color: AppColors.textMuted,
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          DateFormat('MMM d, yyyy').format(transaction.date),
+                          style: AppTypography.bodySmall,
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
-              // Amount
-              Text(
-                transaction.formattedAmount(currencySymbol),
-                style: TextStyle(
-                  color: amountColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
 
-              // More options menu
-              if (onEdit != null || onDelete != null)
-                PopupMenuButton<String>(
-                  icon: const Icon(
-                    LucideIcons.moreVertical,
-                    size: 20,
-                    color: AppColors.textMuted,
+              // Amount + status text
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    transaction.formattedAmount(currencySymbol),
+                    style: TextStyle(
+                      color: amountColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  color: AppColors.surface,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                  const SizedBox(height: 2),
+                  Text(
+                    isIncome ? 'Received' : 'Paid',
+                    style: AppTypography.bodySmall,
                   ),
-                  onSelected: (value) {
-                    if (value == 'edit' && onEdit != null) {
-                      onEdit!();
-                    } else if (value == 'delete' && onDelete != null) {
-                      onDelete!();
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    if (onEdit != null)
-                      const PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(LucideIcons.pencil, size: 18, color: AppColors.textSecondary),
-                            SizedBox(width: 12),
-                            Text('Edit'),
-                          ],
-                        ),
-                      ),
-                    if (onDelete != null)
-                      const PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(LucideIcons.trash2, size: 18, color: AppColors.error),
-                            SizedBox(width: 12),
-                            Text('Delete', style: TextStyle(color: AppColors.error)),
-                          ],
-                        ),
-                      ),
-                  ],
-                ),
+                ],
+              ),
             ],
           ),
         ),
       ),
     );
-  }
-
-  String _buildSubtitle() {
-    final parts = <String>[];
-
-    if (transaction.isIncome) {
-      parts.add('Income');
-    } else if (transaction.categoryName != null) {
-      parts.add(transaction.categoryName!);
-    }
-
-    if (transaction.note != null && transaction.note!.isNotEmpty) {
-      parts.add(transaction.note!);
-    }
-
-    return parts.join(' \u2022 ');
   }
 
   Color _parseColor(String? hex) {
@@ -186,6 +188,7 @@ class TransactionListItem extends StatelessWidget {
       'business': LucideIcons.briefcase,
       'travel': LucideIcons.plane,
       'gifts': LucideIcons.gift,
+      'charity': LucideIcons.heart,
     };
 
     final lowerName = categoryName.toLowerCase();
