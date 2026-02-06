@@ -248,7 +248,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               color: color.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(AppSizing.radiusMd),
             ),
-            child: const Icon(
+            child: Icon(
               LucideIcons.userPlus,
               size: 28,
               color: color,

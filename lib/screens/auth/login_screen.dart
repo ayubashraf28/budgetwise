@@ -168,7 +168,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               color: color.withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(AppSizing.radiusMd),
             ),
-            child: const Icon(
+            child: Icon(
               LucideIcons.wallet,
               size: 28,
               color: color,
