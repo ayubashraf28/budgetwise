@@ -406,6 +406,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   Widget _buildNetBalanceCard(MonthlySummary? summary, String currencySymbol) {
     final netBalance = summary?.actualBalance ?? 0.0;
+    const color = AppColors.savings;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -413,48 +414,50 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         vertical: AppSpacing.sm,
       ),
       child: Container(
-        padding: const EdgeInsets.all(AppSpacing.lg),
+        padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          gradient: AppColors.tealGradient,
-          borderRadius: BorderRadius.circular(AppSizing.radiusXl),
+          color: color.withValues(alpha: 0.15),
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Net Balance This Month',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.8),
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                    ),
+            // Icon + title row
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                   ),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    '$currencySymbol${_formatAmount(netBalance)}',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: const Icon(LucideIcons.wallet, size: 18, color: color),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                const Text(
+                  'Net Balance',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: color,
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-              ),
-              child: const Icon(
-                LucideIcons.trendingUp,
-                color: Colors.white,
-                size: 22,
+            const SizedBox(height: AppSpacing.md),
+            // Amount
+            Text(
+              '$currencySymbol${_formatAmount(netBalance)}',
+              style: AppTypography.amountMedium.copyWith(color: color),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'This month',
+              style: TextStyle(
+                fontSize: 12,
+                color: color.withValues(alpha: 0.7),
               ),
             ),
           ],
