@@ -184,79 +184,77 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildBalanceCard(WidgetRef ref, dynamic summary, String currencySymbol) {
     final actualBalance = summary?.actualBalance ?? 0.0;
-    final previousBalance = 0.0; // TODO: Calculate from previous month
-    final balanceChange = actualBalance - previousBalance;
-    final balanceChangePercent = previousBalance != 0
-        ? (balanceChange / previousBalance.abs()) * 100
-        : 0.0;
+    const color = AppColors.savings;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        gradient: AppColors.tealGradient,
-        borderRadius: BorderRadius.circular(AppSizing.radiusXl),
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // "Total Balance" + info icon
+          // Icon + title row
           Row(
             children: [
-              Text(
-                'Total Balance',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.8),
-                  fontSize: 14,
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                 ),
-              ),
-              const SizedBox(width: 4),
-              Icon(
-                LucideIcons.info,
-                size: 14,
-                color: Colors.white.withValues(alpha: 0.5),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          // Amount + eye toggle
-          Row(
-            children: [
-              Text(
-                _isBalanceVisible
-                    ? '$currencySymbol${actualBalance.toStringAsFixed(0)}'
-                    : '••••••',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
+                child: const Icon(LucideIcons.wallet, size: 18, color: color),
               ),
               const SizedBox(width: AppSpacing.sm),
-              // Eye toggle icon
+              const Text(
+                'Total Balance',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+              const Spacer(),
+              // Eye toggle
               GestureDetector(
                 onTap: () => setState(() => _isBalanceVisible = !_isBalanceVisible),
                 child: Icon(
                   _isBalanceVisible ? LucideIcons.eye : LucideIcons.eyeOff,
-                  size: 20,
-                  color: Colors.white.withValues(alpha: 0.7),
+                  size: 18,
+                  color: color.withValues(alpha: 0.7),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
-          // Percentage change badge
-          if (balanceChangePercent != 0)
-            _buildPercentageBadge(balanceChangePercent),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
+          // Amount
+          Text(
+            _isBalanceVisible
+                ? '$currencySymbol${actualBalance.toStringAsFixed(0)}'
+                : '••••••',
+            style: AppTypography.amountMedium.copyWith(color: color),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'This month',
+            style: TextStyle(
+              fontSize: 12,
+              color: color.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
           // "Add New Transaction" button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () => _showAddTransaction(context),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: AppColors.tealDark,
+                backgroundColor: color,
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppSizing.radiusMd),
@@ -274,35 +272,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildPercentageBadge(double percent) {
-    final isPositive = percent >= 0;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isPositive ? LucideIcons.trendingUp : LucideIcons.trendingDown,
-            size: 12,
-            color: Colors.white,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '${isPositive ? '+' : ''}${percent.toStringAsFixed(1)}% this month',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildUpcomingPayments(
     WidgetRef ref,
