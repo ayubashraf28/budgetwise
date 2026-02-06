@@ -11,6 +11,7 @@ import '../screens/home/home_screen.dart';
 import '../screens/income/income_screen.dart';
 import '../screens/expenses/expenses_overview_screen.dart';
 import '../screens/expenses/category_detail_screen.dart';
+import '../screens/expenses/item_detail_screen.dart';
 import '../screens/transactions/transactions_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/onboarding/welcome_screen.dart';
@@ -65,7 +66,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       // If logged in and on auth pages, check onboarding status
       if (isLoggedIn && (isLoggingIn || isRegistering)) {
         final profileService = ProfileService();
-        final onboardingCompleted = await profileService.isOnboardingCompleted();
+        final onboardingCompleted =
+            await profileService.isOnboardingCompleted();
 
         if (!onboardingCompleted) {
           return '/onboarding';
@@ -76,7 +78,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       // If logged in but not on onboarding, check if onboarding is needed
       if (isLoggedIn && !isOnboarding) {
         final profileService = ProfileService();
-        final onboardingCompleted = await profileService.isOnboardingCompleted();
+        final onboardingCompleted =
+            await profileService.isOnboardingCompleted();
 
         if (!onboardingCompleted) {
           return '/onboarding';
@@ -148,6 +151,20 @@ final routerProvider = Provider<GoRouter>((ref) {
                   final id = state.pathParameters['id']!;
                   return CategoryDetailScreen(categoryId: id);
                 },
+                routes: [
+                  GoRoute(
+                    path: 'item/:itemId',
+                    name: 'item-detail',
+                    builder: (context, state) {
+                      final categoryId = state.pathParameters['id']!;
+                      final itemId = state.pathParameters['itemId']!;
+                      return ItemDetailScreen(
+                        categoryId: categoryId,
+                        itemId: itemId,
+                      );
+                    },
+                  ),
+                ],
               ),
             ],
           ),

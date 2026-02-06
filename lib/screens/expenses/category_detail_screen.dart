@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
@@ -61,7 +62,8 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildScreen(BuildContext context, WidgetRef ref, Category category, String currencySymbol) {
+  Widget _buildScreen(BuildContext context, WidgetRef ref, Category category,
+      String currencySymbol) {
     final items = category.items ?? [];
 
     return Scaffold(
@@ -82,7 +84,8 @@ class CategoryDetailScreen extends ConsumerWidget {
               ),
               actions: [
                 PopupMenuButton<String>(
-                  icon: const Icon(LucideIcons.moreVertical, color: Colors.white),
+                  icon:
+                      const Icon(LucideIcons.moreVertical, color: Colors.white),
                   color: AppColors.surface,
                   onSelected: (value) {
                     switch (value) {
@@ -107,9 +110,11 @@ class CategoryDetailScreen extends ConsumerWidget {
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(LucideIcons.trash2, size: 18, color: AppColors.error),
+                          Icon(LucideIcons.trash2,
+                              size: 18, color: AppColors.error),
                           SizedBox(width: 8),
-                          Text('Delete Category', style: TextStyle(color: AppColors.error)),
+                          Text('Delete Category',
+                              style: TextStyle(color: AppColors.error)),
                         ],
                       ),
                     ),
@@ -139,7 +144,8 @@ class CategoryDetailScreen extends ConsumerWidget {
                                 height: 48,
                                 decoration: BoxDecoration(
                                   color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                                  borderRadius:
+                                      BorderRadius.circular(AppSizing.radiusMd),
                                 ),
                                 child: Icon(
                                   _getIcon(category.icon),
@@ -207,7 +213,8 @@ class CategoryDetailScreen extends ConsumerWidget {
                       final item = items[index];
                       return Padding(
                         padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: _buildItemCard(context, ref, category, item, currencySymbol),
+                        child: _buildItemCard(
+                            context, ref, category, item, currencySymbol),
                       );
                     },
                     childCount: items.length,
@@ -277,7 +284,9 @@ class CategoryDetailScreen extends ConsumerWidget {
               ? '$currencySymbol${category.difference.abs().toStringAsFixed(0)} over budget'
               : '$currencySymbol${category.difference.abs().toStringAsFixed(0)} remaining',
           style: TextStyle(
-            color: isOverBudget ? Colors.red.shade200 : Colors.white.withValues(alpha: 0.8),
+            color: isOverBudget
+                ? Colors.red.shade200
+                : Colors.white.withValues(alpha: 0.8),
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),
@@ -316,137 +325,147 @@ class CategoryDetailScreen extends ConsumerWidget {
           SnackBar(content: Text('${item.name} deleted')),
         );
       },
-      child: Container(
-        padding: AppSpacing.cardPadding,
-        decoration: BoxDecoration(
-          color: item.isOverBudget
-              ? AppColors.error.withValues(alpha: 0.1)
-              : AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          border: item.isOverBudget
-              ? Border.all(color: AppColors.error.withValues(alpha: 0.3))
-              : null,
-        ),
-        child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        item.name,
-                        style: AppTypography.labelLarge,
-                      ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          context.push('/budget/category/${category.id}/item/${item.id}');
+        },
+        child: Container(
+          padding: AppSpacing.cardPadding,
+          decoration: BoxDecoration(
+            color: item.isOverBudget
+                ? AppColors.error.withValues(alpha: 0.1)
+                : AppColors.surface,
+            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+            border: item.isOverBudget
+                ? Border.all(color: AppColors.error.withValues(alpha: 0.3))
+                : null,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      item.name,
+                      style: AppTypography.labelLarge,
                     ),
-                    _buildItemStatusBadge(item, currencySymbol),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  '$currencySymbol${item.actual.toStringAsFixed(0)} / $currencySymbol${item.projected.toStringAsFixed(0)}',
-                  style: AppTypography.bodyMedium,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                BudgetProgressBar(
-                  projected: item.projected,
-                  actual: item.actual,
-                  color: category.colorValue,
-                ),
-                if (item.notes != null && item.notes!.isNotEmpty) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    item.notes!,
-                    style: AppTypography.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
+                  _buildItemStatusBadge(item, currencySymbol),
                 ],
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                '$currencySymbol${item.actual.toStringAsFixed(0)} / $currencySymbol${item.projected.toStringAsFixed(0)}',
+                style: AppTypography.bodyMedium,
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              BudgetProgressBar(
+                projected: item.projected,
+                actual: item.actual,
+                color: category.colorValue,
+              ),
+              if (item.notes != null && item.notes!.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.sm),
-                GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () {}, // Consume tap to prevent parent InkWell from triggering
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      InkWell(
-                        onTap: () async {
-                          await _showEditSheet(context, ref, category, item);
-                          // Refresh the category data after edit
-                          ref.invalidate(categoryByIdProvider(categoryId));
-                        },
-                        borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm,
-                            vertical: AppSpacing.xs,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                LucideIcons.pencil,
-                                size: 14,
-                                color: AppColors.textSecondary,
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                'Edit',
-                                style: TextStyle(
-                                  color: AppColors.textSecondary,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.md),
-                      InkWell(
-                        onTap: () async {
-                          final confirmed = await _showDeleteConfirmation(context, item);
-                          if (confirmed && context.mounted) {
-                            await ref.read(itemNotifierProvider(categoryId).notifier).deleteItem(item.id);
-                            // Refresh the category data after delete
-                            ref.invalidate(categoryByIdProvider(categoryId));
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('${item.name} deleted')),
-                              );
-                            }
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: AppSpacing.sm,
-                            vertical: AppSpacing.xs,
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                LucideIcons.trash2,
-                                size: 14,
-                                color: AppColors.error,
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                'Delete',
-                                style: TextStyle(
-                                  color: AppColors.error,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                Text(
+                  item.notes!,
+                  style: AppTypography.bodySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
-            ),
+              const SizedBox(height: AppSpacing.sm),
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap:
+                    () {}, // Consume tap to prevent parent onTap from triggering
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    InkWell(
+                      onTap: () async {
+                        await _showEditSheet(context, ref, category, item);
+                        // Refresh the category data after edit
+                        ref.invalidate(categoryByIdProvider(categoryId));
+                      },
+                      borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: AppSpacing.xs,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              LucideIcons.pencil,
+                              size: 14,
+                              color: AppColors.textSecondary,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Edit',
+                              style: TextStyle(
+                                color: AppColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    InkWell(
+                      onTap: () async {
+                        final confirmed =
+                            await _showDeleteConfirmation(context, item);
+                        if (confirmed && context.mounted) {
+                          await ref
+                              .read(itemNotifierProvider(categoryId).notifier)
+                              .deleteItem(item.id);
+                          // Refresh the category data after delete
+                          ref.invalidate(categoryByIdProvider(categoryId));
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('${item.name} deleted')),
+                            );
+                          }
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: AppSpacing.sm,
+                          vertical: AppSpacing.xs,
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              LucideIcons.trash2,
+                              size: 14,
+                              color: AppColors.error,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Delete',
+                              style: TextStyle(
+                                color: AppColors.error,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        );
+        ),
+      ),
+    );
   }
 
   Widget _buildItemStatusBadge(Item item, String currencySymbol) {
@@ -457,7 +476,8 @@ class CategoryDetailScreen extends ConsumerWidget {
       label = 'No budget';
       color = AppColors.textMuted;
     } else if (item.isOverBudget) {
-      label = '+$currencySymbol${(item.actual - item.projected).toStringAsFixed(0)}';
+      label =
+          '+$currencySymbol${(item.actual - item.projected).toStringAsFixed(0)}';
       color = AppColors.error;
     } else if (item.actual == item.projected) {
       label = 'On budget';
@@ -487,7 +507,8 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAddButton(BuildContext context, WidgetRef ref, Category category) {
+  Widget _buildAddButton(
+      BuildContext context, WidgetRef ref, Category category) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -519,7 +540,8 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref, Category category) {
+  Widget _buildEmptyState(
+      BuildContext context, WidgetRef ref, Category category) {
     return Container(
       margin: const EdgeInsets.all(AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -557,7 +579,8 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _showAddSheet(BuildContext context, WidgetRef ref, Category category) async {
+  Future<void> _showAddSheet(
+      BuildContext context, WidgetRef ref, Category category) async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -610,7 +633,8 @@ class CategoryDetailScreen extends ConsumerWidget {
         false;
   }
 
-  void _showEditCategorySheet(BuildContext context, WidgetRef ref, Category category) {
+  void _showEditCategorySheet(
+      BuildContext context, WidgetRef ref, Category category) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -647,7 +671,9 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
 
     if (confirmed == true && context.mounted) {
-      await ref.read(categoryNotifierProvider.notifier).deleteCategory(category.id);
+      await ref
+          .read(categoryNotifierProvider.notifier)
+          .deleteCategory(category.id);
       if (context.mounted) {
         Navigator.of(context).pop(); // Navigate back after deletion
         ScaffoldMessenger.of(context).showSnackBar(

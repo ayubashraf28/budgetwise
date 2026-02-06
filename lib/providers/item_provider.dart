@@ -1,13 +1,20 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/item.dart';
+import '../models/transaction.dart';
 import '../services/item_service.dart';
+import '../services/transaction_service.dart';
 import 'auth_provider.dart';
 import 'category_provider.dart';
 
 /// Item service provider
 final itemServiceProvider = Provider<ItemService>((ref) {
   return ItemService();
+});
+
+/// Transaction service provider (for calculating actuals)
+final _transactionServiceProvider = Provider<TransactionService>((ref) {
+  return TransactionService();
 });
 
 /// Items for a specific category
@@ -17,11 +24,22 @@ final itemsByCategoryProvider =
   return service.getItemsForCategory(categoryId);
 });
 
-/// Get a single item by ID
+/// Get a single item by ID (with calculated actual from transactions)
 final itemByIdProvider =
     FutureProvider.family<Item?, String>((ref, itemId) async {
   final service = ref.read(itemServiceProvider);
-  return service.getItemById(itemId);
+  final transactionService = ref.read(_transactionServiceProvider);
+
+  final item = await service.getItemById(itemId);
+  if (item == null) return null;
+
+  // Fetch transactions for this item and calculate actual (expense-only)
+  final transactions = await transactionService.getTransactionsForItem(itemId);
+  final actual = transactions
+      .where((tx) => tx.type == TransactionType.expense)
+      .fold<double>(0.0, (sum, tx) => sum + tx.amount);
+
+  return item.copyWith(actual: actual);
 });
 
 /// Item notifier for a specific category
