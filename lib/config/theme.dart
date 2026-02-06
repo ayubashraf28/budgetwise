@@ -30,6 +30,7 @@ class AppColors {
   static const Color income = Color(0xFF22C55E);          // Green
   static const Color expense = Color(0xFFEF4444);         // Red
   static const Color savings = Color(0xFF14B8A6);         // Teal
+  static const Color tealDark = Color(0xFF0D9488);         // Teal 600
   static const Color overBudget = Color(0xFFEF4444);
   static const Color underBudget = Color(0xFF22C55E);
   static const Color onBudget = Color(0xFF3B82F6);
@@ -53,6 +54,12 @@ class AppColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+  );
+
+  static const LinearGradient tealGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFF14B8A6), Color(0xFF0D9488)],
   );
 
   static const LinearGradient successGradient = LinearGradient(

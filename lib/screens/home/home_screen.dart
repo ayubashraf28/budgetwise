@@ -48,25 +48,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
             // Balance Card
             SliverToBoxAdapter(
-              child: _buildBalanceCard(ref, summary, currencySymbol),
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: _buildBalanceCard(ref, summary, currencySymbol),
+              ),
+            ),
+
+            // Quick Stats Row (Income / Expenses)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  0,
+                  AppSpacing.md,
+                  AppSpacing.md,
+                ),
+                child: _buildQuickStats(context, ref, summary, currencySymbol),
+              ),
             ),
 
             // Upcoming Payments
             SliverToBoxAdapter(
               child: _buildUpcomingPayments(ref, currencySymbol, upcoming),
-            ),
-
-            // Quick Stats Row
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.md,
-                  AppSpacing.md,
-                  AppSpacing.md,
-                  0,
-                ),
-                child: _buildQuickStats(context, ref, summary, currencySymbol),
-              ),
             ),
 
             // Subscriptions Preview
@@ -79,7 +82,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
                   AppSpacing.md,
-                  AppSpacing.md,
+                  AppSpacing.lg,
                   AppSpacing.md,
                   AppSpacing.sm,
                 ),
@@ -146,21 +149,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildGreetingHeader(WidgetRef ref, AsyncValue<dynamic> profile) {
     final displayName = profile.value?.displayName ?? 'User';
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.sm),
-      child: SafeArea(
-        bottom: false,
+    return SafeArea(
+      bottom: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.md, AppSpacing.lg, AppSpacing.md, AppSpacing.md),
         child: Row(
           children: [
             // Profile avatar circle
             CircleAvatar(
-              radius: 24,
-              backgroundColor: AppColors.primary,
+              radius: 20,
+              backgroundColor: AppColors.savings,
               child: Text(
                 displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 20,
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -172,22 +175,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'WELCOME BACK',
-                    style: AppTypography.labelMedium.copyWith(
-                      letterSpacing: 1.2,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    'Welcome back',
+                    style: AppTypography.bodySmall,
                   ),
-                  Text(displayName, style: AppTypography.h3),
+                  Text(displayName, style: AppTypography.h2),
                 ],
               ),
-            ),
-            // Search icon
-            IconButton(
-              icon: const Icon(LucideIcons.search, color: AppColors.textSecondary),
-              onPressed: () {
-                // Future: search functionality
-              },
             ),
             // Notification bell icon
             IconButton(
@@ -214,7 +207,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        gradient: AppColors.primaryGradient,
+        gradient: AppColors.tealGradient,
         borderRadius: BorderRadius.circular(AppSizing.radiusXl),
       ),
       child: Column(
@@ -248,7 +241,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     : '••••••',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 36,
+                  fontSize: 32,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -276,7 +269,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               onPressed: () => _showAddTransaction(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
-                foregroundColor: AppColors.primary,
+                foregroundColor: AppColors.tealDark,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppSizing.radiusMd),
@@ -353,7 +346,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     onPressed: () => context.push('/subscriptions'),
                     child: Text(
                       'View All →',
-                      style: TextStyle(color: AppColors.primary),
+                      style: TextStyle(color: AppColors.savings),
                     ),
                   ),
                 ],
@@ -362,7 +355,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             const SizedBox(height: AppSpacing.sm),
             // Horizontal scroll of cards
             SizedBox(
-              height: 180,
+              height: 140,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
@@ -385,8 +378,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildUpcomingCard(Subscription sub, String currencySymbol) {
     return Container(
-      width: 180,
-      padding: const EdgeInsets.all(AppSpacing.md),
+      width: 160,
+      padding: const EdgeInsets.all(AppSpacing.sm + 4), // 12px padding
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
@@ -396,52 +389,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Icon + menu
+          // Icon + name row
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                width: 40,
-                height: 40,
+                width: 32,
+                height: 32,
                 decoration: BoxDecoration(
                   color: sub.colorValue.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                  borderRadius: BorderRadius.circular(AppSizing.radiusSm),
                 ),
-                child: Icon(_getIcon(sub.icon), color: sub.colorValue, size: 20),
+                child: Icon(_getIcon(sub.icon), color: sub.colorValue, size: 16),
               ),
-              Icon(
-                LucideIcons.moreVertical,
-                size: 16,
-                color: AppColors.textMuted,
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  sub.name,
+                  style: AppTypography.labelLarge,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 6),
-          // Name
-          Text(
-            sub.name,
-            style: AppTypography.labelLarge,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 1),
+          const SizedBox(height: AppSpacing.sm),
           // Amount + cycle
           Text(
-            '$currencySymbol${sub.amount.toStringAsFixed(0)}',
-            style: AppTypography.amountMedium,
+            '$currencySymbol${sub.amount.toStringAsFixed(0)}/${sub.billingCycleLabel.toLowerCase()}',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
+            ),
           ),
-          Text(
-            '/${sub.billingCycleLabel.toLowerCase()}',
-            style: AppTypography.bodySmall,
-          ),
-          const SizedBox(height: 2),
+          const Spacer(),
           // Due date chip
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
               color: sub.isOverdue
                   ? AppColors.error.withValues(alpha: 0.15)
-                  : AppColors.primary.withValues(alpha: 0.15),
+                  : AppColors.savings.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(AppSizing.radiusFull),
             ),
             child: Row(
@@ -449,18 +437,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 Icon(
                   LucideIcons.calendar,
-                  size: 12,
-                  color: sub.isOverdue ? AppColors.error : AppColors.primary,
+                  size: 11,
+                  color: sub.isOverdue ? AppColors.error : AppColors.savings,
                 ),
-                const SizedBox(width: 4),
+                const SizedBox(width: 3),
                 Flexible(
                   child: Text(
                     sub.isDueToday
                         ? 'Due today'
                         : 'Due in ${sub.daysUntilDue} days',
                     style: TextStyle(
-                      fontSize: 11,
-                      color: sub.isOverdue ? AppColors.error : AppColors.primary,
+                      fontSize: 10,
+                      color: sub.isOverdue ? AppColors.error : AppColors.savings,
                       fontWeight: FontWeight.w500,
                     ),
                     overflow: TextOverflow.ellipsis,
@@ -540,6 +528,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               TextButton.icon(
                 onPressed: () => _showAddSubscription(context),
+                style: TextButton.styleFrom(foregroundColor: AppColors.savings),
                 icon: const Icon(LucideIcons.plus, size: 16),
                 label: const Text('Add New'),
               ),

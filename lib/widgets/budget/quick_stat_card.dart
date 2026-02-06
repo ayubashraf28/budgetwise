@@ -32,10 +32,13 @@ class QuickStatCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
           child: Container(
-            padding: AppSpacing.cardPadding,
+            padding: AppSpacing.cardPaddingCompact,
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+              border: Border(
+                left: BorderSide(color: color, width: 4),
+              ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.05),
@@ -60,7 +63,7 @@ class QuickStatCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   '$currencySymbol${actual.toStringAsFixed(0)}',
-                  style: AppTypography.amountMedium,
+                  style: AppTypography.amountSmall,
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
