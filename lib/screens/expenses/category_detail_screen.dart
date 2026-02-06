@@ -295,6 +295,8 @@ class CategoryDetailScreen extends ConsumerWidget {
     Item item,
     String currencySymbol,
   ) {
+    final color = category.colorValue;
+
     return Dismissible(
       key: Key(item.id),
       direction: DismissDirection.endToStart,
@@ -324,135 +326,105 @@ class CategoryDetailScreen extends ConsumerWidget {
           context.push('/budget/category/${category.id}/item/${item.id}');
         },
         child: Container(
-          padding: AppSpacing.cardPadding,
+          padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
             color: item.isOverBudget
-                ? AppColors.error.withValues(alpha: 0.1)
-                : AppColors.surface,
+                ? AppColors.error.withValues(alpha: 0.08)
+                : AppColors.surface.withValues(alpha: 0.7),
             borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-            border: item.isOverBudget
-                ? Border.all(color: AppColors.error.withValues(alpha: 0.3))
-                : null,
+            border: Border.all(
+              color: item.isOverBudget
+                  ? AppColors.error.withValues(alpha: 0.2)
+                  : AppColors.border.withValues(alpha: 0.5),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      item.name,
-                      style: AppTypography.labelLarge,
-                    ),
-                  ),
-                  _buildItemStatusBadge(item, currencySymbol),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                '$currencySymbol${item.actual.toStringAsFixed(0)} / $currencySymbol${item.projected.toStringAsFixed(0)}',
-                style: AppTypography.bodyMedium,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              BudgetProgressBar(
-                projected: item.projected,
-                actual: item.actual,
-                color: category.colorValue,
-              ),
-              if (item.notes != null && item.notes!.isNotEmpty) ...[
-                const SizedBox(height: AppSpacing.sm),
-                Text(
-                  item.notes!,
-                  style: AppTypography.bodySmall,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+              // Icon container
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                 ),
-              ],
-              const SizedBox(height: AppSpacing.sm),
-              GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap:
-                    () {}, // Consume tap to prevent parent onTap from triggering
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                child: Icon(
+                  LucideIcons.receipt,
+                  color: color,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              // Content
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    InkWell(
-                      onTap: () async {
-                        await _showEditSheet(context, ref, category, item);
-                        // Refresh the category data after edit
-                        ref.invalidate(categoryByIdProvider(categoryId));
-                      },
-                      borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: AppSpacing.xs,
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              LucideIcons.pencil,
-                              size: 14,
-                              color: AppColors.textSecondary,
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            item.name,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textPrimary,
+                              letterSpacing: -0.2,
                             ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Edit',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                        _buildItemStatusBadge(item, currencySymbol),
+                      ],
                     ),
-                    const SizedBox(width: AppSpacing.md),
-                    InkWell(
-                      onTap: () async {
-                        final confirmed =
-                            await _showDeleteConfirmation(context, item);
-                        if (confirmed && context.mounted) {
-                          await ref
-                              .read(itemNotifierProvider(categoryId).notifier)
-                              .deleteItem(item.id);
-                          // Refresh the category data after delete
-                          ref.invalidate(categoryByIdProvider(categoryId));
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('${item.name} deleted')),
-                            );
-                          }
-                        }
-                      },
-                      borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: AppSpacing.sm,
-                          vertical: AppSpacing.xs,
+                    const SizedBox(height: 6),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Text(
+                          '$currencySymbol${item.actual.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: color,
+                            letterSpacing: -0.3,
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              LucideIcons.trash2,
-                              size: 14,
-                              color: AppColors.error,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Delete',
-                              style: TextStyle(
-                                color: AppColors.error,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
+                        const SizedBox(width: 4),
+                        Text(
+                          '/ $currencySymbol${item.projected.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textSecondary,
+                            letterSpacing: -0.2,
+                          ),
                         ),
-                      ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    BudgetProgressBar(
+                      projected: item.projected,
+                      actual: item.actual,
+                      color: color,
+                      backgroundColor: color.withValues(alpha: 0.15),
                     ),
                   ],
                 ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              // Chevron
+              Icon(
+                LucideIcons.chevronRight,
+                size: 18,
+                color: AppColors.textMuted.withValues(alpha: 0.4),
               ),
             ],
           ),
@@ -486,15 +458,20 @@ class CategoryDetailScreen extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+        border: Border.all(
+          color: color.withValues(alpha: 0.25),
+          width: 0.5,
+        ),
       ),
       child: Text(
         label,
         style: TextStyle(
           color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: -0.1,
         ),
       ),
     );
@@ -502,31 +479,61 @@ class CategoryDetailScreen extends ConsumerWidget {
 
   Widget _buildAddButton(
       BuildContext context, WidgetRef ref, Category category) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _showAddSheet(context, ref, category),
+    final color = category.colorValue;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        child: Container(
-          padding: AppSpacing.cardPadding,
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-            border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: AppColors.border.withValues(alpha: 0.5),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(LucideIcons.plus, color: category.colorValue, size: 20),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                'Add Item',
-                style: TextStyle(
-                  color: category.colorValue,
-                  fontWeight: FontWeight.w600,
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showAddSheet(context, ref, category),
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.md + 2,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                  ),
+                  child: Icon(
+                    LucideIcons.plus,
+                    size: 12,
+                    color: color,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  'Add Item',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                    color: color,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -535,37 +542,118 @@ class CategoryDetailScreen extends ConsumerWidget {
 
   Widget _buildEmptyState(
       BuildContext context, WidgetRef ref, Category category) {
+    final color = category.colorValue;
+
     return Container(
       margin: const EdgeInsets.all(AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: AppColors.surface.withValues(alpha: 0.7),
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+        border: Border.all(
+          color: AppColors.border.withValues(alpha: 0.5),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            _getIcon(category.icon),
-            size: 48,
-            color: category.colorValue.withValues(alpha: 0.5),
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+            ),
+            child: Icon(
+              _getIcon(category.icon),
+              size: 28,
+              color: color,
+            ),
           ),
           const SizedBox(height: AppSpacing.md),
           const Text(
             'No items yet',
-            style: AppTypography.h3,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.3,
+            ),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.xs),
           const Text(
             'Add budget items to track your spending in this category',
-            style: AppTypography.bodyMedium,
+            style: TextStyle(
+              fontSize: 13,
+              color: AppColors.textSecondary,
+              height: 1.4,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.lg),
-          ElevatedButton.icon(
-            onPressed: () => _showAddSheet(context, ref, category),
-            icon: const Icon(LucideIcons.plus, size: 18),
-            label: const Text('Add Item'),
+          Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+              border: Border.all(
+                color: AppColors.border.withValues(alpha: 0.5),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () => _showAddSheet(context, ref, category),
+                borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.md + 2,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: color.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                        ),
+                        child: Icon(
+                          LucideIcons.plus,
+                          size: 12,
+                          color: color,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        'Add Item',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: color,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
