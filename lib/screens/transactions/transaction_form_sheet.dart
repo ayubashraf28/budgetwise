@@ -37,6 +37,11 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   String? _selectedIncomeSourceId;
   late DateTime _selectedDate;
   bool _isLoading = false;
+  int _dropdownResetCounter = 0;
+
+  static const _addNewCategoryValue = '__add_new_category__';
+  static const _addNewItemValue = '__add_new_item__';
+  static const _addNewIncomeValue = '__add_new_income_source__';
 
   bool get isEditing => widget.transaction != null;
 
@@ -160,101 +165,19 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   // Show Category/Item for expenses, Income Source for income
                   if (_transactionType == TransactionType.expense) ...[
                     // Category Dropdown
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildLabel('Category'),
-                        InkWell(
-                          onTap: () => _handleAddCategory(context),
-                          borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: 2),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(LucideIcons.plus, size: 16, color: AppColors.primary),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'New',
-                                  style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    _buildLabel('Category'),
                     const SizedBox(height: AppSpacing.sm),
                     _buildCategoryDropdown(categories),
                     const SizedBox(height: AppSpacing.lg),
 
                     // Item Dropdown
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildLabel('Item'),
-                        if (_selectedCategoryId != null)
-                          InkWell(
-                            onTap: () => _handleAddItem(context),
-                            borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: 2),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(LucideIcons.plus, size: 16, color: AppColors.primary),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'New',
-                                    style: TextStyle(
-                                      color: AppColors.primary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
+                    _buildLabel('Item'),
                     const SizedBox(height: AppSpacing.sm),
                     _buildItemDropdown(items),
                     const SizedBox(height: AppSpacing.lg),
                   ] else ...[
                     // Income Source Dropdown
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        _buildLabel('Income Source'),
-                        InkWell(
-                          onTap: () => _handleAddIncomeSource(context),
-                          borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: 2),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(LucideIcons.plus, size: 16, color: AppColors.primary),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'New',
-                                  style: TextStyle(
-                                    color: AppColors.primary,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    _buildLabel('Income Source'),
                     const SizedBox(height: AppSpacing.sm),
                     _buildIncomeSourceDropdown(incomeSources),
                     const SizedBox(height: AppSpacing.lg),
@@ -397,43 +320,79 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
 
   Widget _buildCategoryDropdown(List<Category> categories) {
     return DropdownButtonFormField<String>(
+      key: ValueKey('category_dropdown_$_dropdownResetCounter'),
       value: _selectedCategoryId,
       decoration: const InputDecoration(
         hintText: 'Select category',
       ),
       dropdownColor: AppColors.surface,
-      items: categories.map((category) {
-        return DropdownMenuItem<String>(
-          value: category.id,
+      items: [
+        ...categories.map((category) {
+          return DropdownMenuItem<String>(
+            value: category.id,
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: category.colorValue,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Icon(
+                    _getCategoryIcon(category.icon),
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(category.name),
+              ],
+            ),
+          );
+        }),
+        DropdownMenuItem<String>(
+          value: _addNewCategoryValue,
           child: Row(
             children: [
               Container(
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: category.colorValue,
+                  color: AppColors.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Icon(
-                  _getCategoryIcon(category.icon),
-                  color: Colors.white,
+                child: const Icon(
+                  LucideIcons.plus,
+                  color: AppColors.primary,
                   size: 14,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              Text(category.name),
+              Text(
+                'Add New Category',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
-        );
-      }).toList(),
+        ),
+      ],
       onChanged: (value) {
+        if (value == _addNewCategoryValue) {
+          _handleAddCategory(context);
+          return;
+        }
         setState(() {
           _selectedCategoryId = value;
-          _selectedItemId = null; // Reset item when category changes
+          _selectedItemId = null;
         });
       },
       validator: (value) {
-        if (_transactionType == TransactionType.expense && value == null) {
+        if (_transactionType == TransactionType.expense &&
+            (value == null || value == _addNewCategoryValue)) {
           return 'Please select a category';
         }
         return null;
@@ -443,24 +402,61 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
 
   Widget _buildItemDropdown(List<Item> items) {
     return DropdownButtonFormField<String>(
+      key: ValueKey('item_dropdown_$_dropdownResetCounter'),
       value: _selectedItemId,
       decoration: const InputDecoration(
         hintText: 'Select item',
       ),
       dropdownColor: AppColors.surface,
-      items: items.map((item) {
-        return DropdownMenuItem<String>(
-          value: item.id,
-          child: Text(item.name),
-        );
-      }).toList(),
+      items: [
+        ...items.map((item) {
+          return DropdownMenuItem<String>(
+            value: item.id,
+            child: Text(item.name),
+          );
+        }),
+        if (_selectedCategoryId != null)
+          DropdownMenuItem<String>(
+            value: _addNewItemValue,
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(
+                    LucideIcons.plus,
+                    color: AppColors.primary,
+                    size: 14,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  'Add New Item',
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
       onChanged: (value) {
+        if (value == _addNewItemValue) {
+          _handleAddItem(context);
+          return;
+        }
         setState(() {
           _selectedItemId = value;
         });
       },
       validator: (value) {
-        if (_transactionType == TransactionType.expense && value == null) {
+        if (_transactionType == TransactionType.expense &&
+            (value == null || value == _addNewItemValue)) {
           return 'Please select an item';
         }
         return null;
@@ -470,42 +466,78 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
 
   Widget _buildIncomeSourceDropdown(List<IncomeSource> incomeSources) {
     return DropdownButtonFormField<String>(
+      key: ValueKey('income_dropdown_$_dropdownResetCounter'),
       value: _selectedIncomeSourceId,
       decoration: const InputDecoration(
         hintText: 'Select income source',
       ),
       dropdownColor: AppColors.surface,
-      items: incomeSources.map((source) {
-        return DropdownMenuItem<String>(
-          value: source.id,
+      items: [
+        ...incomeSources.map((source) {
+          return DropdownMenuItem<String>(
+            value: source.id,
+            child: Row(
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(
+                    LucideIcons.wallet,
+                    color: AppColors.success,
+                    size: 14,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Text(source.name),
+              ],
+            ),
+          );
+        }),
+        DropdownMenuItem<String>(
+          value: _addNewIncomeValue,
           child: Row(
             children: [
               Container(
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: AppColors.success.withValues(alpha: 0.15),
+                  color: AppColors.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Icon(
-                  LucideIcons.wallet,
-                  color: AppColors.success,
+                  LucideIcons.plus,
+                  color: AppColors.primary,
                   size: 14,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              Text(source.name),
+              Text(
+                'Add New Source',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ],
           ),
-        );
-      }).toList(),
+        ),
+      ],
       onChanged: (value) {
+        if (value == _addNewIncomeValue) {
+          _handleAddIncomeSource(context);
+          return;
+        }
         setState(() {
           _selectedIncomeSourceId = value;
         });
       },
       validator: (value) {
-        if (_transactionType == TransactionType.income && value == null) {
+        if (_transactionType == TransactionType.income &&
+            (value == null || value == _addNewIncomeValue)) {
           return 'Please select an income source';
         }
         return null;
@@ -624,8 +656,12 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
         setState(() {
           _selectedCategoryId = newCategoryId;
           _selectedItemId = null;
+          _dropdownResetCounter++;
         });
       }
+    } else if (mounted) {
+      // Cancelled — reset dropdown to previous value
+      setState(() => _dropdownResetCounter++);
     }
   }
 
@@ -643,8 +679,12 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       if (mounted) {
         setState(() {
           _selectedItemId = newItemId;
+          _dropdownResetCounter++;
         });
       }
+    } else if (mounted) {
+      // Cancelled — reset dropdown to previous value
+      setState(() => _dropdownResetCounter++);
     }
   }
 
@@ -661,8 +701,12 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       if (mounted) {
         setState(() {
           _selectedIncomeSourceId = newSourceId;
+          _dropdownResetCounter++;
         });
       }
+    } else if (mounted) {
+      // Cancelled — reset dropdown to previous value
+      setState(() => _dropdownResetCounter++);
     }
   }
 

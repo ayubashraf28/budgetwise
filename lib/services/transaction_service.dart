@@ -27,6 +27,18 @@ class TransactionService {
     return (response as List).map((e) => Transaction.fromJson(e)).toList();
   }
 
+  /// Get all transactions for multiple months (for yearly aggregation)
+  Future<List<Transaction>> getTransactionsForMonths(List<String> monthIds) async {
+    if (monthIds.isEmpty) return [];
+    final response = await _client
+        .from(_table)
+        .select(_selectWithJoins)
+        .eq('user_id', _userId)
+        .inFilter('month_id', monthIds)
+        .order('date', ascending: false);
+    return (response as List).map((e) => Transaction.fromJson(e)).toList();
+  }
+
   /// Get transactions for a specific item
   Future<List<Transaction>> getTransactionsForItem(String itemId) async {
     final response = await _client

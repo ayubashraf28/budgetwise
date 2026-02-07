@@ -22,6 +22,18 @@ class CategoryService {
     return (response as List).map((e) => Category.fromJson(e)).toList();
   }
 
+  /// Get all categories for multiple months with their items
+  Future<List<Category>> getCategoriesForMonths(List<String> monthIds) async {
+    if (monthIds.isEmpty) return [];
+    final response = await _client
+        .from(_table)
+        .select('*, items(*)')
+        .eq('user_id', _userId)
+        .inFilter('month_id', monthIds)
+        .order('sort_order', ascending: true);
+    return (response as List).map((e) => Category.fromJson(e)).toList();
+  }
+
   /// Get a single category by ID with items
   Future<Category?> getCategoryById(String categoryId) async {
     final response = await _client
