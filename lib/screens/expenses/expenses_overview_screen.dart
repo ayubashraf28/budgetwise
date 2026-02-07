@@ -27,6 +27,7 @@ class _ExpensesOverviewScreenState
     extends ConsumerState<ExpensesOverviewScreen> {
   int? _selectedCategoryIndex;
   bool _isYearView = false;
+  int? _selectedBarMonthIndex; // Tapped bar in year view → filter categories
 
   @override
   void initState() {
@@ -155,19 +156,21 @@ class _ExpensesOverviewScreenState
                   ),
                 ],
 
-                // ── Categories Header (unchanged) ──
-                const SliverToBoxAdapter(
+                // ── Categories Header ──
+                SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(
+                    padding: const EdgeInsets.fromLTRB(
                       AppSpacing.md,
                       AppSpacing.lg,
                       AppSpacing.md,
                       AppSpacing.sm,
                     ),
-                    child: Text(
-                      'Categories',
-                      style: AppTypography.h3,
-                    ),
+                    child: _isYearView && _selectedBarMonthIndex != null
+                        ? _buildSelectedBarHeader(yearlyMonthlyExpenses)
+                        : const Text(
+                            'Categories',
+                            style: AppTypography.h3,
+                          ),
                   ),
                 ),
 
@@ -186,25 +189,35 @@ class _ExpensesOverviewScreenState
                     ),
                 ],
 
-                // ── YEAR VIEW: Yearly Category List (NEW, conditionally shown) ──
+                // ── YEAR VIEW: Category list ──
                 if (_isYearView) ...[
-                  SliverToBoxAdapter(
-                    child: yearlyCategorySummaries.when(
-                      data: (summaries) {
-                        if (summaries.isEmpty) return _buildEmptyState();
-                        return _buildYearlyCategoryList(
-                          summaries,
-                          totalYearlyExpenses,
-                          currencySymbol,
-                        );
-                      },
-                      loading: () => const Padding(
-                        padding: EdgeInsets.all(AppSpacing.xl),
-                        child: Center(child: CircularProgressIndicator()),
+                  // When a bar is selected → show that month's categories
+                  if (_selectedBarMonthIndex != null)
+                    SliverToBoxAdapter(
+                      child: _buildBarMonthCategories(
+                        yearlyMonthlyExpenses,
+                        currencySymbol,
                       ),
-                      error: (_, __) => const SizedBox.shrink(),
+                    )
+                  // Default → yearly aggregated categories
+                  else
+                    SliverToBoxAdapter(
+                      child: yearlyCategorySummaries.when(
+                        data: (summaries) {
+                          if (summaries.isEmpty) return _buildEmptyState();
+                          return _buildYearlyCategoryList(
+                            summaries,
+                            totalYearlyExpenses,
+                            currencySymbol,
+                          );
+                        },
+                        loading: () => const Padding(
+                          padding: EdgeInsets.all(AppSpacing.xl),
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                        error: (_, __) => const SizedBox.shrink(),
+                      ),
                     ),
-                  ),
                 ],
 
                 // ── Add Category Button (unchanged) ──
@@ -447,7 +460,10 @@ class _ExpensesOverviewScreenState
                   ? null
                   : () {
                       ref.read(budgetSelectedYearProvider.notifier).state = year;
-                      setState(() => _selectedCategoryIndex = null);
+                      setState(() {
+                        _selectedCategoryIndex = null;
+                        _selectedBarMonthIndex = null;
+                      });
                     },
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -880,6 +896,7 @@ class _ExpensesOverviewScreenState
                   setState(() {
                     _isYearView = false;
                     _selectedCategoryIndex = null;
+                    _selectedBarMonthIndex = null;
                   });
                 },
                 child: AnimatedContainer(
@@ -933,6 +950,7 @@ class _ExpensesOverviewScreenState
                   setState(() {
                     _isYearView = true;
                     _selectedCategoryIndex = null;
+                    _selectedBarMonthIndex = null;
                   });
                 },
                 child: AnimatedContainer(
@@ -1009,6 +1027,21 @@ class _ExpensesOverviewScreenState
             maxY: maxExpense > 0 ? maxExpense * 1.2 : 100,
             barTouchData: BarTouchData(
               enabled: true,
+              touchCallback: (FlTouchEvent event, barTouchResponse) {
+                if (event is FlTapUpEvent &&
+                    barTouchResponse != null &&
+                    barTouchResponse.spot != null) {
+                  final tappedIndex =
+                      barTouchResponse.spot!.touchedBarGroupIndex;
+                  setState(() {
+                    // Toggle: tap same bar deselects
+                    _selectedBarMonthIndex =
+                        _selectedBarMonthIndex == tappedIndex
+                            ? null
+                            : tappedIndex;
+                  });
+                }
+              },
               touchTooltipData: BarTouchTooltipData(
                 getTooltipColor: (_) => AppColors.surfaceLight,
                 tooltipPadding: const EdgeInsets.symmetric(
@@ -1048,18 +1081,25 @@ class _ExpensesOverviewScreenState
                     if (index < 0 || index >= monthlyData.length) {
                       return const SizedBox.shrink();
                     }
-                    // Show first 3 chars of month name (e.g., "Jan")
                     final name = monthlyData[index].monthName;
                     final abbr =
                         name.length >= 3 ? name.substring(0, 3) : name;
+                    final isSelected = _selectedBarMonthIndex == index;
                     return Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         abbr,
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
+                        style: TextStyle(
+                          color: isSelected
+                              ? AppColors.savings
+                              : _selectedBarMonthIndex != null
+                                  ? AppColors.textMuted
+                                      .withValues(alpha: 0.4)
+                                  : AppColors.textMuted,
                           fontSize: 11,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.w500,
                         ),
                       ),
                     );
@@ -1073,15 +1113,22 @@ class _ExpensesOverviewScreenState
               final index = entry.key;
               final data = entry.value;
               final barWidth = monthlyData.length <= 6 ? 28.0 : 16.0;
+              // Dim unselected bars when a bar is selected
+              final isDimmed = _selectedBarMonthIndex != null &&
+                  _selectedBarMonthIndex != index;
+              final dimAlpha = 0.25;
 
               // Build stacked rod from category segments
               if (data.segments.isEmpty) {
+                final barColor = isDimmed
+                    ? AppColors.savings.withValues(alpha: dimAlpha)
+                    : AppColors.savings;
                 return BarChartGroupData(
                   x: index,
                   barRods: [
                     BarChartRodData(
                       toY: data.totalExpenses,
-                      color: AppColors.savings,
+                      color: barColor,
                       width: barWidth,
                       borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(6),
@@ -1095,14 +1142,15 @@ class _ExpensesOverviewScreenState
               // Build stacked segments (largest at bottom)
               double runningY = 0;
               final rodStackItems = <BarChartRodStackItem>[];
-              // Reverse so largest is at bottom
               final sortedSegments = List.of(data.segments)
                 ..sort((a, b) => b.amount.compareTo(a.amount));
               for (final segment in sortedSegments.reversed) {
                 rodStackItems.add(BarChartRodStackItem(
                   runningY,
                   runningY + segment.amount,
-                  segment.color,
+                  isDimmed
+                      ? segment.color.withValues(alpha: dimAlpha)
+                      : segment.color,
                 ));
                 runningY += segment.amount;
               }
@@ -1126,6 +1174,181 @@ class _ExpensesOverviewScreenState
           ),
         ),
       ),
+    );
+  }
+
+  // ──────────────────────────────────────────────
+  // BAR-SELECTED MONTH CATEGORIES (Year view)
+  // ──────────────────────────────────────────────
+
+  /// Header showing the selected month name + a "clear" button
+  Widget _buildSelectedBarHeader(
+    AsyncValue<List<MonthlyBarData>> yearlyMonthlyExpenses,
+  ) {
+    final monthlyData = yearlyMonthlyExpenses.valueOrNull ?? [];
+    final idx = _selectedBarMonthIndex ?? 0;
+    final monthName = (idx < monthlyData.length)
+        ? monthlyData[idx].monthName
+        : 'Month';
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          '$monthName Categories',
+          style: AppTypography.h3,
+        ),
+        GestureDetector(
+          onTap: () => setState(() => _selectedBarMonthIndex = null),
+          child: Text(
+            'Show Year',
+            style: TextStyle(
+              color: AppColors.savings,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Shows categories for a single month selected via the bar chart.
+  Widget _buildBarMonthCategories(
+    AsyncValue<List<MonthlyBarData>> yearlyMonthlyExpenses,
+    String currencySymbol,
+  ) {
+    final monthlyData = yearlyMonthlyExpenses.valueOrNull ?? [];
+    final idx = _selectedBarMonthIndex ?? 0;
+    if (idx >= monthlyData.length) return _buildEmptyState();
+
+    final barData = monthlyData[idx];
+    final monthId = barData.monthId;
+
+    // Fetch categories for this specific month (with calculated actuals)
+    final monthCategories = ref.watch(categoriesForMonthProvider(monthId));
+    // Fetch transactions for this month (for counts)
+    final monthTx = ref.watch(transactionsForMonthProvider(monthId));
+
+    return monthCategories.when(
+      data: (cats) {
+        if (cats.isEmpty) return _buildEmptyState();
+
+        final totalActual =
+            cats.fold<double>(0.0, (sum, c) => sum + c.totalActual);
+
+        // Build tx count map for this month
+        final txList = monthTx.valueOrNull ?? [];
+        final txCountByCategory = <String, int>{};
+        for (final tx in txList) {
+          if (tx.categoryId != null &&
+              tx.type == TransactionType.expense) {
+            txCountByCategory[tx.categoryId!] =
+                (txCountByCategory[tx.categoryId!] ?? 0) + 1;
+          }
+        }
+
+        return Column(
+          children: cats.map((category) {
+            final txCount = txCountByCategory[category.id] ?? 0;
+            final percentage = totalActual > 0
+                ? (category.totalActual / totalActual * 100)
+                : 0.0;
+
+            return Padding(
+              padding: const EdgeInsets.only(
+                left: AppSpacing.md,
+                right: AppSpacing.md,
+                bottom: AppSpacing.sm,
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () =>
+                      context.push('/budget/category/${category.id}'),
+                  borderRadius:
+                      BorderRadius.circular(AppSizing.radiusLg),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.md + 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius:
+                          BorderRadius.circular(AppSizing.radiusLg),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        // Circular colored icon
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: category.colorValue,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            _getIcon(category.icon),
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+
+                        // Name + transaction count
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                category.name,
+                                style: AppTypography.bodyLarge.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$txCount ${txCount == 1 ? 'transaction' : 'transactions'}',
+                                style: AppTypography.bodyMedium,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Amount + percentage
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              '$currencySymbol${_formatAmount(category.totalActual)}',
+                              style: AppTypography.amountSmall,
+                            ),
+                            const SizedBox(height: 4),
+                            if (category.totalActual > 0)
+                              Text(
+                                '${percentage.toStringAsFixed(0)}%',
+                                style: AppTypography.bodyMedium,
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
+      loading: () => const Padding(
+        padding: EdgeInsets.all(AppSpacing.xl),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 
