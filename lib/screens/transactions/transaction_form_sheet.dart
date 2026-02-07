@@ -75,37 +75,46 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     final incomeSources = ref.watch(incomeSourcesProvider).value ?? [];
     final currencySymbol = ref.watch(currencySymbolProvider);
 
-    // Defensive: reset selected IDs if they don't exist in the loaded lists.
-    // This handles transactions whose category/item/income source belongs to
-    // a different month than the one currently loaded.
-    if (_selectedCategoryId != null &&
-        !categories.any((c) => c.id == _selectedCategoryId)) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() { _selectedCategoryId = null; _selectedItemId = null; });
-      });
-    }
-    if (_selectedIncomeSourceId != null &&
-        !incomeSources.any((s) => s.id == _selectedIncomeSourceId)) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() => _selectedIncomeSourceId = null);
-      });
-    }
+    // Defensive: if selected IDs don't exist in the loaded lists (e.g., the
+    // transaction references entities from a different month), compute safe
+    // values for this frame and schedule a state reset for the next frame.
+    final safeCategoryId = (_selectedCategoryId != null &&
+            categories.any((c) => c.id == _selectedCategoryId))
+        ? _selectedCategoryId
+        : null;
+    final safeIncomeSourceId = (_selectedIncomeSourceId != null &&
+            incomeSources.any((s) => s.id == _selectedIncomeSourceId))
+        ? _selectedIncomeSourceId
+        : null;
 
-    // Get items for selected category
+    // Get items for the safe category
     List<Item> items = [];
-    if (_selectedCategoryId != null) {
+    if (safeCategoryId != null) {
       final matchedCategory = categories
-          .where((c) => c.id == _selectedCategoryId)
+          .where((c) => c.id == safeCategoryId)
           .firstOrNull;
       if (matchedCategory != null) {
         items = matchedCategory.items ?? [];
       }
     }
 
-    // Defensive: reset item if it doesn't exist in the loaded items
-    if (_selectedItemId != null && !items.any((i) => i.id == _selectedItemId)) {
+    final safeItemId = (_selectedItemId != null &&
+            items.any((i) => i.id == _selectedItemId))
+        ? _selectedItemId
+        : null;
+
+    // Schedule state reset so subsequent builds use corrected values
+    if (safeCategoryId != _selectedCategoryId ||
+        safeItemId != _selectedItemId ||
+        safeIncomeSourceId != _selectedIncomeSourceId) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() => _selectedItemId = null);
+        if (mounted) {
+          setState(() {
+            _selectedCategoryId = safeCategoryId;
+            _selectedItemId = safeItemId;
+            _selectedIncomeSourceId = safeIncomeSourceId;
+          });
+        }
       });
     }
 
@@ -191,19 +200,19 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     // Category Dropdown
                     _buildLabel('Category'),
                     const SizedBox(height: AppSpacing.sm),
-                    _buildCategoryDropdown(categories),
+                    _buildCategoryDropdown(categories, safeCategoryId),
                     const SizedBox(height: AppSpacing.lg),
 
                     // Item Dropdown
                     _buildLabel('Item'),
                     const SizedBox(height: AppSpacing.sm),
-                    _buildItemDropdown(items),
+                    _buildItemDropdown(items, safeItemId),
                     const SizedBox(height: AppSpacing.lg),
                   ] else ...[
                     // Income Source Dropdown
                     _buildLabel('Income Source'),
                     const SizedBox(height: AppSpacing.sm),
-                    _buildIncomeSourceDropdown(incomeSources),
+                    _buildIncomeSourceDropdown(incomeSources, safeIncomeSourceId),
                     const SizedBox(height: AppSpacing.lg),
                   ],
 
@@ -342,10 +351,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     );
   }
 
-  Widget _buildCategoryDropdown(List<Category> categories) {
+  Widget _buildCategoryDropdown(List<Category> categories, String? safeValue) {
     return DropdownButtonFormField<String>(
       key: ValueKey('category_dropdown_$_dropdownResetCounter'),
-      value: _selectedCategoryId,
+      value: safeValue,
       decoration: const InputDecoration(
         hintText: 'Select category',
       ),
@@ -424,10 +433,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     );
   }
 
-  Widget _buildItemDropdown(List<Item> items) {
+  Widget _buildItemDropdown(List<Item> items, String? safeValue) {
     return DropdownButtonFormField<String>(
       key: ValueKey('item_dropdown_$_dropdownResetCounter'),
-      value: _selectedItemId,
+      value: safeValue,
       decoration: const InputDecoration(
         hintText: 'Select item',
       ),
@@ -488,10 +497,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     );
   }
 
-  Widget _buildIncomeSourceDropdown(List<IncomeSource> incomeSources) {
+  Widget _buildIncomeSourceDropdown(List<IncomeSource> incomeSources, String? safeValue) {
     return DropdownButtonFormField<String>(
       key: ValueKey('income_dropdown_$_dropdownResetCounter'),
-      value: _selectedIncomeSourceId,
+      value: safeValue,
       decoration: const InputDecoration(
         hintText: 'Select income source',
       ),
