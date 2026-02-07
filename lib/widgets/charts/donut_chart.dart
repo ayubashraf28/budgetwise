@@ -69,8 +69,10 @@ class _DonutChartState extends State<DonutChart> {
       height: widget.height,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final size = math.min(constraints.maxWidth, constraints.maxHeight).toDouble();
-          final segmentTotal = widget.segments.fold<double>(0, (sum, s) => sum + s.value);
+          final size =
+              math.min(constraints.maxWidth, constraints.maxHeight).toDouble();
+          final segmentTotal =
+              widget.segments.fold<double>(0, (sum, s) => sum + s.value);
 
           return Stack(
             alignment: Alignment.center,
@@ -106,15 +108,21 @@ class _DonutChartState extends State<DonutChart> {
     double size,
     double totalActual,
   ) {
+    if (totalActual <= 0) {
+      setState(() => _selectedIndex = null);
+      widget.onSelectionChanged?.call(null);
+      return;
+    }
+
     final center = Offset(size / 2, size / 2);
     final tapOffset = details.localPosition - center;
     final distance = tapOffset.distance;
 
-    final strokeWidth = 23.0;
-    final radius = (size - strokeWidth) / 2;
-
-    final minRadius = radius - 15;
-    final maxRadius = radius + 15;
+    final radius = (size - widget.selectedStrokeWidth) / 2;
+    final ringHalfWidth = widget.selectedStrokeWidth / 2;
+    const hitPadding = 8.0;
+    final minRadius = radius - ringHalfWidth - hitPadding;
+    final maxRadius = radius + ringHalfWidth + hitPadding;
     if (distance < minRadius || distance > maxRadius) {
       setState(() => _selectedIndex = null);
       widget.onSelectionChanged?.call(null);
@@ -180,7 +188,8 @@ class _DonutChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
-    final radius = (math.min(size.width, size.height) - selectedStrokeWidth) / 2;
+    final radius =
+        (math.min(size.width, size.height) - selectedStrokeWidth) / 2;
 
     final total = segments.fold<double>(0, (sum, s) => sum + s.value);
     if (total <= 0) return;
