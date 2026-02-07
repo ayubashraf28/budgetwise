@@ -65,9 +65,18 @@ class MonthlyBarData {
 // PROVIDERS
 // ─────────────────────────────────────────────
 
-/// The selected year — derived from the budget screen's selected month
-/// (falls back to the global active month / current year).
+/// Budget screen's explicitly selected year (year view only).
+/// null = not yet set (will fall back to the month-derived year).
+final budgetSelectedYearProvider = StateProvider<int?>((ref) => null);
+
+/// The selected year — prefers the explicit year selection, then falls back
+/// to the budget screen's selected month, then the global active month.
 final selectedYearProvider = Provider<int>((ref) {
+  // 1. Explicit year selection (from year selector in year view)
+  final explicitYear = ref.watch(budgetSelectedYearProvider);
+  if (explicitYear != null) return explicitYear;
+
+  // 2. Derive from budget screen's selected month
   final budgetMonthId = ref.watch(budgetSelectedMonthIdProvider);
   if (budgetMonthId != null) {
     final months = ref.watch(userMonthsProvider).value ?? [];
@@ -75,8 +84,17 @@ final selectedYearProvider = Provider<int>((ref) {
         months.where((m) => m.id == budgetMonthId).firstOrNull;
     if (budgetMonth != null) return budgetMonth.startDate.year;
   }
+
+  // 3. Fall back to global active month / current year
   final activeMonth = ref.watch(activeMonthProvider).value;
   return activeMonth?.startDate.year ?? DateTime.now().year;
+});
+
+/// Set of years that have at least one month with data in the database.
+/// Used to determine which years in the year selector should be active vs muted.
+final yearsWithDataProvider = Provider<Set<int>>((ref) {
+  final months = ref.watch(userMonthsProvider).value ?? [];
+  return months.map((m) => m.startDate.year).toSet();
 });
 
 /// All months belonging to the same year as the budget-selected month.

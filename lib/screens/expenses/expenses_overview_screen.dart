@@ -133,10 +133,14 @@ class _ExpensesOverviewScreenState
                   ),
                 ],
 
-                // ── YEAR VIEW (NEW, conditionally shown) ──
+                // ── YEAR VIEW (conditionally shown) ──
                 if (_isYearView) ...[
+                  // Year Selector
+                  SliverToBoxAdapter(
+                    child: _buildYearSelector(),
+                  ),
                   const SliverToBoxAdapter(
-                    child: SizedBox(height: AppSpacing.sm),
+                    child: SizedBox(height: AppSpacing.lg),
                   ),
                   SliverToBoxAdapter(
                     child: yearlyMonthlyExpenses.when(
@@ -394,6 +398,112 @@ class _ExpensesOverviewScreenState
 
     // Update budget screen selection only — does NOT affect home/transactions
     ref.read(budgetSelectedMonthIdProvider.notifier).state = monthId;
+  }
+
+  // ──────────────────────────────────────────────
+  // YEAR SELECTOR
+  // ──────────────────────────────────────────────
+
+  Widget _buildYearSelector() {
+    final selectedYear = ref.watch(selectedYearProvider);
+    final yearsWithData = ref.watch(yearsWithDataProvider);
+    final now = DateTime.now();
+    final currentYear = now.year;
+
+    // Show 10 years: 5 past + current + 4 future
+    final years = List.generate(10, (i) => currentYear - 5 + i);
+
+    // Auto-scroll to the selected year's position
+    final selectedIndex = years.indexOf(selectedYear);
+    // Each chip is ~60px wide + 8px separator
+    final initialOffset = selectedIndex > 0
+        ? (selectedIndex * 68.0) - 100 // Offset to roughly center it
+        : 0.0;
+    final scrollController = ScrollController(
+      initialScrollOffset: initialOffset.clamp(0.0, double.infinity),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: SizedBox(
+        height: 50,
+        child: ListView.separated(
+          controller: scrollController,
+          scrollDirection: Axis.horizontal,
+          itemCount: years.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            final year = years[index];
+            final isActive = year == selectedYear;
+            final isFuture = year > currentYear;
+            final hasData = yearsWithData.contains(year);
+            final isCurrentYear = year == currentYear;
+
+            // Future years without data are disabled
+            final isDisabled = isFuture && !hasData;
+
+            return GestureDetector(
+              onTap: isDisabled
+                  ? null
+                  : () {
+                      ref.read(budgetSelectedYearProvider.notifier).state = year;
+                      setState(() => _selectedCategoryIndex = null);
+                    },
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isActive ? Colors.white : AppColors.surface,
+                      borderRadius:
+                          BorderRadius.circular(AppSizing.radiusFull),
+                      border: isActive
+                          ? null
+                          : Border.all(color: AppColors.border),
+                    ),
+                    child: Text(
+                      '$year',
+                      style: TextStyle(
+                        color: isActive
+                            ? AppColors.background
+                            : isDisabled
+                                ? AppColors.textMuted
+                                    .withValues(alpha: 0.3)
+                                : isFuture
+                                    ? AppColors.textMuted
+                                        .withValues(alpha: 0.5)
+                                    : hasData
+                                        ? AppColors.textSecondary
+                                        : AppColors.textMuted
+                                            .withValues(alpha: 0.5),
+                        fontSize: 13,
+                        fontWeight:
+                            isActive ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  // Current calendar year indicator dot
+                  if (isCurrentYear && !isActive)
+                    Container(
+                      margin: const EdgeInsets.only(top: 4),
+                      width: 4,
+                      height: 4,
+                      decoration: const BoxDecoration(
+                        color: AppColors.savings,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   // ──────────────────────────────────────────────
@@ -764,10 +874,14 @@ class _ExpensesOverviewScreenState
             // Month button
             Expanded(
               child: GestureDetector(
-                onTap: () => setState(() {
-                  _isYearView = false;
-                  _selectedCategoryIndex = null;
-                }),
+                onTap: () {
+                  // Clear explicit year selection when switching back to month
+                  ref.read(budgetSelectedYearProvider.notifier).state = null;
+                  setState(() {
+                    _isYearView = false;
+                    _selectedCategoryIndex = null;
+                  });
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(vertical: 10),
@@ -805,10 +919,22 @@ class _ExpensesOverviewScreenState
             // Year button
             Expanded(
               child: GestureDetector(
-                onTap: () => setState(() {
-                  _isYearView = true;
-                  _selectedCategoryIndex = null;
-                }),
+                onTap: () {
+                  // Initialize year from current selected month when switching
+                  if (!_isYearView) {
+                    final selectedMonthId = ref.read(budgetSelectedMonthIdProvider);
+                    final months = ref.read(userMonthsProvider).value ?? [];
+                    final selectedMonth = months
+                        .where((m) => m.id == selectedMonthId)
+                        .firstOrNull;
+                    ref.read(budgetSelectedYearProvider.notifier).state =
+                        selectedMonth?.startDate.year ?? DateTime.now().year;
+                  }
+                  setState(() {
+                    _isYearView = true;
+                    _selectedCategoryIndex = null;
+                  });
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(vertical: 10),
