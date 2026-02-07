@@ -342,7 +342,7 @@ class _ExpensesOverviewScreenState
                                     ? Colors.white
                                     : AppColors.surface,
                                 borderRadius:
-                                    BorderRadius.circular(AppSizing.radiusFull),
+                                    BorderRadius.circular(AppSizing.radiusMd),
                                 border: isActive
                                     ? null
                                     : Border.all(color: AppColors.border),
@@ -476,7 +476,7 @@ class _ExpensesOverviewScreenState
                     decoration: BoxDecoration(
                       color: isActive ? Colors.white : AppColors.surface,
                       borderRadius:
-                          BorderRadius.circular(AppSizing.radiusFull),
+                          BorderRadius.circular(AppSizing.radiusMd),
                       border: isActive
                           ? null
                           : Border.all(color: AppColors.border),
@@ -882,7 +882,7 @@ class _ExpensesOverviewScreenState
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
           border: Border.all(color: AppColors.border),
         ),
         child: Row(
@@ -904,7 +904,7 @@ class _ExpensesOverviewScreenState
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
                     color: !_isYearView ? Colors.white : Colors.transparent,
-                    borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -958,7 +958,7 @@ class _ExpensesOverviewScreenState
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
                     color: _isYearView ? Colors.white : Colors.transparent,
-                    borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
