@@ -301,9 +301,9 @@ class SubscriptionsScreen extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           children: [
@@ -329,18 +329,18 @@ class SubscriptionsScreen extends ConsumerWidget {
                 children: [
                   Text(
                     sub.name,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: color,
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     '$currencySymbol${sub.amount.toStringAsFixed(0)} / ${sub.billingCycleLabel.toLowerCase()}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 13,
-                      color: color.withValues(alpha: 0.7),
+                      color: AppColors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -351,10 +351,10 @@ class SubscriptionsScreen extends ConsumerWidget {
             ),
             // Menu
             PopupMenuButton<String>(
-              icon: Icon(
+              icon: const Icon(
                 LucideIcons.moreVertical,
                 size: 18,
-                color: color.withValues(alpha: 0.7),
+                color: AppColors.textSecondary,
               ),
               color: AppColors.surface,
               onSelected: (value) {
