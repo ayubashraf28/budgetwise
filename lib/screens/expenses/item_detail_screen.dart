@@ -46,7 +46,9 @@ class ItemDetailScreen extends ConsumerWidget {
             categoryAsync.value?.colorValue ?? AppColors.primary;
         final transactions = transactionsAsync.value ?? const <Transaction>[];
 
-        final isBudgeted = categoryAsync.value?.isBudgeted ?? true;
+        final categoryIsBudgeted = categoryAsync.value?.isBudgeted ?? true;
+        // Effective budgeting: both category AND item must be budgeted
+        final isBudgeted = categoryIsBudgeted && item.isBudgeted;
 
         return _ItemDetailScaffold(
           categoryId: categoryId,
@@ -56,6 +58,7 @@ class ItemDetailScreen extends ConsumerWidget {
           categoryColor: categoryColor,
           currencySymbol: currencySymbol,
           isBudgeted: isBudgeted,
+          categoryIsBudgeted: categoryIsBudgeted,
         );
       },
       loading: () => Scaffold(
@@ -87,7 +90,8 @@ class _ItemDetailScaffold extends ConsumerWidget {
   final List<Transaction> transactions;
   final Color categoryColor;
   final String currencySymbol;
-  final bool isBudgeted;
+  final bool isBudgeted; // Effective: category.isBudgeted && item.isBudgeted
+  final bool categoryIsBudgeted; // For passing to the edit form
 
   const _ItemDetailScaffold({
     required this.categoryId,
@@ -97,6 +101,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
     required this.categoryColor,
     required this.currencySymbol,
     this.isBudgeted = true,
+    this.categoryIsBudgeted = true,
   });
 
   @override
@@ -519,7 +524,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
       builder: (context) => ItemFormSheet(
         categoryId: categoryId,
         item: item,
-        isBudgeted: isBudgeted,
+        categoryIsBudgeted: categoryIsBudgeted,
       ),
     ).then((_) {
       ref.invalidate(itemByIdProvider(itemId));

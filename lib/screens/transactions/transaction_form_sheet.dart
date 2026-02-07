@@ -700,11 +700,17 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
 
   Future<void> _handleAddItem(BuildContext context) async {
     if (_selectedCategoryId == null) return;
+    // Pass the parent category's isBudgeted flag
+    final categories = ref.read(categoriesProvider).value ?? [];
+    final parentCat = categories.where((c) => c.id == _selectedCategoryId).firstOrNull;
     final newItemId = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ItemFormSheet(categoryId: _selectedCategoryId!),
+      builder: (context) => ItemFormSheet(
+        categoryId: _selectedCategoryId!,
+        categoryIsBudgeted: parentCat?.isBudgeted ?? true,
+      ),
     );
     if (newItemId != null && mounted) {
       // Wait for categories (with items) to load BEFORE setting the selected ID

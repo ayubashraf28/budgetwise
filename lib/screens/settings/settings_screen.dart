@@ -123,7 +123,7 @@ class SettingsScreen extends ConsumerWidget {
             // Version
             const Center(
               child: Text(
-                'Version 1.0.0',
+                'Version 0.0.5',
                 style: AppTypography.bodySmall,
               ),
             ),

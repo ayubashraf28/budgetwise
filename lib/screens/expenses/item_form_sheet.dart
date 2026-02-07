@@ -10,13 +10,16 @@ import '../../providers/providers.dart';
 class ItemFormSheet extends ConsumerStatefulWidget {
   final String categoryId;
   final Item? item;
-  final bool isBudgeted;
+
+  /// Whether the PARENT category has budgeting enabled.
+  /// When false, item-level budgeting is overridden (disabled).
+  final bool categoryIsBudgeted;
 
   const ItemFormSheet({
     super.key,
     required this.categoryId,
     this.item,
-    this.isBudgeted = true,
+    this.categoryIsBudgeted = true,
   });
 
   @override
@@ -29,9 +32,13 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
   late final TextEditingController _projectedController;
   late final TextEditingController _notesController;
   late bool _isRecurring;
+  late bool _isBudgeted; // Item-level budget toggle
   bool _isLoading = false;
 
   bool get isEditing => widget.item != null;
+
+  /// Effective budgeting: both category AND item must be budgeted
+  bool get _effectiveBudgeted => widget.categoryIsBudgeted && _isBudgeted;
 
   @override
   void initState() {
@@ -42,6 +49,7 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
     );
     _notesController = TextEditingController(text: widget.item?.notes ?? '');
     _isRecurring = widget.item?.isRecurring ?? false;
+    _isBudgeted = widget.item?.isBudgeted ?? true;
   }
 
   @override
@@ -59,7 +67,8 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
       ),
       child: Padding(
         padding: EdgeInsets.only(
@@ -121,30 +130,89 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                   ),
                   const SizedBox(height: AppSpacing.lg),
 
+                  // ── Enable Budgeting Toggle ──
+                  Opacity(
+                    opacity: widget.categoryIsBudgeted ? 1.0 : 0.4,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceLight,
+                        borderRadius:
+                            BorderRadius.circular(AppSizing.radiusMd),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Row(
+                                children: [
+                                  Icon(LucideIcons.target,
+                                      size: 20,
+                                      color: AppColors.textSecondary),
+                                  SizedBox(width: AppSpacing.sm),
+                                  Text('Enable budgeting',
+                                      style: AppTypography.bodyLarge),
+                                ],
+                              ),
+                              Switch(
+                                value: _isBudgeted,
+                                onChanged: widget.categoryIsBudgeted
+                                    ? (value) =>
+                                        setState(() => _isBudgeted = value)
+                                    : null,
+                                activeTrackColor: AppColors.primary,
+                              ),
+                            ],
+                          ),
+                          if (!widget.categoryIsBudgeted)
+                            const Padding(
+                              padding: EdgeInsets.only(
+                                  left: 28, bottom: AppSpacing.xs),
+                              child: Text(
+                                'Category budgeting is off — enable it on the category first',
+                                style: TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+
                   // Budget Amount Field
                   _buildLabel('Budget Amount'),
                   const SizedBox(height: AppSpacing.sm),
                   Opacity(
-                    opacity: widget.isBudgeted ? 1.0 : 0.4,
+                    opacity: _effectiveBudgeted ? 1.0 : 0.4,
                     child: TextFormField(
                       controller: _projectedController,
-                      enabled: widget.isBudgeted,
+                      enabled: _effectiveBudgeted,
                       decoration: InputDecoration(
                         hintText: '0.00',
                         prefixText: '$currencySymbol ',
-                        helperText: !widget.isBudgeted
-                            ? 'Budgeting is disabled for this category'
+                        helperText: !_effectiveBudgeted
+                            ? 'Budgeting is disabled for this item'
                             : null,
                         helperStyle: const TextStyle(
                           color: AppColors.textMuted,
                           fontSize: 12,
                         ),
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*\.?\d{0,2}')),
                       ],
-                      validator: widget.isBudgeted
+                      validator: _effectiveBudgeted
                           ? (value) {
                               if (value == null || value.trim().isEmpty) {
                                 return 'Please enter an amount';
@@ -168,21 +236,26 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceLight,
-                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                      borderRadius:
+                          BorderRadius.circular(AppSizing.radiusMd),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         const Row(
                           children: [
-                            Icon(LucideIcons.repeat, size: 20, color: AppColors.textSecondary),
+                            Icon(LucideIcons.repeat,
+                                size: 20,
+                                color: AppColors.textSecondary),
                             SizedBox(width: AppSpacing.sm),
-                            Text('Recurring expense', style: AppTypography.bodyLarge),
+                            Text('Recurring expense',
+                                style: AppTypography.bodyLarge),
                           ],
                         ),
                         Switch(
                           value: _isRecurring,
-                          onChanged: (value) => setState(() => _isRecurring = value),
+                          onChanged: (value) =>
+                              setState(() => _isRecurring = value),
                           activeTrackColor: AppColors.primary,
                         ),
                       ],
@@ -243,9 +316,12 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
     setState(() => _isLoading = true);
 
     try {
-      final notifier = ref.read(itemNotifierProvider(widget.categoryId).notifier);
+      final notifier =
+          ref.read(itemNotifierProvider(widget.categoryId).notifier);
       final name = _nameController.text.trim();
-      final projected = widget.isBudgeted ? (double.tryParse(_projectedController.text) ?? 0) : 0.0;
+      // Preserve the projected value even when budgeting is off (reversible)
+      final projected =
+          double.tryParse(_projectedController.text) ?? 0;
       final notes = _notesController.text.trim();
 
       if (isEditing) {
@@ -253,6 +329,7 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
           itemId: widget.item!.id,
           name: name,
           projected: projected,
+          isBudgeted: _isBudgeted,
           isRecurring: _isRecurring,
           notes: notes.isEmpty ? null : notes,
         );
@@ -265,12 +342,14 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
       } else {
         final newItem = await notifier.addItem(
           name: name,
-          projected: projected,
+          projected: _effectiveBudgeted ? projected : 0,
+          isBudgeted: _isBudgeted,
           isRecurring: _isRecurring,
           notes: notes.isEmpty ? null : notes,
         );
         if (mounted) {
-          Navigator.of(context).pop(newItem.id); // Return ID for transaction form
+          Navigator.of(context)
+              .pop(newItem.id); // Return ID for transaction form
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Item added')),
           );

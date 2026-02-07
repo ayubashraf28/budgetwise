@@ -8,6 +8,7 @@ class Item {
   final String name;
   final double projected;
   final double actual; // Calculated from transactions
+  final bool isBudgeted;
   final bool isRecurring;
   final int sortOrder;
   final String? notes;
@@ -21,6 +22,7 @@ class Item {
     required this.name,
     this.projected = 0,
     this.actual = 0,
+    this.isBudgeted = true,
     this.isRecurring = false,
     this.sortOrder = 0,
     this.notes,
@@ -36,6 +38,7 @@ class Item {
       name: json['name'] as String,
       projected: (json['projected'] as num?)?.toDouble() ?? 0,
       actual: (json['actual'] as num?)?.toDouble() ?? 0,
+      isBudgeted: json['is_budgeted'] as bool? ?? true,
       isRecurring: json['is_recurring'] as bool? ?? false,
       sortOrder: json['sort_order'] as int? ?? 0,
       notes: json['notes'] as String?,
@@ -51,6 +54,7 @@ class Item {
       'user_id': userId,
       'name': name,
       'projected': projected,
+      'is_budgeted': isBudgeted,
       'is_recurring': isRecurring,
       'sort_order': sortOrder,
       'notes': notes,
@@ -66,6 +70,7 @@ class Item {
     String? name,
     double? projected,
     double? actual,
+    bool? isBudgeted,
     bool? isRecurring,
     int? sortOrder,
     String? notes,
@@ -79,6 +84,7 @@ class Item {
       name: name ?? this.name,
       projected: projected ?? this.projected,
       actual: actual ?? this.actual,
+      isBudgeted: isBudgeted ?? this.isBudgeted,
       isRecurring: isRecurring ?? this.isRecurring,
       sortOrder: sortOrder ?? this.sortOrder,
       notes: notes ?? this.notes,
@@ -87,17 +93,21 @@ class Item {
     );
   }
 
+  /// Whether this item has an active budget
+  bool get hasBudget => isBudgeted && projected > 0;
+
   /// Difference (positive = under budget)
   double get difference => projected - actual;
 
-  /// Whether item is over budget
-  bool get isOverBudget => actual > projected && projected > 0;
+  /// Whether item is over budget (only applies to budgeted items)
+  bool get isOverBudget => isBudgeted && actual > projected && projected > 0;
 
   /// Whether item is on track (at or under budget)
-  bool get isOnTrack => actual <= projected;
+  bool get isOnTrack => !isBudgeted || actual <= projected;
 
   /// Progress percentage (can exceed 100%)
   double get progressPercentage {
+    if (!isBudgeted) return 0;
     if (projected <= 0) return actual > 0 ? 100 : 0;
     return (actual / projected) * 100;
   }
@@ -107,6 +117,7 @@ class Item {
 
   /// Status string for display
   String get status {
+    if (!isBudgeted) return 'Spending only';
     if (projected <= 0) return 'No budget';
     if (actual == 0) return 'Not started';
     if (isOverBudget) return 'Over budget';

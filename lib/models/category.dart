@@ -107,10 +107,13 @@ class Category {
     }
   }
 
-  /// Total projected amount for all items
+  /// Total projected amount for budgeted items only.
+  /// Non-budgeted items' projected values are excluded from the total.
   double get totalProjected {
     if (items == null || items!.isEmpty) return 0;
-    return items!.fold(0.0, (sum, item) => sum + item.projected);
+    return items!
+        .where((item) => item.isBudgeted)
+        .fold(0.0, (sum, item) => sum + item.projected);
   }
 
   /// Total actual amount for all items
@@ -147,10 +150,10 @@ class Category {
   /// Whether this category has an active budget
   bool get hasBudget => isBudgeted && totalProjected > 0;
 
-  /// Number of items that are over budget
+  /// Number of budgeted items that are over budget
   int get overBudgetItemCount {
     if (items == null) return 0;
-    return items!.where((item) => item.isOverBudget).length;
+    return items!.where((item) => item.isBudgeted && item.isOverBudget).length;
   }
 
   @override

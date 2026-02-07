@@ -40,6 +40,7 @@ class ItemService {
     required String categoryId,
     required String name,
     double projected = 0,
+    bool isBudgeted = true,
     bool isRecurring = false,
     int? sortOrder,
     String? notes,
@@ -59,6 +60,7 @@ class ItemService {
       userId: _userId,
       name: name,
       projected: projected,
+      isBudgeted: isBudgeted,
       isRecurring: isRecurring,
       sortOrder: sortOrder,
       notes: notes,
@@ -80,6 +82,7 @@ class ItemService {
     required String itemId,
     String? name,
     double? projected,
+    bool? isBudgeted,
     bool? isRecurring,
     int? sortOrder,
     String? notes,
@@ -87,6 +90,7 @@ class ItemService {
     final updates = <String, dynamic>{};
     if (name != null) updates['name'] = name;
     if (projected != null) updates['projected'] = projected;
+    if (isBudgeted != null) updates['is_budgeted'] = isBudgeted;
     if (isRecurring != null) updates['is_recurring'] = isRecurring;
     if (sortOrder != null) updates['sort_order'] = sortOrder;
     if (notes != null) updates['notes'] = notes;
@@ -157,6 +161,7 @@ class ItemService {
         categoryId: targetCategoryId,
         name: source.name,
         projected: source.projected,
+        isBudgeted: source.isBudgeted,
         isRecurring: source.isRecurring,
         sortOrder: source.sortOrder,
         notes: source.notes,

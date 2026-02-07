@@ -178,6 +178,7 @@ CREATE TABLE IF NOT EXISTS public.items (
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
     name TEXT NOT NULL,
     projected DECIMAL(12,2) NOT NULL DEFAULT 0,
+    is_budgeted BOOLEAN DEFAULT TRUE,
     is_recurring BOOLEAN DEFAULT FALSE,
     sort_order INTEGER DEFAULT 0,
     notes TEXT,
