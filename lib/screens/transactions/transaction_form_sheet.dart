@@ -75,14 +75,38 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     final incomeSources = ref.watch(incomeSourcesProvider).value ?? [];
     final currencySymbol = ref.watch(currencySymbolProvider);
 
+    // Defensive: reset selected IDs if they don't exist in the loaded lists.
+    // This handles transactions whose category/item/income source belongs to
+    // a different month than the one currently loaded.
+    if (_selectedCategoryId != null &&
+        !categories.any((c) => c.id == _selectedCategoryId)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() { _selectedCategoryId = null; _selectedItemId = null; });
+      });
+    }
+    if (_selectedIncomeSourceId != null &&
+        !incomeSources.any((s) => s.id == _selectedIncomeSourceId)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _selectedIncomeSourceId = null);
+      });
+    }
+
     // Get items for selected category
     List<Item> items = [];
     if (_selectedCategoryId != null) {
-      final category = categories.firstWhere(
-        (c) => c.id == _selectedCategoryId,
-        orElse: () => categories.first,
-      );
-      items = category.items ?? [];
+      final matchedCategory = categories
+          .where((c) => c.id == _selectedCategoryId)
+          .firstOrNull;
+      if (matchedCategory != null) {
+        items = matchedCategory.items ?? [];
+      }
+    }
+
+    // Defensive: reset item if it doesn't exist in the loaded items
+    if (_selectedItemId != null && !items.any((i) => i.id == _selectedItemId)) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() => _selectedItemId = null);
+      });
     }
 
     return Container(

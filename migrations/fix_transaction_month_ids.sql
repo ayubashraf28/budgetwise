@@ -45,7 +45,21 @@ WHERE t.item_id IS NOT NULL
   AND new_item.name = old_item.name
   AND new_item.category_id = t.category_id;
 
--- Step 4 (optional): Verify — check for any remaining mismatches.
+-- Step 4: Fix income_source_id — find a matching income source (by name)
+--         in the correct month for income transactions whose income source
+--         belongs to a different month than the transaction's month_id.
+UPDATE transactions t
+SET income_source_id = new_src.id
+FROM income_sources old_src,
+     income_sources new_src
+WHERE t.income_source_id IS NOT NULL
+  AND t.income_source_id = old_src.id
+  AND old_src.month_id != t.month_id
+  AND new_src.name = old_src.name
+  AND new_src.month_id = t.month_id
+  AND new_src.user_id = t.user_id;
+
+-- Step 5 (optional): Verify — check for any remaining mismatches.
 -- Run this SELECT to confirm no transactions still have wrong month_ids.
 -- If it returns rows, those transactions may need manual review.
 --
