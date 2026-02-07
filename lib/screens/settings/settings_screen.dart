@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
@@ -34,13 +35,10 @@ class SettingsScreen extends ConsumerWidget {
               _SettingsTile(
                 icon: LucideIcons.user,
                 title: 'Profile',
-                subtitle: user?.email ?? 'Not signed in',
+                subtitle: ref.watch(userProfileProvider).valueOrNull?.displayName ?? user?.email ?? 'Not signed in',
                 onTap: () {
                   HapticFeedback.selectionClick();
-                  // TODO: Navigate to profile screen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Profile screen coming soon')),
-                  );
+                  context.push('/settings/profile');
                 },
               ),
             ]),

@@ -2,7 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/subscription.dart';
 import '../services/subscription_service.dart';
+import '../services/category_service.dart';
+import '../services/item_service.dart';
+import '../services/month_service.dart';
+import '../services/transaction_service.dart';
+import '../models/item.dart';
 import 'auth_provider.dart';
+import 'category_provider.dart';
+import 'transaction_provider.dart';
 
 /// Subscription service provider
 final subscriptionServiceProvider = Provider<SubscriptionService>((ref) {
@@ -94,6 +101,7 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
       reminderDaysBefore: reminderDaysBefore,
     );
 
+    await _syncSubscriptionItems();
     _invalidateAll();
     return sub;
   }
@@ -129,6 +137,7 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
       reminderDaysBefore: reminderDaysBefore,
     );
 
+    await _syncSubscriptionItems();
     _invalidateAll();
     return sub;
   }
@@ -139,7 +148,57 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
   }
 
   Future<void> markAsPaid(String subscriptionId) async {
+    // 1. Get the subscription details before advancing
+    final subs = state.value ?? [];
+    final sub = subs.cast<Subscription?>().firstWhere(
+      (s) => s!.id == subscriptionId,
+      orElse: () => null,
+    );
+
+    // 2. Advance the due date
     await _service.advanceDueDate(subscriptionId);
+
+    // 3. Create a real expense transaction if we have the subscription details
+    if (sub != null) {
+      try {
+        final monthService = MonthService();
+        final categoryService = CategoryService();
+        final itemService = ItemService();
+        final transactionService = TransactionService();
+
+        final now = DateTime.now();
+        final targetMonth = await monthService.getMonthForDate(now);
+
+        // Ensure Subscriptions category exists for this month
+        final subsCat = await categoryService.ensureSubscriptionsCategory(targetMonth.id);
+
+        // Ensure subscription items are synced
+        final activeSubs = await _service.getActiveSubscriptions();
+        await itemService.ensureSubscriptionItems(subsCat.id, activeSubs);
+
+        // Find the matching item
+        final items = await itemService.getItemsForCategory(subsCat.id);
+        final matchingItem = items.cast<Item?>().firstWhere(
+          (item) => item!.name.toLowerCase() == sub.name.toLowerCase(),
+          orElse: () => null,
+        );
+
+        if (matchingItem != null) {
+          await transactionService.createExpense(
+            monthId: targetMonth.id,
+            categoryId: subsCat.id,
+            itemId: matchingItem.id,
+            amount: sub.amount,
+            date: now,
+            note: 'Subscription: ${sub.name}',
+          );
+        }
+      } catch (_) {
+        // Transaction creation failed — subscription was still marked as paid
+        // The user can manually add the transaction if needed
+      }
+    }
+
     _invalidateAll();
   }
 
@@ -148,6 +207,25 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
     ref.invalidate(subscriptionsProvider);
     ref.invalidate(activeSubscriptionsProvider);
     ref.invalidate(upcomingSubscriptionsProvider);
+    ref.invalidate(transactionsProvider);
+    ref.invalidate(categoriesProvider);
+  }
+
+  /// Sync subscription items in the current month's Subscriptions category.
+  Future<void> _syncSubscriptionItems() async {
+    try {
+      final monthService = MonthService();
+      final categoryService = CategoryService();
+      final itemService = ItemService();
+
+      final now = DateTime.now();
+      final currentMonth = await monthService.getMonthForDate(now);
+      final subsCat = await categoryService.ensureSubscriptionsCategory(currentMonth.id);
+      final activeSubs = await _service.getActiveSubscriptions();
+      await itemService.ensureSubscriptionItems(subsCat.id, activeSubs);
+    } catch (_) {
+      // Sync failed — not critical, will retry on next app startup
+    }
   }
 }
 

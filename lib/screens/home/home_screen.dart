@@ -7,9 +7,9 @@ import 'package:intl/intl.dart';
 import '../../config/theme.dart';
 import '../../models/subscription.dart';
 import '../../providers/providers.dart';
-import '../../widgets/budget/budget_widgets.dart';
+import '../../widgets/charts/donut_chart.dart';
+import '../../widgets/charts/stacked_bar_chart.dart';
 import '../transactions/transaction_form_sheet.dart';
-import '../subscriptions/subscription_form_sheet.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -37,11 +37,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final summary = ref.watch(monthlySummaryProvider);
-    final categories = ref.watch(categoriesProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
     final profile = ref.watch(userProfileProvider);
     final upcoming = ref.watch(upcomingSubscriptionsProvider);
-    final activeSubs = ref.watch(activeSubscriptionsProvider);
+    final totalActualIncome = ref.watch(totalActualIncomeProvider);
+    final totalProjectedIncome = ref.watch(totalProjectedIncomeProvider);
+    final totalActualExpenses = ref.watch(totalActualExpensesProvider);
+    final totalProjectedExpenses = ref.watch(totalProjectedExpensesProvider);
+    final categories = ref.watch(categoriesProvider);
+    final yearlyMonthlyExpenses = ref.watch(yearlyMonthlyExpensesProvider);
 
     return Scaffold(
       body: RefreshIndicator(
@@ -50,6 +54,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ref.invalidate(categoriesProvider);
           ref.invalidate(incomeSourcesProvider);
           ref.invalidate(subscriptionsProvider);
+          ref.invalidate(yearlyMonthlyExpensesProvider);
         },
         child: CustomScrollView(
           slivers: [
@@ -66,73 +71,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
 
-            // Upcoming Payments
+            // Upcoming Payments (always shown)
             SliverToBoxAdapter(
               child: _buildUpcomingPayments(ref, currencySymbol, upcoming),
             ),
 
-            // Subscriptions Preview
+            // Income / Expense Summary Cards
             SliverToBoxAdapter(
-              child: _buildSubscriptionsPreview(ref, currencySymbol, activeSubs),
-            ),
-
-            // Categories Section Title
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  AppSpacing.md,
-                  AppSpacing.lg,
-                  AppSpacing.md,
-                  AppSpacing.sm,
-                ),
-                child: Text(
-                  'Categories',
-                  style: AppTypography.h3,
-                ),
+              child: _buildIncomeExpenseCards(
+                currencySymbol,
+                totalActualIncome,
+                totalProjectedIncome,
+                totalActualExpenses,
+                totalProjectedExpenses,
               ),
             ),
 
-            // Categories List
-            categories.when(
-              data: (categoryList) {
-                if (categoryList.isEmpty) {
-                  return SliverToBoxAdapter(
-                    child: _buildEmptyState(context),
-                  );
-                }
-                return SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final category = categoryList[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                          child: CategoryListItem(
-                            category: category,
-                            currencySymbol: currencySymbol,
-                            onTap: () {
-                              context.push('/budget/category/${category.id}');
-                            },
-                          ),
-                        );
-                      },
-                      childCount: categoryList.length,
-                    ),
-                  ),
-                );
-              },
-              loading: () => const SliverToBoxAdapter(
-                child: Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(AppSpacing.xl),
-                    child: CircularProgressIndicator(),
-                  ),
-                ),
-              ),
-              error: (error, stack) => SliverToBoxAdapter(
-                child: _buildErrorState(context, error.toString()),
-              ),
+            // Spending by Category Donut Chart
+            SliverToBoxAdapter(
+              child: _buildSpendingChart(categories, currencySymbol),
+            ),
+
+            // Yearly Overview Bar Chart
+            SliverToBoxAdapter(
+              child: _buildYearlyBarChart(yearlyMonthlyExpenses, currencySymbol),
             ),
 
             // Bottom padding
@@ -294,7 +256,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   ) {
     return upcoming.when(
       data: (upcomingList) {
-        if (upcomingList.isEmpty) return const SizedBox.shrink();
+        if (upcomingList.isEmpty) {
+          return _buildNoUpcomingPayments();
+        }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -315,7 +279,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   TextButton(
                     onPressed: () => context.push('/subscriptions'),
                     child: Text(
-                      'View All →',
+                      'View All',
                       style: TextStyle(color: AppColors.savings),
                     ),
                   ),
@@ -343,6 +307,49 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       },
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildNoUpcomingPayments() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Upcoming Payments', style: AppTypography.h3),
+              TextButton(
+                onPressed: () => context.push('/subscriptions'),
+                child: Text(
+                  'View All',
+                  style: TextStyle(color: AppColors.savings),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: const Column(
+              children: [
+                Icon(LucideIcons.calendarCheck, color: AppColors.textMuted, size: 32),
+                SizedBox(height: AppSpacing.sm),
+                Text('No upcoming payments', style: AppTypography.bodyMedium),
+                Text("You're all caught up!", style: AppTypography.bodySmall),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+        ],
+      ),
     );
   }
 
@@ -432,136 +439,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildSubscriptionsPreview(
-    WidgetRef ref,
-    String currencySymbol,
-    AsyncValue<List<Subscription>> activeSubs,
-  ) {
-    final activeCount = activeSubs.value?.length ?? 0;
-
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Your Subscriptions', style: AppTypography.h3),
-                  Text(
-                    '$activeCount ${activeCount == 1 ? 'active subscription' : 'active subscriptions'}',
-                    style: AppTypography.bodySmall,
-                  ),
-                ],
-              ),
-              TextButton.icon(
-                onPressed: () => _showAddSubscription(context),
-                style: TextButton.styleFrom(foregroundColor: AppColors.savings),
-                icon: const Icon(LucideIcons.plus, size: 16),
-                label: const Text('Add New'),
-              ),
-            ],
-          ),
-        ),
-        // Show top 3 subscriptions
-        activeSubs.when(
-          data: (subs) {
-            final display = subs.take(3).toList();
-            if (display.isEmpty) return const SizedBox.shrink();
-            return Column(
-              children: display
-                  .map<Widget>((sub) => Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                        child: _buildSubscriptionRow(sub, currencySymbol),
-                      ))
-                  .toList(),
-            );
-          },
-          loading: () => const SizedBox.shrink(),
-          error: (_, __) => const SizedBox.shrink(),
-        ),
-        const SizedBox(height: AppSpacing.md),
-      ],
-    );
-  }
-
-  Widget _buildSubscriptionRow(Subscription sub, String currencySymbol) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      padding: AppSpacing.cardPadding,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: sub.colorValue.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-            ),
-            child: Icon(_getIcon(sub.icon), color: sub.colorValue, size: 20),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(sub.name, style: AppTypography.labelLarge),
-                Text(
-                  '$currencySymbol${sub.amount.toStringAsFixed(0)} / ${sub.billingCycleLabel.toLowerCase()}',
-                  style: AppTypography.bodySmall,
-                ),
-              ],
-            ),
-          ),
-          Text(
-            DateFormat('d MMM').format(sub.nextDueDate),
-            style: AppTypography.bodySmall,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyState(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: const Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            LucideIcons.folderOpen,
-            size: 48,
-            color: AppColors.textMuted,
-          ),
-          SizedBox(height: AppSpacing.md),
-          Text(
-            'No categories yet',
-            style: AppTypography.h3,
-          ),
-          SizedBox(height: AppSpacing.sm),
-          Text(
-            'Add your first budget category to get started',
-            style: AppTypography.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildErrorState(BuildContext context, String error) {
     return Container(
       margin: const EdgeInsets.all(AppSpacing.md),
@@ -616,6 +493,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       'dumbbell': LucideIcons.dumbbell,
       'music': LucideIcons.music,
       'book': LucideIcons.book,
+      'repeat': LucideIcons.repeat,
     };
     return icons[iconName] ?? LucideIcons.creditCard;
   }
@@ -629,12 +507,292 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  void _showAddSubscription(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const SubscriptionFormSheet(),
+  Widget _buildIncomeExpenseCards(
+    String currencySymbol,
+    double actualIncome,
+    double projectedIncome,
+    double actualExpenses,
+    double projectedExpenses,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Monthly Summary', style: AppTypography.h3),
+          const SizedBox(height: AppSpacing.sm),
+          Row(
+            children: [
+              // Income Card
+              Expanded(
+                child: _buildSummaryCard(
+                  icon: LucideIcons.trendingUp,
+                  title: 'Income',
+                  actual: actualIncome,
+                  projected: projectedIncome,
+                  currencySymbol: currencySymbol,
+                  accentColor: AppColors.savings,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              // Expense Card
+              Expanded(
+                child: _buildSummaryCard(
+                  icon: LucideIcons.trendingDown,
+                  title: 'Expenses',
+                  actual: actualExpenses,
+                  projected: projectedExpenses,
+                  currencySymbol: currencySymbol,
+                  accentColor: AppColors.error,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.lg),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryCard({
+    required IconData icon,
+    required String title,
+    required double actual,
+    required double projected,
+    required String currencySymbol,
+    required Color accentColor,
+  }) {
+    final progress = projected > 0 ? (actual / projected).clamp(0.0, 1.5) : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 18, color: accentColor),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                title,
+                style: TextStyle(
+                  color: accentColor,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            '$currencySymbol${actual.toStringAsFixed(0)}',
+            style: AppTypography.amountSmall,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'of $currencySymbol${projected.toStringAsFixed(0)}',
+            style: AppTypography.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // Progress bar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress.toDouble(),
+              backgroundColor: accentColor.withValues(alpha: 0.15),
+              valueColor: AlwaysStoppedAnimation<Color>(accentColor),
+              minHeight: 4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpendingChart(
+    AsyncValue<List<dynamic>> categories,
+    String currencySymbol,
+  ) {
+    return categories.when(
+      data: (categoryList) {
+        final spendingCategories = categoryList
+            .where((c) => c.totalActual > 0)
+            .toList();
+
+        if (spendingCategories.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final totalActual = spendingCategories.fold<double>(
+          0.0,
+          (sum, c) => sum + c.totalActual,
+        );
+
+        final segments = spendingCategories
+            .map((c) => DonutSegment(
+                  color: c.colorValue,
+                  value: c.totalActual,
+                  name: c.name,
+                  icon: c.icon,
+                ))
+            .toList();
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Spending by Category', style: AppTypography.h3),
+              const SizedBox(height: AppSpacing.sm),
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.sm),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppSizing.radiusXl),
+                ),
+                child: DonutChart(
+                  segments: segments,
+                  total: totalActual,
+                  centerBuilder: (selectedIndex) {
+                    if (selectedIndex == null ||
+                        selectedIndex >= spendingCategories.length) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            LucideIcons.trendingUp,
+                            color: AppColors.savings,
+                            size: 24,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '$currencySymbol${totalActual.toStringAsFixed(0)}',
+                            style: AppTypography.amountMedium,
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'TOTAL',
+                            style: TextStyle(
+                              color: AppColors.textMuted,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 1.0,
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+
+                    final category = spendingCategories[selectedIndex];
+                    final percentage = totalActual > 0
+                        ? (category.totalActual / totalActual * 100)
+                        : 0.0;
+
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          _getIcon(category.icon),
+                          color: category.colorValue,
+                          size: 24,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '$currencySymbol${category.totalActual.toStringAsFixed(0)}',
+                          style: AppTypography.amountMedium,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          category.name.toUpperCase(),
+                          style: const TextStyle(
+                            color: AppColors.textMuted,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${percentage.toStringAsFixed(0)}%',
+                          style: TextStyle(
+                            color: category.colorValue,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
+  Widget _buildYearlyBarChart(
+    AsyncValue<List<MonthlyBarData>> yearlyMonthlyExpenses,
+    String currencySymbol,
+  ) {
+    return yearlyMonthlyExpenses.when(
+      data: (monthlyData) {
+        if (monthlyData.isEmpty ||
+            monthlyData.every((d) => d.totalExpenses == 0)) {
+          return const SizedBox.shrink();
+        }
+
+        final year = DateTime.now().year;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Yearly Overview', style: AppTypography.h3),
+                  Text(
+                    '$year',
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppSizing.radiusXl),
+                ),
+                child: StackedBarChart(
+                  monthlyData: monthlyData,
+                  currencySymbol: currencySymbol,
+                  interactive: false,
+                  height: 200,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }

@@ -237,4 +237,23 @@ class CategoryService {
       }
     }
   }
+
+  /// Ensure a "Subscriptions" category exists for the given month.
+  /// Returns the existing or newly created category.
+  Future<Category> ensureSubscriptionsCategory(String monthId) async {
+    final existing = await getCategoriesForMonth(monthId);
+    final subsCat = existing.cast<Category?>().firstWhere(
+      (c) => c!.name == 'Subscriptions',
+      orElse: () => null,
+    );
+    if (subsCat != null) return subsCat;
+
+    return createCategory(
+      monthId: monthId,
+      name: 'Subscriptions',
+      icon: 'repeat',
+      color: '#8b5cf6',
+      isBudgeted: true,
+    );
+  }
 }

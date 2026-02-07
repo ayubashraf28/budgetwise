@@ -2,6 +2,7 @@ import 'package:uuid/uuid.dart';
 
 import '../config/supabase_config.dart';
 import '../models/item.dart';
+import '../models/subscription.dart';
 
 class ItemService {
   final _client = SupabaseConfig.client;
@@ -170,5 +171,61 @@ class ItemService {
     }
 
     return newItems;
+  }
+
+  /// Ensure each active subscription has a corresponding item under the
+  /// Subscriptions category. Creates missing items, updates projected amounts
+  /// if they changed. Does NOT remove items for deleted subscriptions
+  /// (they may have historical transactions).
+  Future<void> ensureSubscriptionItems(
+    String subscriptionsCategoryId,
+    List<Subscription> activeSubscriptions,
+  ) async {
+    final existingItems = await getItemsForCategory(subscriptionsCategoryId);
+
+    for (final sub in activeSubscriptions) {
+      // Normalize subscription amount to monthly cost for projected
+      final monthlyCost = _normalizeToMonthly(sub);
+
+      // Check if an item with this subscription's name already exists
+      final existingItem = existingItems.cast<Item?>().firstWhere(
+        (item) => item!.name.toLowerCase() == sub.name.toLowerCase(),
+        orElse: () => null,
+      );
+
+      if (existingItem == null) {
+        // Create new item for this subscription
+        await createItem(
+          categoryId: subscriptionsCategoryId,
+          name: sub.name,
+          projected: monthlyCost,
+          isBudgeted: true,
+          isRecurring: true,
+        );
+      } else if ((existingItem.projected - monthlyCost).abs() > 0.01) {
+        // Update projected amount if it changed
+        await updateItem(
+          itemId: existingItem.id,
+          projected: monthlyCost,
+        );
+      }
+    }
+  }
+
+  /// Normalize a subscription's amount to a monthly cost.
+  double _normalizeToMonthly(Subscription sub) {
+    switch (sub.billingCycle) {
+      case BillingCycle.weekly:
+        return sub.amount * 4.33;
+      case BillingCycle.monthly:
+        return sub.amount;
+      case BillingCycle.quarterly:
+        return sub.amount / 3;
+      case BillingCycle.yearly:
+        return sub.amount / 12;
+      case BillingCycle.custom:
+        final days = sub.customCycleDays ?? 30;
+        return sub.amount * 30 / days;
+    }
   }
 }

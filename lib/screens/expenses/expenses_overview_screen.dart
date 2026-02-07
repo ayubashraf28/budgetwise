@@ -13,6 +13,8 @@ import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../services/category_service.dart';
 import '../../services/income_service.dart';
+import '../../widgets/charts/donut_chart.dart';
+import '../../widgets/charts/stacked_bar_chart.dart';
 import 'category_form_sheet.dart';
 
 class ExpensesOverviewScreen extends ConsumerStatefulWidget {
@@ -535,11 +537,14 @@ class _ExpensesOverviewScreenState
       return const SizedBox(height: AppSpacing.lg);
     }
 
-    // Build segment data
-    final segments = spendingCategories.map((c) => _DonutSegment(
-      color: c.colorValue,
-      value: c.totalActual,
-    )).toList();
+    final segments = spendingCategories
+        .map((c) => DonutSegment(
+              color: c.colorValue,
+              value: c.totalActual,
+              name: c.name,
+              icon: c.icon,
+            ))
+        .toList();
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -552,139 +557,35 @@ class _ExpensesOverviewScreenState
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppSizing.radiusXl),
         ),
-        child: SizedBox(
-          height: 280,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final size = math.min(constraints.maxWidth, constraints.maxHeight);
-              // Calculate total from segments to ensure accuracy
-              final segmentTotal = segments.fold<double>(0, (sum, s) => sum + s.value);
-              
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Custom donut chart with gesture detection
-                  GestureDetector(
-                    behavior: HitTestBehavior.translucent,
-                    onTapDown: (details) {
-                      _handleChartTap(details, size, segments, segmentTotal);
-                    },
-                    child: CustomPaint(
-                      size: Size(size, size),
-                      painter: _DonutChartPainter(
-                        segments: segments,
-                        strokeWidth: 20,
-                        gapDegrees: 10.0,
-                        selectedIndex: _selectedCategoryIndex,
-                        selectedStrokeWidth: 26,
-                      ),
-                    ),
-                  ),
-                  // Center info (non-interactive, allows taps to pass through)
-                  IgnorePointer(
-                    child: _buildChartCenter(
-                      spendingCategories,
-                      totalActual,
-                      currencySymbol,
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
+        child: DonutChart(
+          segments: segments,
+          total: totalActual,
+          initialSelectedIndex: _selectedCategoryIndex,
+          onSelectionChanged: (index) {
+            setState(() => _selectedCategoryIndex = index);
+          },
+          centerBuilder: (selectedIndex) {
+            return _buildChartCenter(
+              spendingCategories,
+              totalActual,
+              currencySymbol,
+              selectedIndex,
+            );
+          },
         ),
       ),
     );
-  }
-
-  void _handleChartTap(
-    TapDownDetails details,
-    double size,
-    List<_DonutSegment> segments,
-    double totalActual,
-  ) {
-    final center = Offset(size / 2, size / 2);
-    final tapOffset = details.localPosition - center;
-    final distance = tapOffset.distance;
-    
-    // Calculate the ring radius (center of the stroke)
-    // Stroke width is 20 (normal) or 26 (selected), so use average
-    final strokeWidth = 23.0;
-    final radius = (size - strokeWidth) / 2;
-
-    // Check if tap is on the ring (within stroke area)
-    // Allow taps within the stroke width range (20-26px)
-    final minRadius = radius - 15;
-    final maxRadius = radius + 15;
-    if (distance < minRadius || distance > maxRadius) {
-      setState(() => _selectedCategoryIndex = null);
-      return;
-    }
-
-    // Calculate angle of tap (in radians)
-    // atan2 returns angle from positive x-axis (-π to π)
-    // Painter starts from top (-π/2), so we need to match that
-    var angle = math.atan2(tapOffset.dy, tapOffset.dx);
-    
-    // Convert to match painter's coordinate system (starting from -π/2 = top)
-    // Add π/2 to rotate coordinate system so 0° is at top
-    angle = angle + (math.pi / 2);
-    // Normalize to 0-2π range
-    if (angle < 0) angle += 2 * math.pi;
-
-    // Find which segment was tapped (matching painter's logic exactly)
-    final gapRad = 10.0 * math.pi / 180;
-    final totalGap = gapRad * segments.length;
-    final availableSweep = 2 * math.pi - totalGap;
-    
-    // Start from top (0 in normalized coordinates = -π/2 in painter)
-    double startAngle = 0;
-
-    for (int i = 0; i < segments.length; i++) {
-      final fraction = segments[i].value / totalActual;
-      final sweepAngle = fraction * availableSweep;
-      final segmentEnd = startAngle + sweepAngle;
-      
-      // Check if tap angle falls within this segment
-      // Use <= for end to include the boundary (but not the gap)
-      bool isInSegment = false;
-      
-      if (segmentEnd <= 2 * math.pi) {
-        // Normal case: segment doesn't wrap
-        isInSegment = angle >= startAngle && angle < segmentEnd;
-      } else {
-        // Segment wraps around 2π (from 3π/2 to 2π and 0 to some value)
-        // Check both ranges
-        isInSegment = (angle >= startAngle && angle < 2 * math.pi) ||
-                      (angle >= 0 && angle < (segmentEnd - 2 * math.pi));
-      }
-      
-      if (isInSegment) {
-        // Toggle selection: if already selected, deselect; otherwise select
-        setState(() {
-          _selectedCategoryIndex = (_selectedCategoryIndex == i) ? null : i;
-        });
-        return;
-      }
-      
-      // Move to next segment: end of current segment + gap
-      startAngle = segmentEnd + gapRad;
-      // Normalize if wraps around
-      if (startAngle >= 2 * math.pi) startAngle -= 2 * math.pi;
-    }
-
-    // If tap is in a gap, deselect
-    setState(() => _selectedCategoryIndex = null);
   }
 
   Widget _buildChartCenter(
     List<Category> spendingCategories,
     double totalActual,
     String currencySymbol,
+    int? selectedIndex,
   ) {
     // Default: show total
-    if (_selectedCategoryIndex == null ||
-        _selectedCategoryIndex! >= spendingCategories.length) {
+    if (selectedIndex == null ||
+        selectedIndex >= spendingCategories.length) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -713,7 +614,7 @@ class _ExpensesOverviewScreenState
     }
 
     // Selected category
-    final category = spendingCategories[_selectedCategoryIndex!];
+    final category = spendingCategories[selectedIndex];
     final percentage = totalActual > 0
         ? (category.totalActual / totalActual * 100)
         : 0.0;
@@ -1001,14 +902,6 @@ class _ExpensesOverviewScreenState
     List<MonthlyBarData> monthlyData,
     String currencySymbol,
   ) {
-    if (monthlyData.isEmpty) {
-      return const SizedBox(height: AppSpacing.lg);
-    }
-
-    final maxExpense = monthlyData
-        .map((d) => d.totalExpenses)
-        .reduce((a, b) => a > b ? a : b);
-
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -1020,158 +913,14 @@ class _ExpensesOverviewScreenState
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppSizing.radiusXl),
         ),
-        height: 280,
-        child: BarChart(
-          BarChartData(
-            alignment: BarChartAlignment.spaceAround,
-            maxY: maxExpense > 0 ? maxExpense * 1.2 : 100,
-            barTouchData: BarTouchData(
-              enabled: true,
-              touchCallback: (FlTouchEvent event, barTouchResponse) {
-                if (event is FlTapUpEvent &&
-                    barTouchResponse != null &&
-                    barTouchResponse.spot != null) {
-                  final tappedIndex =
-                      barTouchResponse.spot!.touchedBarGroupIndex;
-                  setState(() {
-                    // Toggle: tap same bar deselects
-                    _selectedBarMonthIndex =
-                        _selectedBarMonthIndex == tappedIndex
-                            ? null
-                            : tappedIndex;
-                  });
-                }
-              },
-              touchTooltipData: BarTouchTooltipData(
-                getTooltipColor: (_) => AppColors.surfaceLight,
-                tooltipPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                tooltipMargin: 8,
-                getTooltipItem: (group, groupIndex, rod, rodIndex) {
-                  final data = monthlyData[group.x.toInt()];
-                  return BarTooltipItem(
-                    '$currencySymbol${_formatAmount(data.totalExpenses)}',
-                    const TextStyle(
-                      color: AppColors.textPrimary,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  );
-                },
-              ),
-            ),
-            titlesData: FlTitlesData(
-              show: true,
-              topTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
-              rightTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
-              leftTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false),
-              ),
-              bottomTitles: AxisTitles(
-                sideTitles: SideTitles(
-                  showTitles: true,
-                  getTitlesWidget: (value, meta) {
-                    final index = value.toInt();
-                    if (index < 0 || index >= monthlyData.length) {
-                      return const SizedBox.shrink();
-                    }
-                    final name = monthlyData[index].monthName;
-                    final abbr =
-                        name.length >= 3 ? name.substring(0, 3) : name;
-                    final isSelected = _selectedBarMonthIndex == index;
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        abbr,
-                        style: TextStyle(
-                          color: isSelected
-                              ? AppColors.savings
-                              : _selectedBarMonthIndex != null
-                                  ? AppColors.textMuted
-                                      .withValues(alpha: 0.4)
-                                  : AppColors.textMuted,
-                          fontSize: 11,
-                          fontWeight: isSelected
-                              ? FontWeight.w700
-                              : FontWeight.w500,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-            gridData: const FlGridData(show: false),
-            borderData: FlBorderData(show: false),
-            barGroups: monthlyData.asMap().entries.map((entry) {
-              final index = entry.key;
-              final data = entry.value;
-              final barWidth = monthlyData.length <= 6 ? 28.0 : 16.0;
-              // Dim unselected bars when a bar is selected
-              final isDimmed = _selectedBarMonthIndex != null &&
-                  _selectedBarMonthIndex != index;
-              final dimAlpha = 0.25;
-
-              // Build stacked rod from category segments
-              if (data.segments.isEmpty) {
-                final barColor = isDimmed
-                    ? AppColors.savings.withValues(alpha: dimAlpha)
-                    : AppColors.savings;
-                return BarChartGroupData(
-                  x: index,
-                  barRods: [
-                    BarChartRodData(
-                      toY: data.totalExpenses,
-                      color: barColor,
-                      width: barWidth,
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(6),
-                        topRight: Radius.circular(6),
-                      ),
-                    ),
-                  ],
-                );
-              }
-
-              // Build stacked segments (largest at bottom)
-              double runningY = 0;
-              final rodStackItems = <BarChartRodStackItem>[];
-              final sortedSegments = List.of(data.segments)
-                ..sort((a, b) => b.amount.compareTo(a.amount));
-              for (final segment in sortedSegments.reversed) {
-                rodStackItems.add(BarChartRodStackItem(
-                  runningY,
-                  runningY + segment.amount,
-                  isDimmed
-                      ? segment.color.withValues(alpha: dimAlpha)
-                      : segment.color,
-                ));
-                runningY += segment.amount;
-              }
-
-              return BarChartGroupData(
-                x: index,
-                barRods: [
-                  BarChartRodData(
-                    toY: data.totalExpenses,
-                    rodStackItems: rodStackItems,
-                    color: Colors.transparent,
-                    width: barWidth,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(6),
-                      topRight: Radius.circular(6),
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
-          ),
+        child: StackedBarChart(
+          monthlyData: monthlyData,
+          currencySymbol: currencySymbol,
+          interactive: true,
+          selectedBarIndex: _selectedBarMonthIndex,
+          onBarSelected: (index) {
+            setState(() => _selectedBarMonthIndex = index);
+          },
         ),
       ),
     );
@@ -1599,6 +1348,7 @@ class _ExpensesOverviewScreenState
       'dumbbell': LucideIcons.dumbbell,
       'music': LucideIcons.music,
       'book': LucideIcons.book,
+      'repeat': LucideIcons.repeat,
     };
     return icons[iconName] ?? LucideIcons.wallet;
   }
@@ -1622,69 +1372,3 @@ class _ExpensesOverviewScreenState
   }
 }
 
-// ──────────────────────────────────────────────
-// CUSTOM DONUT CHART
-// ──────────────────────────────────────────────
-
-class _DonutSegment {
-  final Color color;
-  final double value;
-
-  const _DonutSegment({required this.color, required this.value});
-}
-
-class _DonutChartPainter extends CustomPainter {
-  final List<_DonutSegment> segments;
-  final double strokeWidth;
-  final double gapDegrees;
-  final int? selectedIndex;
-  final double selectedStrokeWidth;
-
-  _DonutChartPainter({
-    required this.segments,
-    this.strokeWidth = 22,
-    this.gapDegrees = 3.0,
-    this.selectedIndex,
-    this.selectedStrokeWidth = 28,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (math.min(size.width, size.height) - selectedStrokeWidth) / 2;
-
-    final total = segments.fold<double>(0, (sum, s) => sum + s.value);
-    if (total <= 0) return;
-
-    final gapRad = gapDegrees * math.pi / 180;
-    final totalGap = gapRad * segments.length;
-    final availableSweep = 2 * math.pi - totalGap;
-
-    // Start from top (-90°)
-    double startAngle = -math.pi / 2;
-
-    for (int i = 0; i < segments.length; i++) {
-      final segment = segments[i];
-      final fraction = segment.value / total;
-      final sweepAngle = fraction * availableSweep;
-      final isSelected = i == selectedIndex;
-
-      final paint = Paint()
-        ..color = segment.color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = isSelected ? selectedStrokeWidth : strokeWidth
-        ..strokeCap = StrokeCap.round;
-
-      final rect = Rect.fromCircle(center: center, radius: radius);
-      canvas.drawArc(rect, startAngle, sweepAngle, false, paint);
-
-      startAngle += sweepAngle + gapRad;
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _DonutChartPainter oldDelegate) {
-    return oldDelegate.selectedIndex != selectedIndex ||
-        oldDelegate.segments.length != segments.length;
-  }
-}

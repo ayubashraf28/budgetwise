@@ -4,6 +4,8 @@ import '../models/month.dart';
 import '../services/category_service.dart';
 import '../services/income_service.dart';
 import '../services/month_service.dart';
+import '../services/item_service.dart';
+import '../services/subscription_service.dart';
 import 'auth_provider.dart';
 
 /// Month service provider
@@ -56,9 +58,16 @@ final ensureMonthSetupProvider = FutureProvider<void>((ref) async {
     // 3. Ensure current month has categories AND income sources
     await categoryService.ensureCategoriesForMonth(currentMonth.id);
     await incomeService.ensureIncomeSourcesForMonth(currentMonth.id);
+
+    // 4. Ensure Subscriptions category and items are synced
+    final subscriptionService = SubscriptionService();
+    final itemService = ItemService();
+    final subsCat = await categoryService.ensureSubscriptionsCategory(currentMonth.id);
+    final activeSubs = await subscriptionService.getActiveSubscriptions();
+    await itemService.ensureSubscriptionItems(subsCat.id, activeSubs);
   }
 
-  // 4. Invalidate dependent providers to pick up new data
+  // 5. Invalidate dependent providers to pick up new data
   ref.invalidate(activeMonthProvider);
   ref.invalidate(userMonthsProvider);
 });
