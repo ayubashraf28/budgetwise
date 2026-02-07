@@ -12,6 +12,7 @@ import '../../models/month.dart';
 import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../services/category_service.dart';
+import '../../services/income_service.dart';
 import 'category_form_sheet.dart';
 
 class ExpensesOverviewScreen extends ConsumerStatefulWidget {
@@ -385,9 +386,11 @@ class _ExpensesOverviewScreenState
   Future<void> _switchMonth(String monthId) async {
     setState(() => _selectedCategoryIndex = null); // Reset chart selection
 
-    // Ensure the target month has categories (copy from previous if empty)
+    // Ensure the target month has categories AND income sources
     final categoryService = CategoryService();
+    final incomeService = IncomeService();
     await categoryService.ensureCategoriesForMonth(monthId);
+    await incomeService.ensureIncomeSourcesForMonth(monthId);
 
     // Update budget screen selection only — does NOT affect home/transactions
     ref.read(budgetSelectedMonthIdProvider.notifier).state = monthId;

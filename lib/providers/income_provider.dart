@@ -85,7 +85,7 @@ class IncomeNotifier extends AsyncNotifier<List<IncomeSource>> {
 
   IncomeService get _service => ref.read(incomeServiceProvider);
 
-  /// Add a new income source
+  /// Add a new income source (and sync to all other months in the year)
   Future<IncomeSource> addIncomeSource({
     required String name,
     double projected = 0,
@@ -102,6 +102,18 @@ class IncomeNotifier extends AsyncNotifier<List<IncomeSource>> {
       projected: projected,
       isRecurring: isRecurring,
       notes: notes,
+    );
+
+    // Sync the new income source to all other months in the year
+    final monthService = ref.read(monthServiceProvider);
+    final allMonths = await monthService.getAllMonths();
+    // Filter to same year
+    final yearMonths = allMonths.where((m) {
+      return m.startDate.year == month.startDate.year;
+    }).toList();
+    await _service.syncIncomeSourceToAllMonths(
+      incomeSource: source,
+      allYearMonths: yearMonths,
     );
 
     ref.invalidateSelf();

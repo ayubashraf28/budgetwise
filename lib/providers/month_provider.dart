@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/month.dart';
 import '../services/category_service.dart';
+import '../services/income_service.dart';
 import '../services/month_service.dart';
 import 'auth_provider.dart';
 
@@ -30,14 +31,15 @@ final userMonthsProvider = FutureProvider<List<Month>>((ref) async {
 
 /// Ensures all 12 months exist for the current year,
 /// auto-sets active month to current calendar month,
-/// and copies categories to the current month if empty.
-/// Call this once on app startup (e.g., in ExpensesOverviewScreen.initState).
+/// and copies categories + income sources to the current month if empty.
+/// Call this once on app startup.
 final ensureMonthSetupProvider = FutureProvider<void>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return;
 
   final monthService = ref.read(monthServiceProvider);
   final categoryService = CategoryService();
+  final incomeService = IncomeService();
   final now = DateTime.now();
 
   // 1. Ensure all 12 months exist for current year
@@ -51,8 +53,9 @@ final ensureMonthSetupProvider = FutureProvider<void>((ref) async {
       await monthService.setActiveMonth(currentMonth.id);
     }
 
-    // 3. Ensure current month has categories (copy from previous if empty)
+    // 3. Ensure current month has categories AND income sources
     await categoryService.ensureCategoriesForMonth(currentMonth.id);
+    await incomeService.ensureIncomeSourcesForMonth(currentMonth.id);
   }
 
   // 4. Invalidate dependent providers to pick up new data
@@ -113,7 +116,7 @@ class MonthNotifier extends AsyncNotifier<Month?> {
     return month;
   }
 
-  /// Set a month as active (also ensures categories exist for it)
+  /// Set a month as active (also ensures categories + income sources exist)
   Future<void> setActiveMonth(String monthId) async {
     final user = ref.read(currentUserProvider);
     if (user == null) return;
@@ -123,9 +126,11 @@ class MonthNotifier extends AsyncNotifier<Month?> {
       isActive: true,
     );
 
-    // Ensure the newly active month has categories
+    // Ensure the newly active month has categories AND income sources
     final categoryService = CategoryService();
+    final incomeService = IncomeService();
     await categoryService.ensureCategoriesForMonth(monthId);
+    await incomeService.ensureIncomeSourcesForMonth(monthId);
 
     ref.invalidateSelf();
     ref.invalidate(userMonthsProvider);

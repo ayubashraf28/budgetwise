@@ -2,6 +2,7 @@ import 'package:uuid/uuid.dart';
 
 import '../config/supabase_config.dart';
 import '../models/income_source.dart';
+import '../models/month.dart';
 
 class IncomeService {
   final _client = SupabaseConfig.client;
@@ -164,5 +165,65 @@ class IncomeService {
     }
 
     return newSources;
+  }
+
+  /// Ensure a month has income sources. If empty, copy from the most recent
+  /// month that has income sources (with projected amounts for recurring).
+  Future<List<IncomeSource>> ensureIncomeSourcesForMonth(String monthId) async {
+    final existing = await getIncomeSourcesForMonth(monthId);
+    if (existing.isNotEmpty) return existing;
+
+    // Find the most recent month that has income sources
+    final allMonths = await _client
+        .from('months')
+        .select()
+        .eq('user_id', _userId)
+        .order('start_date', ascending: false);
+
+    for (final monthJson in allMonths) {
+      final otherMonthId = monthJson['id'] as String;
+      if (otherMonthId == monthId) continue;
+
+      final otherSources = await getIncomeSourcesForMonth(otherMonthId);
+      if (otherSources.isNotEmpty) {
+        return copyIncomeSourcesFromMonth(
+          sourceMonthId: otherMonthId,
+          targetMonthId: monthId,
+          copyProjectedAmounts: true,
+        );
+      }
+    }
+
+    // No months have income sources — return empty
+    return [];
+  }
+
+  /// Sync a newly created income source to all other months in the year.
+  /// Creates the income source in each month that doesn't already have
+  /// an income source with the same name.
+  Future<void> syncIncomeSourceToAllMonths({
+    required IncomeSource incomeSource,
+    required List<Month> allYearMonths,
+  }) async {
+    for (final month in allYearMonths) {
+      if (month.id == incomeSource.monthId) continue;
+
+      // Check if this month already has an income source with the same name
+      final existing = await getIncomeSourcesForMonth(month.id);
+      final alreadyExists = existing.any(
+        (s) => s.name.toLowerCase() == incomeSource.name.toLowerCase(),
+      );
+
+      if (!alreadyExists) {
+        await createIncomeSource(
+          monthId: month.id,
+          name: incomeSource.name,
+          projected: incomeSource.isRecurring ? incomeSource.projected : 0,
+          isRecurring: incomeSource.isRecurring,
+          sortOrder: incomeSource.sortOrder,
+          notes: incomeSource.notes,
+        );
+      }
+    }
   }
 }
