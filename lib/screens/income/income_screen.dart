@@ -230,15 +230,19 @@ class IncomeScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  '$currencySymbol${source.actual.toStringAsFixed(0)} / $currencySymbol${source.projected.toStringAsFixed(0)}',
+                  source.isRecurring
+                      ? '$currencySymbol${source.actual.toStringAsFixed(0)} / $currencySymbol${source.projected.toStringAsFixed(0)}'
+                      : '$currencySymbol${source.actual.toStringAsFixed(0)}',
                   style: AppTypography.bodyMedium,
                 ),
-                const SizedBox(height: AppSpacing.sm),
-                BudgetProgressBar(
-                  projected: source.projected,
-                  actual: source.actual,
-                  color: AppColors.success,
-                ),
+                if (source.isRecurring) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  BudgetProgressBar(
+                    projected: source.projected,
+                    actual: source.actual,
+                    color: AppColors.success,
+                  ),
+                ],
               ],
             ),
           ),
@@ -251,7 +255,16 @@ class IncomeScreen extends ConsumerWidget {
     String label;
     Color color;
 
-    if (source.actual >= source.projected && source.projected > 0) {
+    if (!source.isRecurring) {
+      // Non-recurring: simple received/pending
+      if (source.actual > 0) {
+        label = 'Received';
+        color = AppColors.success;
+      } else {
+        label = 'Pending';
+        color = AppColors.textMuted;
+      }
+    } else if (source.actual >= source.projected && source.projected > 0) {
       label = 'Received';
       color = AppColors.success;
     } else if (source.actual > 0) {

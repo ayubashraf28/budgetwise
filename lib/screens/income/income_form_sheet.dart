@@ -125,26 +125,39 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                   // Projected Amount Field
                   _buildLabel('Projected Amount'),
                   const SizedBox(height: AppSpacing.sm),
-                  TextFormField(
-                    controller: _projectedController,
-                    decoration: InputDecoration(
-                      hintText: '0.00',
-                      prefixText: '$currencySymbol ',
+                  Opacity(
+                    opacity: _isRecurring ? 1.0 : 0.4,
+                    child: TextFormField(
+                      controller: _projectedController,
+                      enabled: _isRecurring,
+                      decoration: InputDecoration(
+                        hintText: '0.00',
+                        prefixText: '$currencySymbol ',
+                        helperText: !_isRecurring
+                            ? 'Not required for non-recurring income'
+                            : null,
+                        helperStyle: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                      ],
+                      validator: _isRecurring
+                          ? (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter an amount';
+                              }
+                              final amount = double.tryParse(value);
+                              if (amount == null || amount < 0) {
+                                return 'Please enter a valid amount';
+                              }
+                              return null;
+                            }
+                          : null,
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-                    ],
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter an amount';
-                      }
-                      final amount = double.tryParse(value);
-                      if (amount == null || amount < 0) {
-                        return 'Please enter a valid amount';
-                      }
-                      return null;
-                    },
                   ),
                   const SizedBox(height: AppSpacing.lg),
 
@@ -188,7 +201,12 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                         ),
                         Switch(
                           value: _isRecurring,
-                          onChanged: (value) => setState(() => _isRecurring = value),
+                          onChanged: (value) => setState(() {
+                            _isRecurring = value;
+                            if (!value) {
+                              _projectedController.text = '0.00';
+                            }
+                          }),
                           activeTrackColor: AppColors.primary,
                         ),
                       ],
@@ -251,7 +269,7 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
     try {
       final notifier = ref.read(incomeNotifierProvider.notifier);
       final name = _nameController.text.trim();
-      final projected = double.tryParse(_projectedController.text) ?? 0;
+      final projected = _isRecurring ? (double.tryParse(_projectedController.text) ?? 0) : 0.0;
       final actual = double.tryParse(_actualController.text) ?? 0;
       final notes = _notesController.text.trim();
 

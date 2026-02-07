@@ -250,38 +250,50 @@ class CategoryDetailScreen extends ConsumerWidget {
                   '$currencySymbol${category.totalActual.toStringAsFixed(0)}',
                   style: AppTypography.amountMedium.copyWith(color: color),
                 ),
-                Text(
-                  ' / $currencySymbol${category.totalProjected.toStringAsFixed(0)}',
-                  style: TextStyle(
-                    color: color.withValues(alpha: 0.6),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                if (category.isBudgeted)
+                  Text(
+                    ' / $currencySymbol${category.totalProjected.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      color: color.withValues(alpha: 0.6),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
+                if (!category.isBudgeted)
+                  Text(
+                    ' spent',
+                    style: TextStyle(
+                      color: color.withValues(alpha: 0.6),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
               ],
             ),
-            const SizedBox(height: AppSpacing.sm),
-            // Progress bar
-            BudgetProgressBar(
-              projected: category.totalProjected,
-              actual: category.totalActual,
-              color: color,
-              backgroundColor: color.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            // Status text
-            Text(
-              isOverBudget
-                  ? '$currencySymbol${category.difference.abs().toStringAsFixed(0)} over budget'
-                  : '$currencySymbol${category.difference.abs().toStringAsFixed(0)} remaining',
-              style: TextStyle(
-                fontSize: 12,
-                color: isOverBudget
-                    ? AppColors.error
-                    : color.withValues(alpha: 0.7),
-                fontWeight: FontWeight.w500,
+            if (category.isBudgeted) ...[
+              const SizedBox(height: AppSpacing.sm),
+              // Progress bar
+              BudgetProgressBar(
+                projected: category.totalProjected,
+                actual: category.totalActual,
+                color: color,
+                backgroundColor: color.withValues(alpha: 0.3),
               ),
-            ),
+              const SizedBox(height: AppSpacing.xs),
+              // Status text
+              Text(
+                isOverBudget
+                    ? '$currencySymbol${category.difference.abs().toStringAsFixed(0)} over budget'
+                    : '$currencySymbol${category.difference.abs().toStringAsFixed(0)} remaining',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isOverBudget
+                      ? AppColors.error
+                      : color.withValues(alpha: 0.7),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -328,12 +340,12 @@ class CategoryDetailScreen extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
-            color: item.isOverBudget
+            color: (category.isBudgeted && item.isOverBudget)
                 ? AppColors.error.withValues(alpha: 0.08)
                 : AppColors.surface.withValues(alpha: 0.7),
             borderRadius: BorderRadius.circular(AppSizing.radiusLg),
             border: Border.all(
-              color: item.isOverBudget
+              color: (category.isBudgeted && item.isOverBudget)
                   ? AppColors.error.withValues(alpha: 0.2)
                   : AppColors.border.withValues(alpha: 0.5),
             ),
@@ -380,7 +392,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        _buildItemStatusBadge(item, currencySymbol),
+                        _buildItemStatusBadge(item, currencySymbol, isBudgeted: category.isBudgeted),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -397,24 +409,28 @@ class CategoryDetailScreen extends ConsumerWidget {
                             letterSpacing: -0.3,
                           ),
                         ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '/ $currencySymbol${item.projected.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textSecondary,
-                            letterSpacing: -0.2,
+                        if (category.isBudgeted) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            '/ $currencySymbol${item.projected.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.textSecondary,
+                              letterSpacing: -0.2,
+                            ),
                           ),
-                        ),
+                        ],
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    BudgetProgressBar(
-                      projected: item.projected,
-                      actual: item.actual,
-                      color: color,
-                    ),
+                    if (category.isBudgeted) ...[
+                      const SizedBox(height: 8),
+                      BudgetProgressBar(
+                        projected: item.projected,
+                        actual: item.actual,
+                        color: color,
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -432,12 +448,12 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildItemStatusBadge(Item item, String currencySymbol) {
+  Widget _buildItemStatusBadge(Item item, String currencySymbol, {bool isBudgeted = true}) {
     String label;
     Color color;
 
-    if (item.projected <= 0) {
-      label = 'No budget';
+    if (!isBudgeted || item.projected <= 0) {
+      label = item.actual > 0 ? '${item.actual.toStringAsFixed(0)} spent' : 'No spending';
       color = AppColors.textMuted;
     } else if (item.isOverBudget) {
       label =
@@ -665,7 +681,10 @@ class CategoryDetailScreen extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ItemFormSheet(categoryId: category.id),
+      builder: (context) => ItemFormSheet(
+        categoryId: category.id,
+        isBudgeted: category.isBudgeted,
+      ),
     );
     // Refresh the category data after adding item
     ref.invalidate(categoryByIdProvider(categoryId));
@@ -684,6 +703,7 @@ class CategoryDetailScreen extends ConsumerWidget {
       builder: (context) => ItemFormSheet(
         categoryId: category.id,
         item: item,
+        isBudgeted: category.isBudgeted,
       ),
     );
   }

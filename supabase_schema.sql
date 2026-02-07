@@ -141,6 +141,7 @@ CREATE TABLE IF NOT EXISTS public.categories (
     name TEXT NOT NULL,
     icon TEXT NOT NULL DEFAULT 'wallet',
     color TEXT NOT NULL DEFAULT '#6366f1',
+    is_budgeted BOOLEAN DEFAULT TRUE,
     sort_order INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()

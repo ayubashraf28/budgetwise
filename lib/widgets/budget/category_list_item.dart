@@ -32,11 +32,11 @@ class CategoryListItem extends StatelessWidget {
         child: Container(
           padding: AppSpacing.cardPadding,
           decoration: BoxDecoration(
-            color: category.isOverBudget
+            color: (category.isBudgeted && category.isOverBudget)
                 ? AppColors.error.withValues(alpha: 0.1)
                 : AppColors.surface,
             borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-            border: category.isOverBudget
+            border: (category.isBudgeted && category.isOverBudget)
                 ? Border.all(color: AppColors.error.withValues(alpha: 0.3))
                 : null,
             boxShadow: [
@@ -88,7 +88,9 @@ class CategoryListItem extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          '$currencySymbol${category.totalActual.toStringAsFixed(0)} / $currencySymbol${category.totalProjected.toStringAsFixed(0)}',
+                          category.isBudgeted
+                              ? '$currencySymbol${category.totalActual.toStringAsFixed(0)} / $currencySymbol${category.totalProjected.toStringAsFixed(0)}'
+                              : '$currencySymbol${category.totalActual.toStringAsFixed(0)}',
                           style: const TextStyle(
                             color: AppColors.textPrimary,
                             fontSize: 14,
@@ -96,18 +98,29 @@ class CategoryListItem extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: AppSpacing.sm),
-                    BudgetProgressBar(
-                      projected: category.totalProjected,
-                      actual: category.totalActual,
-                      color: category.colorValue,
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    DifferenceIndicator(
-                      projected: category.totalProjected,
-                      actual: category.totalActual,
-                      currencySymbol: currencySymbol,
-                    ),
+                    if (category.isBudgeted) ...[
+                      const SizedBox(height: AppSpacing.sm),
+                      BudgetProgressBar(
+                        projected: category.totalProjected,
+                        actual: category.totalActual,
+                        color: category.colorValue,
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      DifferenceIndicator(
+                        projected: category.totalProjected,
+                        actual: category.totalActual,
+                        currencySymbol: currencySymbol,
+                      ),
+                    ] else ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'Spending only',
+                        style: TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),

@@ -76,16 +76,18 @@ final categoryByIdProvider =
   return category.copyWith(items: updatedItems);
 });
 
-/// Categories that are over budget
+/// Categories that are over budget (only budgeted categories)
 final overBudgetCategoriesProvider = Provider<List<Category>>((ref) {
   final categories = ref.watch(categoriesProvider).value ?? [];
-  return categories.where((c) => c.isOverBudget).toList();
+  return categories.where((c) => c.isBudgeted && c.isOverBudget).toList();
 });
 
-/// Total projected expenses for active month
+/// Total projected expenses for active month (only budgeted categories)
 final totalProjectedExpensesProvider = Provider<double>((ref) {
   final categories = ref.watch(categoriesProvider).value ?? [];
-  return categories.fold<double>(0.0, (sum, cat) => sum + cat.totalProjected);
+  return categories
+      .where((cat) => cat.isBudgeted)
+      .fold<double>(0.0, (sum, cat) => sum + cat.totalProjected);
 });
 
 /// Total actual expenses for active month
@@ -126,6 +128,7 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
     required String name,
     String icon = 'wallet',
     String color = '#6366f1',
+    bool isBudgeted = true,
   }) async {
     final user = ref.read(currentUserProvider);
     final month = ref.read(activeMonthProvider).value;
@@ -136,6 +139,7 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
       name: name,
       icon: icon,
       color: color,
+      isBudgeted: isBudgeted,
     );
 
     ref.invalidateSelf();
@@ -149,12 +153,14 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
     String? name,
     String? icon,
     String? color,
+    bool? isBudgeted,
   }) async {
     final category = await _service.updateCategory(
       categoryId: categoryId,
       name: name,
       icon: icon,
       color: color,
+      isBudgeted: isBudgeted,
     );
 
     ref.invalidateSelf();

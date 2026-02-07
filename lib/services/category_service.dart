@@ -53,6 +53,7 @@ class CategoryService {
     required String name,
     String icon = 'wallet',
     String color = '#6366f1',
+    bool isBudgeted = true,
     int? sortOrder,
   }) async {
     // Get next sort order if not provided
@@ -71,6 +72,7 @@ class CategoryService {
       name: name,
       icon: icon,
       color: color,
+      isBudgeted: isBudgeted,
       sortOrder: sortOrder,
       createdAt: now,
       updatedAt: now,
@@ -91,12 +93,14 @@ class CategoryService {
     String? name,
     String? icon,
     String? color,
+    bool? isBudgeted,
     int? sortOrder,
   }) async {
     final updates = <String, dynamic>{};
     if (name != null) updates['name'] = name;
     if (icon != null) updates['icon'] = icon;
     if (color != null) updates['color'] = color;
+    if (isBudgeted != null) updates['is_budgeted'] = isBudgeted;
     if (sortOrder != null) updates['sort_order'] = sortOrder;
 
     if (updates.isEmpty) {
@@ -151,6 +155,7 @@ class CategoryService {
         name: source.name,
         icon: source.icon,
         color: source.color,
+        isBudgeted: source.isBudgeted,
         sortOrder: source.sortOrder,
       );
       newCategories.add(newCategory);

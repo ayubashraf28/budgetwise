@@ -46,6 +46,8 @@ class ItemDetailScreen extends ConsumerWidget {
             categoryAsync.value?.colorValue ?? AppColors.primary;
         final transactions = transactionsAsync.value ?? const <Transaction>[];
 
+        final isBudgeted = categoryAsync.value?.isBudgeted ?? true;
+
         return _ItemDetailScaffold(
           categoryId: categoryId,
           itemId: itemId,
@@ -53,6 +55,7 @@ class ItemDetailScreen extends ConsumerWidget {
           transactions: transactions,
           categoryColor: categoryColor,
           currencySymbol: currencySymbol,
+          isBudgeted: isBudgeted,
         );
       },
       loading: () => Scaffold(
@@ -84,6 +87,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
   final List<Transaction> transactions;
   final Color categoryColor;
   final String currencySymbol;
+  final bool isBudgeted;
 
   const _ItemDetailScaffold({
     required this.categoryId,
@@ -92,6 +96,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
     required this.transactions,
     required this.categoryColor,
     required this.currencySymbol,
+    this.isBudgeted = true,
   });
 
   @override
@@ -270,38 +275,50 @@ class _ItemDetailScaffold extends ConsumerWidget {
                   '$currencySymbol${item.actual.toStringAsFixed(0)}',
                   style: AppTypography.amountMedium.copyWith(color: color),
                 ),
-                Text(
-                  ' / $currencySymbol${item.projected.toStringAsFixed(0)}',
-                  style: TextStyle(
-                    color: color.withValues(alpha: 0.6),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                if (isBudgeted)
+                  Text(
+                    ' / $currencySymbol${item.projected.toStringAsFixed(0)}',
+                    style: TextStyle(
+                      color: color.withValues(alpha: 0.6),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
+                if (!isBudgeted)
+                  Text(
+                    ' spent',
+                    style: TextStyle(
+                      color: color.withValues(alpha: 0.6),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
               ],
             ),
-            const SizedBox(height: AppSpacing.sm),
-            // Progress bar
-            BudgetProgressBar(
-              projected: item.projected,
-              actual: item.actual,
-              color: color,
-              backgroundColor: color.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            // Status text
-            Text(
-              item.isOverBudget
-                  ? '$currencySymbol${(item.actual - item.projected).toStringAsFixed(0)} over budget'
-                  : '$currencySymbol${item.remaining.toStringAsFixed(0)} remaining',
-              style: TextStyle(
-                fontSize: 12,
-                color: item.isOverBudget
-                    ? AppColors.error
-                    : color.withValues(alpha: 0.7),
-                fontWeight: FontWeight.w500,
+            if (isBudgeted) ...[
+              const SizedBox(height: AppSpacing.sm),
+              // Progress bar
+              BudgetProgressBar(
+                projected: item.projected,
+                actual: item.actual,
+                color: color,
+                backgroundColor: color.withValues(alpha: 0.3),
               ),
-            ),
+              const SizedBox(height: AppSpacing.xs),
+              // Status text
+              Text(
+                item.isOverBudget
+                    ? '$currencySymbol${(item.actual - item.projected).toStringAsFixed(0)} over budget'
+                    : '$currencySymbol${item.remaining.toStringAsFixed(0)} remaining',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: item.isOverBudget
+                      ? AppColors.error
+                      : color.withValues(alpha: 0.7),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -499,7 +516,11 @@ class _ItemDetailScaffold extends ConsumerWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ItemFormSheet(categoryId: categoryId, item: item),
+      builder: (context) => ItemFormSheet(
+        categoryId: categoryId,
+        item: item,
+        isBudgeted: isBudgeted,
+      ),
     ).then((_) {
       ref.invalidate(itemByIdProvider(itemId));
       ref.invalidate(categoryByIdProvider(categoryId));

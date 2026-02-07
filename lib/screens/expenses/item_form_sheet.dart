@@ -10,11 +10,13 @@ import '../../providers/providers.dart';
 class ItemFormSheet extends ConsumerStatefulWidget {
   final String categoryId;
   final Item? item;
+  final bool isBudgeted;
 
   const ItemFormSheet({
     super.key,
     required this.categoryId,
     this.item,
+    this.isBudgeted = true,
   });
 
   @override
@@ -122,26 +124,39 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                   // Budget Amount Field
                   _buildLabel('Budget Amount'),
                   const SizedBox(height: AppSpacing.sm),
-                  TextFormField(
-                    controller: _projectedController,
-                    decoration: InputDecoration(
-                      hintText: '0.00',
-                      prefixText: '$currencySymbol ',
+                  Opacity(
+                    opacity: widget.isBudgeted ? 1.0 : 0.4,
+                    child: TextFormField(
+                      controller: _projectedController,
+                      enabled: widget.isBudgeted,
+                      decoration: InputDecoration(
+                        hintText: '0.00',
+                        prefixText: '$currencySymbol ',
+                        helperText: !widget.isBudgeted
+                            ? 'Budgeting is disabled for this category'
+                            : null,
+                        helperStyle: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 12,
+                        ),
+                      ),
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                      ],
+                      validator: widget.isBudgeted
+                          ? (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter an amount';
+                              }
+                              final amount = double.tryParse(value);
+                              if (amount == null || amount < 0) {
+                                return 'Please enter a valid amount';
+                              }
+                              return null;
+                            }
+                          : null,
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
-                    ],
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter an amount';
-                      }
-                      final amount = double.tryParse(value);
-                      if (amount == null || amount < 0) {
-                        return 'Please enter a valid amount';
-                      }
-                      return null;
-                    },
                   ),
                   const SizedBox(height: AppSpacing.lg),
 
@@ -230,7 +245,7 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
     try {
       final notifier = ref.read(itemNotifierProvider(widget.categoryId).notifier);
       final name = _nameController.text.trim();
-      final projected = double.tryParse(_projectedController.text) ?? 0;
+      final projected = widget.isBudgeted ? (double.tryParse(_projectedController.text) ?? 0) : 0.0;
       final notes = _notesController.text.trim();
 
       if (isEditing) {

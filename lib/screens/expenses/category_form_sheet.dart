@@ -23,6 +23,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
   late final TextEditingController _nameController;
   late String _selectedIcon;
   late String _selectedColor;
+  late bool _isBudgeted;
   bool _isLoading = false;
 
   bool get isEditing => widget.category != null;
@@ -68,6 +69,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
     _nameController = TextEditingController(text: widget.category?.name ?? '');
     _selectedIcon = widget.category?.icon ?? 'wallet';
     _selectedColor = widget.category?.color ?? '#6366F1';
+    _isBudgeted = widget.category?.isBudgeted ?? true;
   }
 
   @override
@@ -144,6 +146,49 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                       }
                       return null;
                     },
+                  ),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Budget Toggle
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                      vertical: AppSpacing.sm,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceLight,
+                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(LucideIcons.target, size: 20, color: AppColors.textSecondary),
+                            SizedBox(width: AppSpacing.sm),
+                            Text('Enable budgeting', style: AppTypography.bodyLarge),
+                          ],
+                        ),
+                        Switch(
+                          value: _isBudgeted,
+                          onChanged: (value) => setState(() => _isBudgeted = value),
+                          activeTrackColor: AppColors.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                    child: Text(
+                      _isBudgeted
+                          ? 'Track spending against a budget for each item'
+                          : 'Track spending only — no budget targets',
+                      style: const TextStyle(
+                        color: AppColors.textMuted,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
 
@@ -349,6 +394,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
           name: name,
           icon: _selectedIcon,
           color: _selectedColor,
+          isBudgeted: _isBudgeted,
         );
         if (mounted) {
           Navigator.of(context).pop();
@@ -361,6 +407,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
           name: name,
           icon: _selectedIcon,
           color: _selectedColor,
+          isBudgeted: _isBudgeted,
         );
         if (mounted) {
           Navigator.of(context).pop(newCategory.id); // Return ID for transaction form

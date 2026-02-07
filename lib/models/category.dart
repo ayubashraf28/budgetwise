@@ -9,6 +9,7 @@ class Category {
   final String name;
   final String icon;
   final String color;
+  final bool isBudgeted;
   final int sortOrder;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -23,6 +24,7 @@ class Category {
     required this.name,
     this.icon = 'wallet',
     this.color = '#6366f1',
+    this.isBudgeted = true,
     this.sortOrder = 0,
     required this.createdAt,
     required this.updatedAt,
@@ -44,6 +46,7 @@ class Category {
       name: json['name'] as String,
       icon: json['icon'] as String? ?? 'wallet',
       color: json['color'] as String? ?? '#6366f1',
+      isBudgeted: json['is_budgeted'] as bool? ?? true,
       sortOrder: json['sort_order'] as int? ?? 0,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -59,6 +62,7 @@ class Category {
       'name': name,
       'icon': icon,
       'color': color,
+      'is_budgeted': isBudgeted,
       'sort_order': sortOrder,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -72,6 +76,7 @@ class Category {
     String? name,
     String? icon,
     String? color,
+    bool? isBudgeted,
     int? sortOrder,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -84,6 +89,7 @@ class Category {
       name: name ?? this.name,
       icon: icon ?? this.icon,
       color: color ?? this.color,
+      isBudgeted: isBudgeted ?? this.isBudgeted,
       sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -116,8 +122,8 @@ class Category {
   /// Difference (positive = under budget)
   double get difference => totalProjected - totalActual;
 
-  /// Whether category is over budget
-  bool get isOverBudget => totalActual > totalProjected && totalProjected > 0;
+  /// Whether category is over budget (only applies to budgeted categories)
+  bool get isOverBudget => isBudgeted && totalActual > totalProjected && totalProjected > 0;
 
   /// Whether category is exactly on budget
   bool get isOnBudget => totalActual == totalProjected;
@@ -127,6 +133,7 @@ class Category {
 
   /// Progress percentage (can exceed 100%)
   double get progressPercentage {
+    if (!isBudgeted) return 0;
     if (totalProjected <= 0) return totalActual > 0 ? 100 : 0;
     return (totalActual / totalProjected) * 100;
   }
@@ -136,6 +143,9 @@ class Category {
 
   /// Number of items in this category
   int get itemCount => items?.length ?? 0;
+
+  /// Whether this category has an active budget
+  bool get hasBudget => isBudgeted && totalProjected > 0;
 
   /// Number of items that are over budget
   int get overBudgetItemCount {

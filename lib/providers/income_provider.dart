@@ -44,10 +44,12 @@ final incomeSourcesProvider = FutureProvider<List<IncomeSource>>((ref) async {
   }).toList();
 });
 
-/// Total projected income for active month
+/// Total projected income for active month (only recurring sources)
 final totalProjectedIncomeProvider = Provider<double>((ref) {
   final sources = ref.watch(incomeSourcesProvider).value ?? [];
-  return sources.fold<double>(0.0, (sum, s) => sum + s.projected);
+  return sources
+      .where((s) => s.isRecurring)
+      .fold<double>(0.0, (sum, s) => sum + s.projected);
 });
 
 /// Total actual income for active month

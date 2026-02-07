@@ -97,17 +97,23 @@ class IncomeSource {
   bool get exceededProjection => actual > projected;
 
   /// Whether actual income meets or exceeds projected
-  bool get metProjection => actual >= projected;
+  bool get metProjection => !isRecurring || actual >= projected;
+
+  /// Whether this income source has a meaningful projection
+  bool get hasProjection => isRecurring && projected > 0;
 
   /// Progress percentage (can exceed 100%)
   double get progressPercentage {
-    if (projected <= 0) return actual > 0 ? 100 : 0;
+    if (!isRecurring || projected <= 0) return 0;
     return (actual / projected) * 100;
   }
 
   /// Status indicator
   String get status {
-    if (actual >= projected) return 'received';
+    if (!isRecurring) {
+      return actual > 0 ? 'received' : 'pending';
+    }
+    if (projected > 0 && actual >= projected) return 'received';
     if (actual > 0) return 'partial';
     return 'pending';
   }
