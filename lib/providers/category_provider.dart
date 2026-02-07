@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/category.dart';
 import '../models/transaction.dart';
 import '../services/category_service.dart';
+import '../services/month_service.dart';
 import '../services/transaction_service.dart';
 import 'auth_provider.dart';
 import 'month_provider.dart';
@@ -35,6 +36,34 @@ final categoriesProvider = FutureProvider<List<Category>>((ref) async {
   return categories.map((category) {
     final updatedItems = category.items?.map((item) {
       // Sum transactions for this item
+      final itemTransactions = transactions.where(
+        (tx) => tx.itemId == item.id && tx.type == TransactionType.expense,
+      );
+      final actual = itemTransactions.fold<double>(
+        0.0,
+        (sum, tx) => sum + tx.amount,
+      );
+      return item.copyWith(actual: actual);
+    }).toList();
+
+    return category.copyWith(items: updatedItems);
+  }).toList();
+});
+
+/// Categories for a specific month (with items and calculated actuals).
+/// Parameterized version of [categoriesProvider] — used by the budget screen
+/// so it can browse months independently of [activeMonthProvider].
+final categoriesForMonthProvider =
+    FutureProvider.family<List<Category>, String>((ref, monthId) async {
+  final categoryService = ref.read(categoryServiceProvider);
+  final transactionService = ref.read(_transactionServiceProvider);
+
+  final categories = await categoryService.getCategoriesForMonth(monthId);
+  final transactions =
+      await transactionService.getTransactionsForMonth(monthId);
+
+  return categories.map((category) {
+    final updatedItems = category.items?.map((item) {
       final itemTransactions = transactions.where(
         (tx) => tx.itemId == item.id && tx.type == TransactionType.expense,
       );
@@ -123,7 +152,7 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
 
   CategoryService get _service => ref.read(categoryServiceProvider);
 
-  /// Add a new category
+  /// Add a new category (syncs to all months in the year)
   Future<Category> addCategory({
     required String name,
     String icon = 'wallet',
@@ -140,6 +169,18 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
       icon: icon,
       color: color,
       isBudgeted: isBudgeted,
+    );
+
+    // Sync to all other months in the year
+    final monthService = MonthService();
+    final allMonths = await monthService.getAllMonths();
+    final yearMonths = allMonths
+        .where((m) => m.startDate.year == month.startDate.year)
+        .toList();
+
+    await _service.syncCategoryToAllMonths(
+      category: category,
+      allYearMonths: yearMonths,
     );
 
     ref.invalidateSelf();

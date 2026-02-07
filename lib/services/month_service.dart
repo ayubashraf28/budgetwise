@@ -200,4 +200,64 @@ class MonthService {
     // Create new month
     return createCurrentMonth();
   }
+
+  /// Ensure all 12 months exist for the given year.
+  /// Creates any missing months. Sets current calendar month as active.
+  /// Returns all 12 months sorted chronologically.
+  Future<List<Month>> ensureYearMonths(int year) async {
+    final monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    final now = DateTime.now();
+    final currentMonthIndex = (now.year == year) ? now.month : -1;
+
+    for (int m = 1; m <= 12; m++) {
+      final startDate = DateTime(year, m, 1);
+      final existing = await getMonthByDate(startDate);
+      if (existing == null) {
+        final endDate = DateTime(year, m + 1, 0); // Last day of month
+        await createMonth(
+          name: '${monthNames[m - 1]} $year',
+          startDate: startDate,
+          endDate: endDate,
+          isActive: m == currentMonthIndex,
+        );
+      } else if (m == currentMonthIndex && !existing.isActive) {
+        // Ensure current calendar month is active
+        await setActiveMonth(existing.id);
+      }
+    }
+
+    // Return all months for this year, sorted chronologically
+    final allMonths = await getAllMonths();
+    final yearMonths = allMonths
+        .where((m) => m.startDate.year == year)
+        .toList()
+      ..sort((a, b) => a.startDate.compareTo(b.startDate));
+
+    return yearMonths;
+  }
+
+  /// Get the month record for a given date. Creates it if it doesn't exist.
+  Future<Month> getMonthForDate(DateTime date) async {
+    final existing = await getMonthByDate(date);
+    if (existing != null) return existing;
+
+    // Create the month
+    final monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    final startDate = DateTime(date.year, date.month, 1);
+    final endDate = DateTime(date.year, date.month + 1, 0);
+
+    return createMonth(
+      name: '${monthNames[date.month - 1]} ${date.year}',
+      startDate: startDate,
+      endDate: endDate,
+      isActive: false, // Don't change active month
+    );
+  }
 }

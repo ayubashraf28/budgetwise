@@ -7,13 +7,11 @@ import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 import '../../config/theme.dart';
-import '../../config/supabase_config.dart';
 import '../../models/category.dart';
 import '../../models/month.dart';
 import '../../models/transaction.dart';
 import '../../providers/providers.dart';
-import '../../services/transaction_service.dart';
-import '../../services/month_service.dart';
+import '../../services/category_service.dart';
 import 'category_form_sheet.dart';
 
 class ExpensesOverviewScreen extends ConsumerStatefulWidget {
@@ -27,135 +25,48 @@ class ExpensesOverviewScreen extends ConsumerStatefulWidget {
 class _ExpensesOverviewScreenState
     extends ConsumerState<ExpensesOverviewScreen> {
   int? _selectedCategoryIndex;
-  bool _hasCheckedMonths = false;
   bool _isYearView = false;
 
   @override
   void initState() {
     super.initState();
-    // Ensure months exist for all transactions
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _ensureMonthsForTransactions();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      // Trigger month setup: creates all 12 months + copies categories
+      await ref.read(ensureMonthSetupProvider.future);
+      ref.invalidate(userMonthsProvider);
+
+      // Initialize budget month selection from active month (only if not set)
+      final current = ref.read(budgetSelectedMonthIdProvider);
+      if (current == null) {
+        final active = await ref.read(activeMonthProvider.future);
+        if (active != null) {
+          ref.read(budgetSelectedMonthIdProvider.notifier).state = active.id;
+        }
+      }
     });
-  }
-
-  /// Ensure month records exist for all transaction dates
-  Future<void> _ensureMonthsForTransactions() async {
-    if (_hasCheckedMonths) return;
-    _hasCheckedMonths = true;
-
-    try {
-      final transactionService = TransactionService();
-      final monthService = MonthService();
-      
-      // Get all transactions (we'll query by user_id directly)
-      final client = SupabaseConfig.client;
-      final userId = client.auth.currentUser?.id;
-      if (userId == null) return;
-
-      final response = await client
-          .from('transactions')
-          .select('date, month_id')
-          .eq('user_id', userId);
-
-      if (response == null || (response as List).isEmpty) return;
-
-      // Get existing months
-      final existingMonths = await monthService.getAllMonths();
-      final existingMonthIds = existingMonths.map((m) => m.id).toSet();
-
-      // Extract unique month_ids from transactions
-      final transactionMonthIds = (response as List)
-          .map((e) => e['month_id'] as String?)
-          .where((id) => id != null)
-          .cast<String>()
-          .toSet();
-
-      // Find missing months
-      final missingMonthIds = transactionMonthIds
-          .where((id) => !existingMonthIds.contains(id))
-          .toList();
-
-      // For each missing month_id, try to get the month or create it from transaction dates
-      for (final monthId in missingMonthIds) {
-        // Try to get the month by ID first (in case it exists but wasn't in our query)
-        var month = await monthService.getMonthById(monthId);
-        
-        if (month == null) {
-          // Month doesn't exist - find a transaction with this month_id to get the date
-          final txWithMonth = (response as List).firstWhere(
-            (e) => e['month_id'] == monthId,
-            orElse: () => null,
-          );
-          
-          if (txWithMonth != null) {
-            final txDate = DateTime.parse(txWithMonth['date'] as String);
-            // Create month for this date
-            final startDate = DateTime(txDate.year, txDate.month, 1);
-            final endDate = DateTime(txDate.year, txDate.month + 1, 0);
-            
-            final monthNames = [
-              'January', 'February', 'March', 'April', 'May', 'June',
-              'July', 'August', 'September', 'October', 'November', 'December'
-            ];
-            
-            month = await monthService.createMonth(
-              name: '${monthNames[txDate.month - 1]} ${txDate.year}',
-              startDate: startDate,
-              endDate: endDate,
-              isActive: false, // Don't make it active automatically
-            );
-          }
-        }
-      }
-
-      // Also create months based on transaction dates (in case transactions have dates but wrong month_id)
-      final transactionDates = (response as List)
-          .map((e) => DateTime.parse(e['date'] as String))
-          .toList();
-
-      final uniqueMonths = <DateTime>{};
-      for (final date in transactionDates) {
-        final monthKey = DateTime(date.year, date.month, 1);
-        uniqueMonths.add(monthKey);
-      }
-
-      for (final monthStart in uniqueMonths) {
-        final existing = await monthService.getMonthByDate(monthStart);
-        if (existing == null) {
-          final endDate = DateTime(monthStart.year, monthStart.month + 1, 0);
-          final monthNames = [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
-          ];
-          
-          await monthService.createMonth(
-            name: '${monthNames[monthStart.month - 1]} ${monthStart.year}',
-            startDate: monthStart,
-            endDate: endDate,
-            isActive: false,
-          );
-        }
-      }
-
-      // Refresh months list
-      if (missingMonthIds.isNotEmpty || uniqueMonths.isNotEmpty) {
-        ref.invalidate(userMonthsProvider);
-      }
-    } catch (e) {
-      // Silently fail - don't disrupt the UI
-      debugPrint('Error ensuring months: $e');
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final categories = ref.watch(categoriesProvider);
-    final totalActual = ref.watch(totalActualExpensesProvider);
-    final activeMonth = ref.watch(activeMonthProvider);
+    // Budget screen's own month (independent from home / transactions)
+    final selectedMonthId = ref.watch(budgetSelectedMonthIdProvider);
+    if (selectedMonthId == null) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final categories = ref.watch(categoriesForMonthProvider(selectedMonthId));
     final userMonths = ref.watch(userMonthsProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
-    final expenseTransactions = ref.watch(expenseTransactionsProvider);
+
+    // Transactions for expense count (non-blocking)
+    final monthTx =
+        ref.watch(transactionsForMonthProvider(selectedMonthId)).valueOrNull ??
+            [];
+    final expenseTransactions = monthTx
+        .where((t) => t.type == TransactionType.expense)
+        .toList();
 
     // ── Year view providers ──
     final yearlyMonthlyExpenses = ref.watch(yearlyMonthlyExpensesProvider);
@@ -171,13 +82,11 @@ class _ExpensesOverviewScreenState
       }
     }
 
-    final monthName = activeMonth.value?.name ?? '';
-
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(categoriesProvider);
-          ref.invalidate(transactionsProvider);
+          ref.invalidate(categoriesForMonthProvider(selectedMonthId));
+          ref.invalidate(transactionsForMonthProvider(selectedMonthId));
           if (_isYearView) {
             ref.invalidate(yearlyMonthlyExpensesProvider);
             ref.invalidate(yearlyCategorySummariesProvider);
@@ -186,6 +95,8 @@ class _ExpensesOverviewScreenState
         child: categories.when(
           data: (categoryList) {
             // Filter to only categories with actual spending for the chart
+            final totalActual = categoryList.fold<double>(
+                0.0, (sum, c) => sum + c.totalActual);
             final spendingCategories =
                 categoryList.where((c) => c.totalActual > 0).toList();
 
@@ -205,7 +116,7 @@ class _ExpensesOverviewScreenState
                 if (!_isYearView) ...[
                   // Month Selector
                   SliverToBoxAdapter(
-                    child: _buildMonthSelector(userMonths, activeMonth),
+                    child: _buildMonthSelector(userMonths, selectedMonthId),
                   ),
                   // Spacing
                   const SliverToBoxAdapter(
@@ -348,72 +259,138 @@ class _ExpensesOverviewScreenState
 
   Widget _buildMonthSelector(
     AsyncValue<List<Month>> userMonths,
-    AsyncValue<Month?> activeMonth,
+    String selectedMonthId,
   ) {
     return userMonths.when(
       data: (months) {
         if (months.isEmpty) return const SizedBox.shrink();
 
-        final activeMonthId = activeMonth.value?.id;
+        final now = DateTime.now();
+        // Derive year from the selected month
+        final selectedMonth =
+            months.where((m) => m.id == selectedMonthId).firstOrNull;
+        final currentYear = selectedMonth?.startDate.year ?? now.year;
 
-        return SizedBox(
-          height: 44,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            itemCount: months.length,
-            separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.sm),
-            itemBuilder: (context, index) {
-              final month = months[index];
-              final isActive = month.id == activeMonthId;
+        // Filter to months in the active year, sorted chronologically
+        final yearMonths = months
+            .where((m) => m.startDate.year == currentYear)
+            .toList()
+          ..sort((a, b) => a.startDate.compareTo(b.startDate));
 
-              return GestureDetector(
-                onTap: () => _switchMonth(month.id),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isActive ? Colors.white : AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-                    border: isActive
-                        ? null
-                        : Border.all(color: AppColors.border),
-                  ),
-                  child: Center(
-                    child: Text(
-                      month.name,
-                      style: TextStyle(
-                        color: isActive
-                            ? AppColors.background
-                            : AppColors.textSecondary,
-                        fontSize: 14,
-                        fontWeight:
-                            isActive ? FontWeight.w600 : FontWeight.w400,
-                      ),
-                    ),
+        if (yearMonths.isEmpty) return const SizedBox.shrink();
+
+        final monthAbbreviations = [
+          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+        ];
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          child: Row(
+            children: [
+              // Month chips (scrollable)
+              Expanded(
+                child: SizedBox(
+                  height: 50,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: yearMonths.length,
+                    separatorBuilder: (_, __) => const SizedBox(width: 6),
+                    itemBuilder: (context, index) {
+                      final month = yearMonths[index];
+                      final isActive = month.id == selectedMonthId;
+                      final isFuture = month.startDate.isAfter(now);
+                      final isCurrentCalendarMonth =
+                          month.startDate.month == now.month &&
+                              month.startDate.year == now.year;
+
+                      // Get 3-letter abbreviation
+                      final abbr = month.startDate.month <= monthAbbreviations.length
+                          ? monthAbbreviations[month.startDate.month - 1]
+                          : month.name.substring(0, 3);
+
+                      return GestureDetector(
+                        onTap: () => _switchMonth(month.id),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isActive
+                                    ? Colors.white
+                                    : AppColors.surface,
+                                borderRadius:
+                                    BorderRadius.circular(AppSizing.radiusFull),
+                                border: isActive
+                                    ? null
+                                    : Border.all(color: AppColors.border),
+                              ),
+                              child: Text(
+                                abbr,
+                                style: TextStyle(
+                                  color: isActive
+                                      ? AppColors.background
+                                      : isFuture
+                                          ? AppColors.textMuted
+                                              .withValues(alpha: 0.5)
+                                          : AppColors.textSecondary,
+                                  fontSize: 13,
+                                  fontWeight: isActive
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                                ),
+                              ),
+                            ),
+                            // Current calendar month indicator dot
+                            if (isCurrentCalendarMonth && !isActive)
+                              Container(
+                                margin: const EdgeInsets.only(top: 4),
+                                width: 4,
+                                height: 4,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.savings,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    },
                   ),
                 ),
-              );
-            },
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              // Year label
+              Text(
+                '$currentYear',
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
         );
       },
-      loading: () => const SizedBox(height: 44),
+      loading: () => const SizedBox(height: 50),
       error: (_, __) => const SizedBox.shrink(),
     );
   }
 
   Future<void> _switchMonth(String monthId) async {
     setState(() => _selectedCategoryIndex = null); // Reset chart selection
-    await ref.read(monthNotifierProvider.notifier).setActiveMonth(monthId);
-    // Invalidate all dependent providers to force refresh
-    ref.invalidate(activeMonthProvider);
-    ref.invalidate(categoriesProvider);
-    ref.invalidate(transactionsProvider);
-    // Wait for activeMonthProvider to refresh so dependent providers rebuild with new month
-    await ref.refresh(activeMonthProvider.future);
+
+    // Ensure the target month has categories (copy from previous if empty)
+    final categoryService = CategoryService();
+    await categoryService.ensureCategoriesForMonth(monthId);
+
+    // Update budget screen selection only — does NOT affect home/transactions
+    ref.read(budgetSelectedMonthIdProvider.notifier).state = monthId;
   }
 
   // ──────────────────────────────────────────────
@@ -966,13 +943,49 @@ class _ExpensesOverviewScreenState
             barGroups: monthlyData.asMap().entries.map((entry) {
               final index = entry.key;
               final data = entry.value;
+              final barWidth = monthlyData.length <= 6 ? 28.0 : 16.0;
+
+              // Build stacked rod from category segments
+              if (data.segments.isEmpty) {
+                return BarChartGroupData(
+                  x: index,
+                  barRods: [
+                    BarChartRodData(
+                      toY: data.totalExpenses,
+                      color: AppColors.savings,
+                      width: barWidth,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(6),
+                        topRight: Radius.circular(6),
+                      ),
+                    ),
+                  ],
+                );
+              }
+
+              // Build stacked segments (largest at bottom)
+              double runningY = 0;
+              final rodStackItems = <BarChartRodStackItem>[];
+              // Reverse so largest is at bottom
+              final sortedSegments = List.of(data.segments)
+                ..sort((a, b) => b.amount.compareTo(a.amount));
+              for (final segment in sortedSegments.reversed) {
+                rodStackItems.add(BarChartRodStackItem(
+                  runningY,
+                  runningY + segment.amount,
+                  segment.color,
+                ));
+                runningY += segment.amount;
+              }
+
               return BarChartGroupData(
                 x: index,
                 barRods: [
                   BarChartRodData(
                     toY: data.totalExpenses,
-                    color: AppColors.savings,
-                    width: monthlyData.length <= 6 ? 28 : 16,
+                    rodStackItems: rodStackItems,
+                    color: Colors.transparent,
+                    width: barWidth,
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(6),
                       topRight: Radius.circular(6),
@@ -1008,72 +1021,85 @@ class _ExpensesOverviewScreenState
             right: AppSpacing.md,
             bottom: AppSpacing.sm,
           ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.md,
-              vertical: AppSpacing.md + 4,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                if (summary.categoryIds.isNotEmpty) {
+                  context.push(
+                    '/budget/category/${summary.categoryIds.first}?yearMode=true',
+                  );
+                }
+              },
               borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Row(
-              children: [
-                // Circular colored icon
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: summary.color,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    _getIcon(summary.icon),
-                    color: Colors.white,
-                    size: 24,
-                  ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.md + 4,
                 ),
-                const SizedBox(width: AppSpacing.md),
-
-                // Name + transaction count
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        summary.name,
-                        style: AppTypography.bodyLarge.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${summary.transactionCount} ${summary.transactionCount == 1 ? 'transaction' : 'transactions'}',
-                        style: AppTypography.bodyMedium,
-                      ),
-                    ],
-                  ),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+                  border: Border.all(color: AppColors.border),
                 ),
-
-                // Amount + percentage
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+                child: Row(
                   children: [
-                    Text(
-                      '$currencySymbol${_formatAmount(summary.totalActual)}',
-                      style: AppTypography.amountSmall,
+                    // Circular colored icon
+                    Container(
+                      width: 52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: summary.color,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _getIcon(summary.icon),
+                        color: Colors.white,
+                        size: 24,
+                      ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${percentage.toStringAsFixed(0)}%',
-                      style: AppTypography.bodyMedium,
+                    const SizedBox(width: AppSpacing.md),
+
+                    // Name + transaction count
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            summary.name,
+                            style: AppTypography.bodyLarge.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${summary.transactionCount} ${summary.transactionCount == 1 ? 'transaction' : 'transactions'}',
+                            style: AppTypography.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Amount + percentage
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          '$currencySymbol${_formatAmount(summary.totalActual)}',
+                          style: AppTypography.amountSmall,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '${percentage.toStringAsFixed(0)}%',
+                          style: AppTypography.bodyMedium,
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         );

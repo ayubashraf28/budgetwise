@@ -150,7 +150,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: 'category',
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
-                  return CategoryDetailScreen(categoryId: id);
+                  final yearMode = state.uri.queryParameters['yearMode'] == 'true';
+                  return CategoryDetailScreen(
+                    categoryId: id,
+                    yearMode: yearMode,
+                  );
                 },
                 routes: [
                   GoRoute(

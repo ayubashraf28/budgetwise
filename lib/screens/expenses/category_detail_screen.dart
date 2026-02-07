@@ -13,16 +13,23 @@ import 'item_form_sheet.dart';
 
 class CategoryDetailScreen extends ConsumerWidget {
   final String categoryId;
+  final bool yearMode;
 
   const CategoryDetailScreen({
     super.key,
     required this.categoryId,
+    this.yearMode = false,
   });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final categoryAsync = ref.watch(categoryByIdProvider(categoryId));
     final currencySymbol = ref.watch(currencySymbolProvider);
+
+    if (yearMode) {
+      return _buildYearMode(context, ref, currencySymbol);
+    }
+
+    final categoryAsync = ref.watch(categoryByIdProvider(categoryId));
 
     return categoryAsync.when(
       data: (category) {
@@ -62,11 +69,247 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildYearMode(BuildContext context, WidgetRef ref, String currencySymbol) {
+    final yearDataAsync = ref.watch(yearlyCategoryDetailProvider(categoryId));
+    final activeMonth = ref.watch(activeMonthProvider);
+    final yearLabel = activeMonth.value?.startDate.year.toString() ?? '';
+
+    return yearDataAsync.when(
+      data: (data) {
+        if (data == null) {
+          return Scaffold(
+            appBar: AppBar(
+              leading: IconButton(
+                icon: const Icon(LucideIcons.arrowLeft),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+            body: const Center(child: Text('Category not found')),
+          );
+        }
+
+        final category = data.category;
+        final transactions = data.transactions;
+        final color = category.colorValue;
+
+        return Scaffold(
+          body: CustomScrollView(
+            slivers: [
+              // Header
+              SliverAppBar(
+                leading: IconButton(
+                  icon: const Icon(LucideIcons.arrowLeft),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                title: Text('${category.name} — $yearLabel'),
+                floating: true,
+              ),
+              // Summary card
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Container(
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusXl),
+                      border: Border.all(color: color.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Year Total',
+                          style: TextStyle(
+                            color: color.withValues(alpha: 0.7),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          '$currencySymbol${category.totalActual.toStringAsFixed(0)}',
+                          style: AppTypography.amountMedium.copyWith(color: color),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          '${transactions.length} transactions',
+                          style: TextStyle(
+                            color: color.withValues(alpha: 0.6),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              // Items
+              if (category.items != null && category.items!.isNotEmpty) ...[
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.xs,
+                    ),
+                    child: Text('Items', style: AppTypography.h3),
+                  ),
+                ),
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final item = category.items![index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.xs,
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+                            border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  item.name,
+                                  style: const TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '$currencySymbol${item.actual.toStringAsFixed(0)}',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: color,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    childCount: category.items!.length,
+                  ),
+                ),
+              ],
+              // Transactions header
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md, AppSpacing.lg, AppSpacing.md, AppSpacing.xs,
+                  ),
+                  child: Text(
+                    'Transactions (${transactions.length})',
+                    style: AppTypography.h3,
+                  ),
+                ),
+              ),
+              // Transaction list
+              if (transactions.isEmpty)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.all(AppSpacing.xl),
+                    child: Center(
+                      child: Text(
+                        'No transactions yet',
+                        style: AppTypography.bodyMedium,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final tx = transactions[index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.md,
+                          vertical: AppSpacing.xs,
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.all(AppSpacing.md),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+                            border: Border.all(color: AppColors.border),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      tx.displayName,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${tx.date.day}/${tx.date.month}/${tx.date.year}',
+                                      style: AppTypography.bodySmall,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                tx.formattedAmount(currencySymbol),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  color: tx.isExpense
+                                      ? AppColors.error
+                                      : AppColors.success,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                    childCount: transactions.length,
+                  ),
+                ),
+              const SliverToBoxAdapter(
+                child: SizedBox(height: AppSpacing.xxl),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(LucideIcons.arrowLeft),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      ),
+      error: (error, _) => Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(LucideIcons.arrowLeft),
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ),
+        body: Center(child: Text('Error: $error')),
+      ),
+    );
+  }
+
   Widget _buildScreen(BuildContext context, WidgetRef ref, Category category,
       String currencySymbol) {
     final items = category.items ?? [];
-
-    final color = category.colorValue;
 
     return Scaffold(
       body: RefreshIndicator(
@@ -688,24 +931,6 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
     // Refresh the category data after adding item
     ref.invalidate(categoryByIdProvider(categoryId));
-  }
-
-  Future<void> _showEditSheet(
-    BuildContext context,
-    WidgetRef ref,
-    Category category,
-    Item item,
-  ) async {
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ItemFormSheet(
-        categoryId: category.id,
-        item: item,
-        isBudgeted: category.isBudgeted,
-      ),
-    );
   }
 
   Future<bool> _showDeleteConfirmation(BuildContext context, Item item) async {

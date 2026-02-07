@@ -2,6 +2,8 @@ import 'package:uuid/uuid.dart';
 
 import '../config/supabase_config.dart';
 import '../models/category.dart';
+import '../models/month.dart';
+import 'item_service.dart';
 
 class CategoryService {
   final _client = SupabaseConfig.client;
@@ -140,13 +142,14 @@ class CategoryService {
     }
   }
 
-  /// Copy categories from one month to another
+  /// Copy categories from one month to another (with items if copyItems=true)
   Future<List<Category>> copyCategoriesFromMonth({
     required String sourceMonthId,
     required String targetMonthId,
     bool copyItems = true,
   }) async {
     final sourceCategories = await getCategoriesForMonth(sourceMonthId);
+    final itemService = ItemService();
     final newCategories = <Category>[];
 
     for (final source in sourceCategories) {
@@ -158,9 +161,80 @@ class CategoryService {
         isBudgeted: source.isBudgeted,
         sortOrder: source.sortOrder,
       );
-      newCategories.add(newCategory);
+
+      // Copy items from source category to new category
+      if (copyItems && source.items != null && source.items!.isNotEmpty) {
+        await itemService.copyItemsFromCategory(
+          sourceCategoryId: source.id,
+          targetCategoryId: newCategory.id,
+        );
+      }
+
+      // Re-fetch to include the copied items
+      final withItems = await getCategoryById(newCategory.id);
+      newCategories.add(withItems ?? newCategory);
     }
 
     return newCategories;
+  }
+
+  /// Ensure a month has categories. If empty, copy from the most recent
+  /// month that has categories (with items, budgets carry forward).
+  Future<List<Category>> ensureCategoriesForMonth(String monthId) async {
+    final existing = await getCategoriesForMonth(monthId);
+    if (existing.isNotEmpty) return existing;
+
+    // Find the most recent month that has categories
+    final allMonths = await _client
+        .from('months')
+        .select()
+        .eq('user_id', _userId)
+        .order('start_date', ascending: false);
+
+    for (final monthJson in allMonths) {
+      final otherMonthId = monthJson['id'] as String;
+      if (otherMonthId == monthId) continue;
+
+      final otherCategories = await getCategoriesForMonth(otherMonthId);
+      if (otherCategories.isNotEmpty) {
+        return copyCategoriesFromMonth(
+          sourceMonthId: otherMonthId,
+          targetMonthId: monthId,
+          copyItems: true,
+        );
+      }
+    }
+
+    // No months have categories — return empty (user will create from scratch)
+    return [];
+  }
+
+  /// Sync a newly created category to all other months in the year.
+  /// Creates the category (without items) in each month that doesn't
+  /// already have a category with the same name.
+  Future<void> syncCategoryToAllMonths({
+    required Category category,
+    required List<Month> allYearMonths,
+  }) async {
+    for (final month in allYearMonths) {
+      if (month.id == category.monthId) continue; // Skip the source month
+
+      // Check if this month already has a category with the same name
+      final existing = await getCategoriesForMonth(month.id);
+      final alreadyExists = existing.any(
+        (c) => c.name.toLowerCase() == category.name.toLowerCase(),
+      );
+
+      if (!alreadyExists) {
+        await createCategory(
+          monthId: month.id,
+          name: category.name,
+          icon: category.icon,
+          color: category.color,
+          isBudgeted: category.isBudgeted,
+          sortOrder: category.sortOrder,
+        );
+      }
+    }
   }
 }

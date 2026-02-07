@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/category.dart';
+import '../models/item.dart';
 import '../models/month.dart';
 import '../models/transaction.dart';
-import '../services/category_service.dart';
-import '../services/transaction_service.dart';
 import 'category_provider.dart';
 import 'month_provider.dart';
 import 'transaction_provider.dart';
@@ -22,6 +21,7 @@ class YearlyCategorySummary {
   final Color color;
   final double totalActual;
   final int transactionCount;
+  final List<String> categoryIds;
 
   const YearlyCategorySummary({
     required this.name,
@@ -29,19 +29,35 @@ class YearlyCategorySummary {
     required this.color,
     required this.totalActual,
     required this.transactionCount,
+    required this.categoryIds,
   });
 }
 
-/// Data for one bar in the yearly expense bar chart.
+/// A single category segment within a monthly bar.
+class CategoryBarSegment {
+  final String categoryName;
+  final Color color;
+  final double amount;
+
+  const CategoryBarSegment({
+    required this.categoryName,
+    required this.color,
+    required this.amount,
+  });
+}
+
+/// Data for one bar in the yearly expense bar chart (stacked by category).
 class MonthlyBarData {
   final String monthId;
   final String monthName;
   final double totalExpenses;
+  final List<CategoryBarSegment> segments;
 
   const MonthlyBarData({
     required this.monthId,
     required this.monthName,
     required this.totalExpenses,
+    required this.segments,
   });
 }
 
@@ -49,20 +65,27 @@ class MonthlyBarData {
 // PROVIDERS
 // ─────────────────────────────────────────────
 
-/// The selected year (derived from active month's start date).
+/// The selected year — derived from the budget screen's selected month
+/// (falls back to the global active month / current year).
 final selectedYearProvider = Provider<int>((ref) {
+  final budgetMonthId = ref.watch(budgetSelectedMonthIdProvider);
+  if (budgetMonthId != null) {
+    final months = ref.watch(userMonthsProvider).value ?? [];
+    final budgetMonth =
+        months.where((m) => m.id == budgetMonthId).firstOrNull;
+    if (budgetMonth != null) return budgetMonth.startDate.year;
+  }
   final activeMonth = ref.watch(activeMonthProvider).value;
   return activeMonth?.startDate.year ?? DateTime.now().year;
 });
 
-/// All months belonging to the same year as the active month.
+/// All months belonging to the same year as the budget-selected month.
 /// Sorted chronologically (January first).
 final yearMonthsProvider = FutureProvider<List<Month>>((ref) async {
-  final activeMonth = await ref.watch(activeMonthProvider.future);
-  if (activeMonth == null) return [];
-
-  final year = activeMonth.startDate.year;
   final allMonths = await ref.watch(userMonthsProvider.future);
+  if (allMonths.isEmpty) return [];
+
+  final year = ref.watch(selectedYearProvider);
 
   final yearMonths = allMonths
       .where((m) => m.startDate.year == year)
@@ -81,26 +104,58 @@ final yearlyMonthlyExpensesProvider =
   if (yearMonths.isEmpty) return [];
 
   final transactionService = ref.read(transactionServiceProvider);
+  final categoryService = ref.read(categoryServiceProvider);
   final monthIds = yearMonths.map((m) => m.id).toList();
 
-  // Single query: get ALL transactions for all months in the year
+  // Get ALL transactions and categories for the year
   final allTransactions =
       await transactionService.getTransactionsForMonths(monthIds);
+  final allCategories =
+      await categoryService.getCategoriesForMonths(monthIds);
 
-  // Group expense transactions by monthId and sum amounts
+  // Build category color map: categoryId -> color
+  final categoryColorMap = <String, Color>{};
+  final categoryNameMap = <String, String>{};
+  for (final cat in allCategories) {
+    categoryColorMap[cat.id] = cat.colorValue;
+    categoryNameMap[cat.id] = cat.name;
+  }
+
+  // Group expense transactions by month + category
+  final expensesByMonthCategory = <String, Map<String, double>>{};
   final expensesByMonth = <String, double>{};
   for (final tx in allTransactions) {
     if (tx.type == TransactionType.expense) {
       expensesByMonth[tx.monthId] =
           (expensesByMonth[tx.monthId] ?? 0) + tx.amount;
+
+      if (tx.categoryId != null) {
+        expensesByMonthCategory
+            .putIfAbsent(tx.monthId, () => {});
+        expensesByMonthCategory[tx.monthId]![tx.categoryId!] =
+            (expensesByMonthCategory[tx.monthId]![tx.categoryId!] ?? 0) +
+                tx.amount;
+      }
     }
   }
 
   return yearMonths.map((month) {
+    // Build segments for this month, sorted by amount (largest first)
+    final monthCategoryMap = expensesByMonthCategory[month.id] ?? {};
+    final segments = monthCategoryMap.entries.map((entry) {
+      return CategoryBarSegment(
+        categoryName: categoryNameMap[entry.key] ?? 'Unknown',
+        color: categoryColorMap[entry.key] ?? const Color(0xFF6366F1),
+        amount: entry.value,
+      );
+    }).toList()
+      ..sort((a, b) => b.amount.compareTo(a.amount));
+
     return MonthlyBarData(
       monthId: month.id,
       monthName: month.name,
       totalExpenses: expensesByMonth[month.id] ?? 0,
+      segments: segments,
     );
   }).toList();
 });
@@ -174,6 +229,7 @@ final yearlyCategorySummariesProvider =
     if (!grouped[key]!.countedCategoryIds.contains(cat.id)) {
       grouped[key]!.transactionCount += txCountByCategory[cat.id] ?? 0;
       grouped[key]!.countedCategoryIds.add(cat.id);
+      grouped[key]!.allCategoryIds.add(cat.id);
     }
   }
 
@@ -185,11 +241,81 @@ final yearlyCategorySummariesProvider =
             color: acc.color,
             totalActual: acc.totalActual,
             transactionCount: acc.transactionCount,
+            categoryIds: acc.allCategoryIds,
           ))
       .toList()
     ..sort((a, b) => b.totalActual.compareTo(a.totalActual));
 
   return summaries;
+});
+
+/// Provider for category detail in year mode.
+/// Aggregates a category's data across all months in the year.
+final yearlyCategoryDetailProvider = FutureProvider.family<
+    ({Category category, List<Transaction> transactions})?,
+    String>((ref, categoryId) async {
+  final categoryService = ref.read(categoryServiceProvider);
+  final transactionService = ref.read(transactionServiceProvider);
+
+  // Get the source category to know its name
+  final sourceCategory = await categoryService.getCategoryById(categoryId);
+  if (sourceCategory == null) return null;
+
+  // Get all months in the year
+  final yearMonths = await ref.watch(yearMonthsProvider.future);
+  if (yearMonths.isEmpty) return null;
+
+  final monthIds = yearMonths.map((m) => m.id).toList();
+
+  // Get all categories with this name across all months
+  final allCategories = await categoryService.getCategoriesForMonths(monthIds);
+  final matchingCategories = allCategories
+      .where((c) => c.name.toLowerCase() == sourceCategory.name.toLowerCase())
+      .toList();
+
+  if (matchingCategories.isEmpty) return null;
+
+  final matchingCategoryIds = matchingCategories.map((c) => c.id).toSet();
+
+  // Get all transactions for the year
+  final allTransactions =
+      await transactionService.getTransactionsForMonths(monthIds);
+
+  // Filter to transactions belonging to matching categories
+  final categoryTransactions = allTransactions
+      .where((tx) =>
+          tx.categoryId != null && matchingCategoryIds.contains(tx.categoryId))
+      .toList()
+    ..sort((a, b) => b.date.compareTo(a.date));
+
+  // Aggregate items by name across all matching categories
+  final itemsByName = <String, Item>{};
+  for (final cat in matchingCategories) {
+    if (cat.items == null) continue;
+    for (final item in cat.items!) {
+      if (!itemsByName.containsKey(item.name)) {
+        itemsByName[item.name] = item.copyWith(actual: 0);
+      }
+      // Sum actuals from transactions for this item
+      final itemTxs = allTransactions.where(
+        (tx) => tx.itemId == item.id && tx.type == TransactionType.expense,
+      );
+      final itemActual =
+          itemTxs.fold<double>(0.0, (sum, tx) => sum + tx.amount);
+      final existing = itemsByName[item.name]!;
+      itemsByName[item.name] = existing.copyWith(
+        actual: existing.actual + itemActual,
+        projected: existing.projected > 0 ? existing.projected : item.projected,
+      );
+    }
+  }
+
+  // Build aggregated category
+  final aggregatedCategory = sourceCategory.copyWith(
+    items: itemsByName.values.toList(),
+  );
+
+  return (category: aggregatedCategory, transactions: categoryTransactions);
 });
 
 // ─────────────────────────────────────────────
@@ -204,6 +330,7 @@ class _CategoryAccumulator {
   double totalActual = 0;
   int transactionCount = 0;
   final Set<String> countedCategoryIds = {};
+  final List<String> allCategoryIds = [];
 
   _CategoryAccumulator({
     required this.name,

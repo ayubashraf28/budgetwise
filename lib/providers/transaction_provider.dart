@@ -1,6 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/category.dart';
+import '../models/item.dart';
 import '../models/transaction.dart';
+import '../services/category_service.dart';
+import '../services/month_service.dart';
 import '../services/transaction_service.dart';
 import 'auth_provider.dart';
 import 'month_provider.dart';
@@ -19,6 +23,14 @@ final transactionsProvider = FutureProvider<List<Transaction>>((ref) async {
 
   final service = ref.read(transactionServiceProvider);
   return service.getTransactionsForMonth(month.id);
+});
+
+/// Transactions for a specific month (parameterized).
+/// Used by the budget screen to fetch transactions independently of activeMonthProvider.
+final transactionsForMonthProvider =
+    FutureProvider.family<List<Transaction>, String>((ref, monthId) async {
+  final service = ref.read(transactionServiceProvider);
+  return service.getTransactionsForMonth(monthId);
 });
 
 /// Transactions for a specific category
@@ -76,7 +88,8 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
 
   TransactionService get _service => ref.read(transactionServiceProvider);
 
-  /// Add an expense transaction
+  /// Add an expense transaction.
+  /// Month is derived from the transaction date, NOT the active month.
   Future<Transaction> addExpense({
     required String categoryId,
     required String itemId,
@@ -85,13 +98,32 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
     String? note,
   }) async {
     final user = ref.read(currentUserProvider);
-    final month = ref.read(activeMonthProvider).value;
-    if (user == null || month == null) throw Exception('Not ready');
+    if (user == null) throw Exception('Not ready');
+
+    // Derive month from transaction date
+    final monthService = MonthService();
+    final targetMonth = await monthService.getMonthForDate(date);
+
+    // Resolve category/item IDs for the target month
+    final activeMonth = ref.read(activeMonthProvider).value;
+    String resolvedCategoryId = categoryId;
+    String resolvedItemId = itemId;
+
+    if (activeMonth != null && activeMonth.id != targetMonth.id) {
+      // Transaction date is in a different month than active — resolve IDs by name
+      final resolved = await _resolveIdsForMonth(
+        sourceCategoryId: categoryId,
+        sourceItemId: itemId,
+        targetMonthId: targetMonth.id,
+      );
+      resolvedCategoryId = resolved['categoryId']!;
+      resolvedItemId = resolved['itemId']!;
+    }
 
     final tx = await _service.createExpense(
-      monthId: month.id,
-      categoryId: categoryId,
-      itemId: itemId,
+      monthId: targetMonth.id,
+      categoryId: resolvedCategoryId,
+      itemId: resolvedItemId,
       amount: amount,
       date: date,
       note: note,
@@ -101,7 +133,8 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
     return tx;
   }
 
-  /// Add an income transaction
+  /// Add an income transaction.
+  /// Month is derived from the transaction date, NOT the active month.
   Future<Transaction> addIncome({
     required String incomeSourceId,
     required double amount,
@@ -109,11 +142,14 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
     String? note,
   }) async {
     final user = ref.read(currentUserProvider);
-    final month = ref.read(activeMonthProvider).value;
-    if (user == null || month == null) throw Exception('Not ready');
+    if (user == null) throw Exception('Not ready');
+
+    // Derive month from transaction date
+    final monthService = MonthService();
+    final targetMonth = await monthService.getMonthForDate(date);
 
     final tx = await _service.createIncome(
-      monthId: month.id,
+      monthId: targetMonth.id,
       incomeSourceId: incomeSourceId,
       amount: amount,
       date: date,
@@ -160,6 +196,54 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
     ref.invalidate(transactionsProvider);
     ref.invalidate(categoriesProvider);
     ref.invalidate(incomeSourcesProvider);
+  }
+
+  /// Resolves category/item IDs from one month to another by matching names.
+  /// Used when the transaction date is in a different month than the active month.
+  Future<Map<String, String>> _resolveIdsForMonth({
+    required String sourceCategoryId,
+    required String sourceItemId,
+    required String targetMonthId,
+  }) async {
+    final categoryService = CategoryService();
+
+    // Get the source category to know its name
+    final sourceCategory = await categoryService.getCategoryById(sourceCategoryId);
+    if (sourceCategory == null) {
+      return {'categoryId': sourceCategoryId, 'itemId': sourceItemId};
+    }
+
+    // Find the matching category in the target month by name
+    final targetCategories = await categoryService.getCategoriesForMonth(targetMonthId);
+    final targetCategory = targetCategories.cast<Category?>().firstWhere(
+      (c) => c!.name.toLowerCase() == sourceCategory.name.toLowerCase(),
+      orElse: () => null,
+    );
+
+    if (targetCategory == null) {
+      // No matching category in target month — fall back to source IDs
+      return {'categoryId': sourceCategoryId, 'itemId': sourceItemId};
+    }
+
+    // Find matching item by name
+    final sourceItem = sourceCategory.items?.cast<Item?>().firstWhere(
+      (i) => i!.id == sourceItemId,
+      orElse: () => null,
+    );
+
+    if (sourceItem == null || targetCategory.items == null) {
+      return {'categoryId': targetCategory.id, 'itemId': sourceItemId};
+    }
+
+    final targetItem = targetCategory.items!.cast<Item?>().firstWhere(
+      (i) => i!.name.toLowerCase() == sourceItem.name.toLowerCase(),
+      orElse: () => null,
+    );
+
+    return {
+      'categoryId': targetCategory.id,
+      'itemId': targetItem?.id ?? sourceItemId,
+    };
   }
 }
 

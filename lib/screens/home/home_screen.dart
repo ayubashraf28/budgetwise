@@ -22,8 +22,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _isBalanceVisible = true;
 
   @override
+  void initState() {
+    super.initState();
+    // Ensure all 12 months exist and current calendar month is active
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(ensureMonthSetupProvider.future).then((_) {
+        ref.invalidate(activeMonthProvider);
+        ref.invalidate(userMonthsProvider);
+        ref.invalidate(categoriesProvider);
+      });
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final activeMonth = ref.watch(activeMonthProvider);
     final summary = ref.watch(monthlySummaryProvider);
     final categories = ref.watch(categoriesProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
