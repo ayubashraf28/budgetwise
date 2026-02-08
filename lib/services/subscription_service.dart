@@ -1,11 +1,62 @@
+import 'dart:developer' as developer;
+
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/subscription.dart';
 import '../config/supabase_config.dart';
 
+class SubscriptionPaymentResult {
+  final String transactionId;
+  final String monthId;
+  final String monthName;
+  final String categoryId;
+  final String itemId;
+  final String subscriptionId;
+  final double amount;
+  final DateTime paidAt;
+  final DateTime nextDueDate;
+  final bool duplicatePrevented;
+
+  const SubscriptionPaymentResult({
+    required this.transactionId,
+    required this.monthId,
+    required this.monthName,
+    required this.categoryId,
+    required this.itemId,
+    required this.subscriptionId,
+    required this.amount,
+    required this.paidAt,
+    required this.nextDueDate,
+    required this.duplicatePrevented,
+  });
+
+  factory SubscriptionPaymentResult.fromRpc(Map<String, dynamic> json) {
+    DateTime parseDate(dynamic value) {
+      if (value is DateTime) return value;
+      if (value is String) return DateTime.parse(value);
+      throw Exception('Invalid date value in payment response: $value');
+    }
+
+    return SubscriptionPaymentResult(
+      transactionId: json['transaction_id'] as String,
+      monthId: json['month_id'] as String,
+      monthName: (json['month_name'] as String?) ?? 'Unknown month',
+      categoryId: json['category_id'] as String,
+      itemId: json['item_id'] as String,
+      subscriptionId: json['subscription_id'] as String,
+      amount: (json['amount'] as num).toDouble(),
+      paidAt: parseDate(json['paid_at']),
+      nextDueDate: parseDate(json['next_due_date']),
+      duplicatePrevented: json['duplicate_prevented'] as bool? ?? false,
+    );
+  }
+}
+
 class SubscriptionService {
   final SupabaseClient _client = SupabaseConfig.client;
   final String _table = 'subscriptions';
+  final _uuid = const Uuid();
 
   String get _userId => _client.auth.currentUser!.id;
 
@@ -33,7 +84,8 @@ class SubscriptionService {
   }
 
   /// Get subscriptions due within N days
-  Future<List<Subscription>> getUpcomingSubscriptions({int withinDays = 7}) async {
+  Future<List<Subscription>> getUpcomingSubscriptions(
+      {int withinDays = 7}) async {
     final now = DateTime.now();
     final cutoff = now.add(Duration(days: withinDays));
 
@@ -75,20 +127,24 @@ class SubscriptionService {
     String? notes,
     int reminderDaysBefore = 2,
   }) async {
-    final response = await _client.from(_table).insert({
-      'user_id': _userId,
-      'name': name,
-      'amount': amount,
-      'next_due_date': nextDueDate.toIso8601String().split('T').first,
-      'billing_cycle': billingCycle,
-      'is_auto_renew': isAutoRenew,
-      'custom_cycle_days': customCycleDays,
-      'icon': icon ?? 'credit-card',
-      'color': color ?? '#6366f1',
-      'category_name': categoryName,
-      'notes': notes,
-      'reminder_days_before': reminderDaysBefore,
-    }).select().single();
+    final response = await _client
+        .from(_table)
+        .insert({
+          'user_id': _userId,
+          'name': name,
+          'amount': amount,
+          'next_due_date': nextDueDate.toIso8601String().split('T').first,
+          'billing_cycle': billingCycle,
+          'is_auto_renew': isAutoRenew,
+          'custom_cycle_days': customCycleDays,
+          'icon': icon ?? 'credit-card',
+          'color': color ?? '#6366f1',
+          'category_name': categoryName,
+          'notes': notes,
+          'reminder_days_before': reminderDaysBefore,
+        })
+        .select()
+        .single();
 
     return Subscription.fromJson(response);
   }
@@ -123,7 +179,9 @@ class SubscriptionService {
     if (categoryName != null) updates['category_name'] = categoryName;
     if (notes != null) updates['notes'] = notes;
     if (isActive != null) updates['is_active'] = isActive;
-    if (reminderDaysBefore != null) updates['reminder_days_before'] = reminderDaysBefore;
+    if (reminderDaysBefore != null) {
+      updates['reminder_days_before'] = reminderDaysBefore;
+    }
 
     final response = await _client
         .from(_table)
@@ -156,5 +214,85 @@ class SubscriptionService {
       nextDueDate: newDate,
     );
   }
-}
 
+  /// Atomically marks a subscription as paid:
+  /// - creates the expense transaction
+  /// - ensures month/category/item mapping
+  /// - advances the subscription due date
+  Future<SubscriptionPaymentResult> markSubscriptionPaidAtomic({
+    required String subscriptionId,
+    DateTime? paidAt,
+    double? amountOverride,
+    String? requestId,
+  }) async {
+    final paidAtDate = paidAt ?? DateTime.now();
+    final effectiveRequestId = requestId ?? _uuid.v4();
+    final params = <String, dynamic>{
+      'p_subscription_id': subscriptionId,
+      'p_paid_at': paidAtDate.toIso8601String().split('T').first,
+      if (amountOverride != null) 'p_amount_override': amountOverride,
+      'p_request_id': effectiveRequestId,
+    };
+
+    try {
+      final response =
+          await _client.rpc('mark_subscription_paid', params: params);
+      Map<String, dynamic> payload;
+      if (response is List && response.isNotEmpty && response.first is Map) {
+        payload = Map<String, dynamic>.from(response.first as Map);
+      } else if (response is Map) {
+        payload = Map<String, dynamic>.from(response);
+      } else {
+        throw Exception('Failed to mark subscription as paid');
+      }
+
+      return SubscriptionPaymentResult.fromRpc(payload);
+    } catch (error, stackTrace) {
+      await logPaymentEvent(
+        requestId: effectiveRequestId,
+        subscriptionId: subscriptionId,
+        status: 'failed',
+        paidAt: paidAtDate,
+        duplicatePrevented: false,
+        errorMessage: error.toString(),
+        details: {
+          'source': 'subscription_service.mark_subscription_paid_atomic',
+        },
+      );
+      developer.log(
+        'markSubscriptionPaidAtomic failed',
+        name: 'SubscriptionService',
+        error: error,
+        stackTrace: stackTrace,
+      );
+      rethrow;
+    }
+  }
+
+  Future<void> logPaymentEvent({
+    String? requestId,
+    required String subscriptionId,
+    required String status,
+    DateTime? paidAt,
+    String? transactionId,
+    bool duplicatePrevented = false,
+    String? errorMessage,
+    Map<String, dynamic>? details,
+  }) async {
+    try {
+      await _client.from('subscription_payment_events').insert({
+        'user_id': _userId,
+        'request_id': requestId,
+        'subscription_id': subscriptionId,
+        'transaction_id': transactionId,
+        'status': status,
+        'paid_at': paidAt?.toIso8601String().split('T').first,
+        'duplicate_prevented': duplicatePrevented,
+        'error_message': errorMessage,
+        'details': details ?? <String, dynamic>{},
+      });
+    } catch (_) {
+      // Best effort logging only.
+    }
+  }
+}

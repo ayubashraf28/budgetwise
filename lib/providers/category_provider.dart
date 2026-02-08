@@ -30,11 +30,13 @@ final categoriesProvider = FutureProvider<List<Category>>((ref) async {
   final categories = await categoryService.getCategoriesForMonth(month.id);
 
   // Fetch all transactions for this month to calculate actuals
-  final transactions = await transactionService.getTransactionsForMonth(month.id);
+  final transactions =
+      await transactionService.getTransactionsForMonth(month.id);
 
   // Calculate actuals for each item from transactions
   return categories.map((category) {
-    final updatedItems = category.items?.map((item) {
+    final visibleItems = category.items?.where((item) => !item.isArchived);
+    final updatedItems = visibleItems?.map((item) {
       // Sum transactions for this item
       final itemTransactions = transactions.where(
         (tx) => tx.itemId == item.id && tx.type == TransactionType.expense,
@@ -63,7 +65,8 @@ final categoriesForMonthProvider =
       await transactionService.getTransactionsForMonth(monthId);
 
   return categories.map((category) {
-    final updatedItems = category.items?.map((item) {
+    final visibleItems = category.items?.where((item) => !item.isArchived);
+    final updatedItems = visibleItems?.map((item) {
       final itemTransactions = transactions.where(
         (tx) => tx.itemId == item.id && tx.type == TransactionType.expense,
       );
@@ -88,10 +91,12 @@ final categoryByIdProvider =
   if (category == null) return null;
 
   // Fetch transactions for this category's month to calculate actuals
-  final transactions = await transactionService.getTransactionsForMonth(category.monthId);
+  final transactions =
+      await transactionService.getTransactionsForMonth(category.monthId);
 
   // Calculate actuals for each item from transactions
-  final updatedItems = category.items?.map((item) {
+  final visibleItems = category.items?.where((item) => !item.isArchived);
+  final updatedItems = visibleItems?.map((item) {
     final itemTransactions = transactions.where(
       (tx) => tx.itemId == item.id && tx.type == TransactionType.expense,
     );

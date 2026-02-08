@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../config/supabase_config.dart';
 import '../models/category.dart';
 import '../models/month.dart';
+import '../utils/category_name_utils.dart';
 import 'item_service.dart';
 
 class CategoryService {
@@ -57,13 +58,21 @@ class CategoryService {
     String color = '#6366f1',
     bool isBudgeted = true,
     int? sortOrder,
+    bool allowReservedName = false,
   }) async {
+    final canonicalName = canonicalizeCategoryName(name);
+    if (!allowReservedName && isReservedCategoryName(canonicalName)) {
+      throw Exception(
+          'The "$systemSubscriptionsCategoryName" category name is reserved for subscription tracking.');
+    }
+
     // Get next sort order if not provided
     if (sortOrder == null) {
       final existing = await getCategoriesForMonth(monthId);
       sortOrder = existing.isEmpty
           ? 0
-          : existing.map((c) => c.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
+          : existing.map((c) => c.sortOrder).reduce((a, b) => a > b ? a : b) +
+              1;
     }
 
     final now = DateTime.now();
@@ -71,7 +80,7 @@ class CategoryService {
       id: _uuid.v4(),
       userId: _userId,
       monthId: monthId,
-      name: name,
+      name: canonicalName,
       icon: icon,
       color: color,
       isBudgeted: isBudgeted,
@@ -98,16 +107,31 @@ class CategoryService {
     bool? isBudgeted,
     int? sortOrder,
   }) async {
+    final current = await getCategoryById(categoryId);
+    if (current == null) throw Exception('Category not found');
+
     final updates = <String, dynamic>{};
-    if (name != null) updates['name'] = name;
+    if (name != null) {
+      final isCurrentReserved = isReservedCategoryName(current.name);
+      final isTargetReserved = isReservedCategoryName(name);
+
+      if (isCurrentReserved && !isTargetReserved) {
+        throw Exception(
+            'The "$systemSubscriptionsCategoryName" category is system-managed and cannot be renamed.');
+      }
+      if (!isCurrentReserved && isTargetReserved) {
+        throw Exception(
+            'The "$systemSubscriptionsCategoryName" category name is reserved for subscription tracking.');
+      }
+
+      updates['name'] = canonicalizeCategoryName(name);
+    }
     if (icon != null) updates['icon'] = icon;
     if (color != null) updates['color'] = color;
     if (isBudgeted != null) updates['is_budgeted'] = isBudgeted;
     if (sortOrder != null) updates['sort_order'] = sortOrder;
 
     if (updates.isEmpty) {
-      final current = await getCategoryById(categoryId);
-      if (current == null) throw Exception('Category not found');
       return current;
     }
 
@@ -153,6 +177,9 @@ class CategoryService {
     final newCategories = <Category>[];
 
     for (final source in sourceCategories) {
+      // The subscriptions category is system-managed and handled separately.
+      if (isReservedCategoryName(source.name)) continue;
+
       final newCategory = await createCategory(
         monthId: targetMonthId,
         name: source.name,
@@ -216,6 +243,8 @@ class CategoryService {
     required Category category,
     required List<Month> allYearMonths,
   }) async {
+    if (isReservedCategoryName(category.name)) return;
+
     for (final month in allYearMonths) {
       if (month.id == category.monthId) continue; // Skip the source month
 
@@ -243,17 +272,32 @@ class CategoryService {
   Future<Category> ensureSubscriptionsCategory(String monthId) async {
     final existing = await getCategoriesForMonth(monthId);
     final subsCat = existing.cast<Category?>().firstWhere(
-      (c) => c!.name == 'Subscriptions',
-      orElse: () => null,
-    );
-    if (subsCat != null) return subsCat;
+          (c) => isReservedCategoryName(c!.name),
+          orElse: () => null,
+        );
+    if (subsCat != null) {
+      final needsRepair = subsCat.name != systemSubscriptionsCategoryName ||
+          subsCat.icon != 'repeat' ||
+          subsCat.color.toLowerCase() != '#8b5cf6' ||
+          !subsCat.isBudgeted;
+      if (!needsRepair) return subsCat;
+
+      return updateCategory(
+        categoryId: subsCat.id,
+        name: systemSubscriptionsCategoryName,
+        icon: 'repeat',
+        color: '#8b5cf6',
+        isBudgeted: true,
+      );
+    }
 
     return createCategory(
       monthId: monthId,
-      name: 'Subscriptions',
+      name: systemSubscriptionsCategoryName,
       icon: 'repeat',
       color: '#8b5cf6',
       isBudgeted: true,
+      allowReservedName: true,
     );
   }
 }

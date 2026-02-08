@@ -23,6 +23,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int? _selectedYearlyBarIndex;
+  bool _isAmountsVisible = true;
 
   @override
   void initState() {
@@ -108,15 +109,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: AppColors.surfaceLight,
-              child: Text(
-                displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+            InkWell(
+              onTap: () => context.push('/settings/profile'),
+              borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+              child: CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.surfaceLight,
+                child: Text(
+                  displayName.isNotEmpty ? displayName[0].toUpperCase() : 'U',
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
@@ -173,6 +178,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: _buildCompactSummaryCard(
                       title: 'Income',
                       amount: actualIncome,
+                      isAmountVisible: _isAmountsVisible,
                       currencySymbol: currencySymbol,
                       icon: LucideIcons.trendingUp,
                       accentColor: AppColors.success,
@@ -184,6 +190,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: _buildCompactSummaryCard(
                       title: 'Expense',
                       amount: actualExpenses,
+                      isAmountVisible: _isAmountsVisible,
                       currencySymbol: currencySymbol,
                       icon: LucideIcons.trendingDown,
                       accentColor: AppColors.error,
@@ -203,68 +210,119 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final actualBalance = summary?.actualBalance ?? 0.0;
     final monthName =
         summary?.monthName ?? DateFormat('MMMM').format(DateTime.now());
+    final monthYear = _formatBalancePeriodLabel(monthName);
 
     return _buildGlassCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      borderColor: AppColors.savings.withValues(alpha: 0.45),
-      gradientColors: [
-        AppColors.savings.withValues(alpha: 0.35),
-        AppColors.tealDark.withValues(alpha: 0.30),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      borderColor: AppColors.savings.withValues(alpha: 0.35),
+      gradientColors: const [
+        Color(0xFF0F4D63),
+        Color(0xFF0A3C4F),
       ],
+      borderRadius: BorderRadius.circular(30),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Total Balance',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.92),
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
+          Row(
+            children: [
+              Container(
+                width: 26,
+                height: 26,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                ),
+                child: Icon(
+                  LucideIcons.wallet,
+                  size: 13,
+                  color: Colors.white.withValues(alpha: 0.98),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Total Balance',
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.92),
+                  fontWeight: FontWeight.w500,
+                  fontSize: 17,
+                ),
+              ),
+              const Spacer(),
+              InkWell(
+                onTap: () =>
+                    setState(() => _isAmountsVisible = !_isAmountsVisible),
+                borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.16),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _isAmountsVisible ? LucideIcons.eye : LucideIcons.eyeOff,
+                    size: 15,
+                    color: Colors.white.withValues(alpha: 0.94),
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
+          const Spacer(),
           SizedBox(
-            height: 58,
+            height: 72,
             child: FittedBox(
               alignment: Alignment.centerLeft,
               fit: BoxFit.scaleDown,
               child: Text(
-                '$currencySymbol${_formatAmount(actualBalance)}',
+                _isAmountsVisible
+                    ? '$currencySymbol${_formatAmount(actualBalance)}'
+                    : '\u2022\u2022\u2022\u2022',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 46,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 66,
+                  fontWeight: FontWeight.w500,
                   height: 1,
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            '$monthName balance',
-            style: TextStyle(
-              color: Colors.white.withValues(alpha: 0.78),
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
-            ),
-            child: const Text(
-              'Net position',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 9.5,
-                fontWeight: FontWeight.w600,
+          const Spacer(),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  monthYear,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.78),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 8),
+              InkWell(
+                onTap: () => _showAddTransaction(context),
+                borderRadius: BorderRadius.circular(8),
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(8),
+                    border:
+                        Border.all(color: Colors.white.withValues(alpha: 0.28)),
+                  ),
+                  child: Icon(
+                    LucideIcons.plus,
+                    size: 20,
+                    color: Colors.white.withValues(alpha: 0.95),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -274,6 +332,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildCompactSummaryCard({
     required String title,
     required double amount,
+    required bool isAmountVisible,
     required String currencySymbol,
     required IconData icon,
     required Color accentColor,
@@ -287,7 +346,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.fromLTRB(10, 9, 10, 8),
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
@@ -311,6 +370,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
                     width: 26,
@@ -326,7 +386,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     title,
                     style: TextStyle(
                       color: accentColor,
-                      fontSize: 12.5,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -351,7 +411,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 6),
               Expanded(
                 child: Align(
                   alignment: Alignment.centerLeft,
@@ -359,7 +419,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      '$currencySymbol${_formatAmount(amount)}',
+                      isAmountVisible
+                          ? '$currencySymbol${_formatAmount(amount)}'
+                          : '\u2022\u2022\u2022\u2022',
                       style: AppTypography.amountLarge.copyWith(
                         fontSize: 36,
                         height: 1,
@@ -368,13 +430,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                 ),
               ),
-              Text(
-                isIncome ? 'Money received' : 'Money spent',
-                style: AppTypography.bodySmall.copyWith(
-                  fontSize: 10,
-                  height: 1.1,
-                  color: accentColor.withValues(alpha: 0.85),
-                ),
+              Row(
+                children: [
+                  Text(
+                    isIncome ? 'Money received' : 'Money spent',
+                    style: AppTypography.bodySmall.copyWith(
+                      fontSize: 10,
+                      height: 1.1,
+                      color: accentColor.withValues(alpha: 0.85),
+                    ),
+                  ),
+                  const Spacer(),
+                  Icon(
+                    isIncome
+                        ? LucideIcons.arrowUpRight
+                        : LucideIcons.arrowDownRight,
+                    size: 12,
+                    color: accentColor.withValues(alpha: 0.9),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1137,6 +1211,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return NumberFormat('#,##0').format(amount.round());
     }
     return NumberFormat('#,##0.##').format(amount);
+  }
+
+  String _formatBalancePeriodLabel(String monthName) {
+    final alreadyHasYear = RegExp(r'\b\d{4}\b').hasMatch(monthName);
+    if (alreadyHasYear) {
+      return monthName;
+    }
+    return '$monthName ${DateTime.now().year}';
   }
 
   IconData _getTransactionIcon(Transaction transaction) {

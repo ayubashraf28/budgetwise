@@ -62,9 +62,13 @@ final ensureMonthSetupProvider = FutureProvider<void>((ref) async {
     // 4. Ensure Subscriptions category and items are synced
     final subscriptionService = SubscriptionService();
     final itemService = ItemService();
-    final subsCat = await categoryService.ensureSubscriptionsCategory(currentMonth.id);
+    final subsCat =
+        await categoryService.ensureSubscriptionsCategory(currentMonth.id);
     final activeSubs = await subscriptionService.getActiveSubscriptions();
-    await itemService.ensureSubscriptionItems(subsCat.id, activeSubs);
+    await itemService.repairSubscriptionItemsForCategory(
+      subscriptionsCategoryId: subsCat.id,
+      activeSubscriptions: activeSubs,
+    );
   }
 
   // 5. Invalidate dependent providers to pick up new data

@@ -7,15 +7,18 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/theme.dart';
 import '../../config/constants.dart';
 import '../../services/services.dart';
+import '../../utils/category_name_utils.dart';
 
 class TemplateSelectionScreen extends ConsumerStatefulWidget {
   const TemplateSelectionScreen({super.key});
 
   @override
-  ConsumerState<TemplateSelectionScreen> createState() => _TemplateSelectionScreenState();
+  ConsumerState<TemplateSelectionScreen> createState() =>
+      _TemplateSelectionScreenState();
 }
 
-class _TemplateSelectionScreenState extends ConsumerState<TemplateSelectionScreen> {
+class _TemplateSelectionScreenState
+    extends ConsumerState<TemplateSelectionScreen> {
   String? _selectedTemplate;
   bool _isLoading = false;
 
@@ -84,7 +87,8 @@ class _TemplateSelectionScreenState extends ConsumerState<TemplateSelectionScree
               Expanded(
                 child: ListView.separated(
                   itemCount: _templates.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+                  separatorBuilder: (_, __) =>
+                      const SizedBox(height: AppSpacing.md),
                   itemBuilder: (context, index) {
                     final template = _templates[index];
                     final isSelected = _selectedTemplate == template.id;
@@ -139,9 +143,7 @@ class _TemplateSelectionScreenState extends ConsumerState<TemplateSelectionScree
               : AppColors.surface,
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
           border: Border.all(
-            color: isSelected
-                ? template.color
-                : AppColors.border,
+            color: isSelected ? template.color : AppColors.border,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -168,7 +170,8 @@ class _TemplateSelectionScreenState extends ConsumerState<TemplateSelectionScree
                   Text(
                     template.title,
                     style: AppTypography.labelLarge.copyWith(
-                      color: isSelected ? template.color : AppColors.textPrimary,
+                      color:
+                          isSelected ? template.color : AppColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -206,42 +209,45 @@ class _TemplateSelectionScreenState extends ConsumerState<TemplateSelectionScree
       final itemService = ItemService();
 
       // Check if categories already exist for this month (from previous attempt)
-      final existingCategories = await categoryService.getCategoriesForMonth(month.id);
+      final existingCategories =
+          await categoryService.getCategoriesForMonth(month.id);
 
       // Only create categories if none exist
       if (existingCategories.isEmpty) {
         final templateCategories = budgetTemplates[_selectedTemplate] ?? [];
 
         for (final categoryName in templateCategories) {
-        // Find category template
-        final categoryTemplate = defaultCategories.firstWhere(
-          (c) => c['name'] == categoryName,
-          orElse: () => {
-            'name': categoryName,
-            'icon': 'wallet',
-            'color': '#6366f1',
-            'items': <Map<String, dynamic>>[],
-          },
-        );
+          if (isReservedCategoryName(categoryName)) continue;
 
-        // Create category
-        final category = await categoryService.createCategory(
-          monthId: month.id,
-          name: categoryTemplate['name'] as String,
-          icon: categoryTemplate['icon'] as String? ?? 'wallet',
-          color: categoryTemplate['color'] as String? ?? '#6366f1',
-        );
-
-        // Create items for category
-        final items = categoryTemplate['items'] as List<dynamic>? ?? [];
-        for (final itemData in items) {
-          final itemMap = itemData as Map<String, dynamic>;
-          await itemService.createItem(
-            categoryId: category.id,
-            name: itemMap['name'] as String,
-            projected: (itemMap['projected'] as num?)?.toDouble() ?? 0,
+          // Find category template
+          final categoryTemplate = defaultCategories.firstWhere(
+            (c) => c['name'] == categoryName,
+            orElse: () => {
+              'name': categoryName,
+              'icon': 'wallet',
+              'color': '#6366f1',
+              'items': <Map<String, dynamic>>[],
+            },
           );
-        }
+
+          // Create category
+          final category = await categoryService.createCategory(
+            monthId: month.id,
+            name: categoryTemplate['name'] as String,
+            icon: categoryTemplate['icon'] as String? ?? 'wallet',
+            color: categoryTemplate['color'] as String? ?? '#6366f1',
+          );
+
+          // Create items for category
+          final items = categoryTemplate['items'] as List<dynamic>? ?? [];
+          for (final itemData in items) {
+            final itemMap = itemData as Map<String, dynamic>;
+            await itemService.createItem(
+              categoryId: category.id,
+              name: itemMap['name'] as String,
+              projected: (itemMap['projected'] as num?)?.toDouble() ?? 0,
+            );
+          }
         }
       }
 

@@ -1,4 +1,5 @@
 import 'package:uuid/uuid.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/supabase_config.dart';
 import '../models/item.dart';
@@ -12,13 +13,19 @@ class ItemService {
   String get _userId => _client.auth.currentUser!.id;
 
   /// Get all items for a category
-  Future<List<Item>> getItemsForCategory(String categoryId) async {
-    final response = await _client
+  Future<List<Item>> getItemsForCategory(
+    String categoryId, {
+    bool includeArchived = false,
+  }) async {
+    var query = _client
         .from(_table)
         .select()
         .eq('user_id', _userId)
-        .eq('category_id', categoryId)
-        .order('sort_order', ascending: true);
+        .eq('category_id', categoryId);
+    if (!includeArchived) {
+      query = query.eq('is_archived', false);
+    }
+    final response = await query.order('sort_order', ascending: true);
 
     return (response as List).map((e) => Item.fromJson(e)).toList();
   }
@@ -40,7 +47,9 @@ class ItemService {
   Future<Item> createItem({
     required String categoryId,
     required String name,
+    String? subscriptionId,
     double projected = 0,
+    bool isArchived = false,
     bool isBudgeted = true,
     bool isRecurring = false,
     int? sortOrder,
@@ -48,10 +57,14 @@ class ItemService {
   }) async {
     // Get next sort order if not provided
     if (sortOrder == null) {
-      final existing = await getItemsForCategory(categoryId);
+      final existing = await getItemsForCategory(
+        categoryId,
+        includeArchived: true,
+      );
       sortOrder = existing.isEmpty
           ? 0
-          : existing.map((i) => i.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
+          : existing.map((i) => i.sortOrder).reduce((a, b) => a > b ? a : b) +
+              1;
     }
 
     final now = DateTime.now();
@@ -59,8 +72,10 @@ class ItemService {
       id: _uuid.v4(),
       categoryId: categoryId,
       userId: _userId,
+      subscriptionId: subscriptionId,
       name: name,
       projected: projected,
+      isArchived: isArchived,
       isBudgeted: isBudgeted,
       isRecurring: isRecurring,
       sortOrder: sortOrder,
@@ -69,11 +84,8 @@ class ItemService {
       updatedAt: now,
     );
 
-    final response = await _client
-        .from(_table)
-        .insert(item.toJson())
-        .select()
-        .single();
+    final response =
+        await _client.from(_table).insert(item.toJson()).select().single();
 
     return Item.fromJson(response);
   }
@@ -82,7 +94,9 @@ class ItemService {
   Future<Item> updateItem({
     required String itemId,
     String? name,
+    String? subscriptionId,
     double? projected,
+    bool? isArchived,
     bool? isBudgeted,
     bool? isRecurring,
     int? sortOrder,
@@ -90,7 +104,9 @@ class ItemService {
   }) async {
     final updates = <String, dynamic>{};
     if (name != null) updates['name'] = name;
+    if (subscriptionId != null) updates['subscription_id'] = subscriptionId;
     if (projected != null) updates['projected'] = projected;
+    if (isArchived != null) updates['is_archived'] = isArchived;
     if (isBudgeted != null) updates['is_budgeted'] = isBudgeted;
     if (isRecurring != null) updates['is_recurring'] = isRecurring;
     if (sortOrder != null) updates['sort_order'] = sortOrder;
@@ -113,13 +129,108 @@ class ItemService {
     return Item.fromJson(response);
   }
 
+  /// Gets an item in a category linked to a specific subscription.
+  Future<Item?> getItemForSubscription({
+    required String categoryId,
+    required String subscriptionId,
+  }) async {
+    final response = await _client
+        .from(_table)
+        .select()
+        .eq('user_id', _userId)
+        .eq('category_id', categoryId)
+        .eq('subscription_id', subscriptionId)
+        .order('created_at')
+        .limit(1)
+        .maybeSingle();
+
+    if (response == null) return null;
+    return Item.fromJson(response);
+  }
+
+  /// Deterministically gets/creates the budget item mapped to this subscription.
+  /// Matching priority:
+  /// 1) exact `subscription_id` link,
+  /// 2) legacy fallback: same-name unlinked item in the same category,
+  /// 3) create a new linked item.
+  Future<Item> getOrCreateSubscriptionItem({
+    required String subscriptionsCategoryId,
+    required Subscription subscription,
+  }) async {
+    final monthlyCost = _normalizeToMonthly(subscription);
+    final normalizedName = subscription.name.trim();
+
+    final linked = await getItemForSubscription(
+      categoryId: subscriptionsCategoryId,
+      subscriptionId: subscription.id,
+    );
+    if (linked != null) {
+      final needsUpdate = linked.name != normalizedName ||
+          (linked.projected - monthlyCost).abs() > 0.01 ||
+          linked.isArchived ||
+          !linked.isBudgeted ||
+          !linked.isRecurring;
+
+      if (!needsUpdate) return linked;
+      return updateItem(
+        itemId: linked.id,
+        name: normalizedName,
+        projected: monthlyCost,
+        isArchived: false,
+        isBudgeted: true,
+        isRecurring: true,
+      );
+    }
+
+    final existingItems = await getItemsForCategory(
+      subscriptionsCategoryId,
+      includeArchived: true,
+    );
+    final legacyByName = existingItems.cast<Item?>().firstWhere(
+          (item) =>
+              item!.subscriptionId == null &&
+              item.name.trim().toLowerCase() == normalizedName.toLowerCase(),
+          orElse: () => null,
+        );
+
+    if (legacyByName != null) {
+      return updateItem(
+        itemId: legacyByName.id,
+        name: normalizedName,
+        subscriptionId: subscription.id,
+        projected: monthlyCost,
+        isArchived: false,
+        isBudgeted: true,
+        isRecurring: true,
+      );
+    }
+
+    try {
+      return await createItem(
+        categoryId: subscriptionsCategoryId,
+        name: normalizedName,
+        subscriptionId: subscription.id,
+        projected: monthlyCost,
+        isArchived: false,
+        isBudgeted: true,
+        isRecurring: true,
+      );
+    } on PostgrestException catch (e) {
+      // Another request may have created the link concurrently.
+      if (e.code == '23505') {
+        final retry = await getItemForSubscription(
+          categoryId: subscriptionsCategoryId,
+          subscriptionId: subscription.id,
+        );
+        if (retry != null) return retry;
+      }
+      rethrow;
+    }
+  }
+
   /// Delete an item
   Future<void> deleteItem(String itemId) async {
-    await _client
-        .from(_table)
-        .delete()
-        .eq('id', itemId)
-        .eq('user_id', _userId);
+    await _client.from(_table).delete().eq('id', itemId).eq('user_id', _userId);
   }
 
   /// Reorder items within a category
@@ -181,35 +292,72 @@ class ItemService {
     String subscriptionsCategoryId,
     List<Subscription> activeSubscriptions,
   ) async {
-    final existingItems = await getItemsForCategory(subscriptionsCategoryId);
-
     for (final sub in activeSubscriptions) {
-      // Normalize subscription amount to monthly cost for projected
-      final monthlyCost = _normalizeToMonthly(sub);
-
-      // Check if an item with this subscription's name already exists
-      final existingItem = existingItems.cast<Item?>().firstWhere(
-        (item) => item!.name.toLowerCase() == sub.name.toLowerCase(),
-        orElse: () => null,
+      await getOrCreateSubscriptionItem(
+        subscriptionsCategoryId: subscriptionsCategoryId,
+        subscription: sub,
       );
+    }
+  }
 
-      if (existingItem == null) {
-        // Create new item for this subscription
-        await createItem(
-          categoryId: subscriptionsCategoryId,
-          name: sub.name,
-          projected: monthlyCost,
-          isBudgeted: true,
-          isRecurring: true,
-        );
-      } else if ((existingItem.projected - monthlyCost).abs() > 0.01) {
-        // Update projected amount if it changed
-        await updateItem(
-          itemId: existingItem.id,
-          projected: monthlyCost,
-        );
+  /// Repairs subscription items for a month:
+  /// - ensures active subscriptions are linked by `subscription_id`
+  /// - archives stale/unlinked rows with no transaction history
+  /// - archives linked rows for inactive/deleted subscriptions when safe
+  Future<void> repairSubscriptionItemsForCategory({
+    required String subscriptionsCategoryId,
+    required List<Subscription> activeSubscriptions,
+  }) async {
+    await ensureSubscriptionItems(subscriptionsCategoryId, activeSubscriptions);
+
+    final allItems = await getItemsForCategory(
+      subscriptionsCategoryId,
+      includeArchived: true,
+    );
+    final activeIds = activeSubscriptions.map((s) => s.id).toSet();
+
+    for (final item in allItems) {
+      if (item.subscriptionId != null) {
+        if (activeIds.contains(item.subscriptionId)) {
+          if (item.isArchived || !item.isBudgeted || !item.isRecurring) {
+            await updateItem(
+              itemId: item.id,
+              isArchived: false,
+              isBudgeted: true,
+              isRecurring: true,
+            );
+          }
+        } else {
+          await _archiveItemIfNoHistory(item);
+        }
+      } else {
+        await _archiveItemIfNoHistory(item);
       }
     }
+  }
+
+  Future<void> _archiveItemIfNoHistory(Item item) async {
+    final hasHistory = await _itemHasTransactions(item.id);
+    if (hasHistory) return;
+
+    if (!item.isArchived || item.isBudgeted || item.isRecurring) {
+      await updateItem(
+        itemId: item.id,
+        isArchived: true,
+        isBudgeted: false,
+        isRecurring: false,
+      );
+    }
+  }
+
+  Future<bool> _itemHasTransactions(String itemId) async {
+    final response = await _client
+        .from('transactions')
+        .select('id')
+        .eq('user_id', _userId)
+        .eq('item_id', itemId)
+        .limit(1);
+    return (response as List).isNotEmpty;
   }
 
   /// Normalize a subscription's amount to a monthly cost.

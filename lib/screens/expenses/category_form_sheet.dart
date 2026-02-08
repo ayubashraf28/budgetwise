@@ -5,6 +5,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/theme.dart';
 import '../../models/category.dart';
 import '../../providers/providers.dart';
+import '../../utils/category_name_utils.dart';
 
 class CategoryFormSheet extends ConsumerStatefulWidget {
   final Category? category;
@@ -83,7 +84,8 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
       ),
       child: Padding(
         padding: EdgeInsets.only(
@@ -144,6 +146,18 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                       if (value == null || value.trim().isEmpty) {
                         return 'Please enter a name';
                       }
+                      final rawName = value.trim();
+                      final isCurrentReserved = isEditing &&
+                          isReservedCategoryName(widget.category!.name);
+                      final isTargetReserved = isReservedCategoryName(rawName);
+
+                      if (!isCurrentReserved && isTargetReserved) {
+                        return '"$systemSubscriptionsCategoryName" is reserved for the subscriptions feature';
+                      }
+
+                      if (isCurrentReserved && !isTargetReserved) {
+                        return 'This system category cannot be renamed';
+                      }
                       return null;
                     },
                   ),
@@ -164,14 +178,17 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                       children: [
                         const Row(
                           children: [
-                            Icon(LucideIcons.target, size: 20, color: AppColors.textSecondary),
+                            Icon(LucideIcons.target,
+                                size: 20, color: AppColors.textSecondary),
                             SizedBox(width: AppSpacing.sm),
-                            Text('Enable budgeting', style: AppTypography.bodyLarge),
+                            Text('Enable budgeting',
+                                style: AppTypography.bodyLarge),
                           ],
                         ),
                         Switch(
                           value: _isBudgeted,
-                          onChanged: (value) => setState(() => _isBudgeted = value),
+                          onChanged: (value) =>
+                              setState(() => _isBudgeted = value),
                           activeTrackColor: AppColors.primary,
                         ),
                       ],
@@ -179,7 +196,8 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
                     child: Text(
                       _isBudgeted
                           ? 'Track spending against a budget for each item'
@@ -265,7 +283,9 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
-              _nameController.text.isEmpty ? 'Category Name' : _nameController.text,
+              _nameController.text.isEmpty
+                  ? 'Category Name'
+                  : _nameController.text,
               style: AppTypography.labelLarge,
             ),
           ),
@@ -292,11 +312,11 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: isSelected ? _parseColor(_selectedColor) : Colors.transparent,
+                color: isSelected
+                    ? _parseColor(_selectedColor)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-                border: isSelected
-                    ? null
-                    : Border.all(color: AppColors.border),
+                border: isSelected ? null : Border.all(color: AppColors.border),
               ),
               child: Icon(
                 _getIconData(icon),
@@ -410,7 +430,8 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
           isBudgeted: _isBudgeted,
         );
         if (mounted) {
-          Navigator.of(context).pop(newCategory.id); // Return ID for transaction form
+          Navigator.of(context)
+              .pop(newCategory.id); // Return ID for transaction form
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Category added')),
           );

@@ -1,12 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/subscription.dart';
-import '../services/subscription_service.dart';
 import '../services/category_service.dart';
 import '../services/item_service.dart';
 import '../services/month_service.dart';
-import '../services/transaction_service.dart';
-import '../models/item.dart';
+import '../services/subscription_service.dart';
 import 'auth_provider.dart';
 import 'category_provider.dart';
 import 'transaction_provider.dart';
@@ -23,13 +21,15 @@ final subscriptionsProvider = FutureProvider<List<Subscription>>((ref) async {
 });
 
 /// Only active subscriptions
-final activeSubscriptionsProvider = FutureProvider<List<Subscription>>((ref) async {
+final activeSubscriptionsProvider =
+    FutureProvider<List<Subscription>>((ref) async {
   final service = ref.read(subscriptionServiceProvider);
   return service.getActiveSubscriptions();
 });
 
 /// Subscriptions due within the next 7 days (for home page "Upcoming Payments")
-final upcomingSubscriptionsProvider = FutureProvider<List<Subscription>>((ref) async {
+final upcomingSubscriptionsProvider =
+    FutureProvider<List<Subscription>>((ref) async {
   final service = ref.read(subscriptionServiceProvider);
   return service.getUpcomingSubscriptions(withinDays: 7);
 });
@@ -63,6 +63,8 @@ final dueSoonCountProvider = Provider<int>((ref) {
 
 /// Subscription notifier for CRUD mutations
 class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
+  final Set<String> _inFlightPaymentSubscriptionIds = <String>{};
+
   @override
   Future<List<Subscription>> build() async {
     final service = ref.read(subscriptionServiceProvider);
@@ -147,59 +149,32 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
     _invalidateAll();
   }
 
-  Future<void> markAsPaid(String subscriptionId) async {
-    // 1. Get the subscription details before advancing
-    final subs = state.value ?? [];
-    final sub = subs.cast<Subscription?>().firstWhere(
-      (s) => s!.id == subscriptionId,
-      orElse: () => null,
-    );
-
-    // 2. Advance the due date
-    await _service.advanceDueDate(subscriptionId);
-
-    // 3. Create a real expense transaction if we have the subscription details
-    if (sub != null) {
-      try {
-        final monthService = MonthService();
-        final categoryService = CategoryService();
-        final itemService = ItemService();
-        final transactionService = TransactionService();
-
-        final now = DateTime.now();
-        final targetMonth = await monthService.getMonthForDate(now);
-
-        // Ensure Subscriptions category exists for this month
-        final subsCat = await categoryService.ensureSubscriptionsCategory(targetMonth.id);
-
-        // Ensure subscription items are synced
-        final activeSubs = await _service.getActiveSubscriptions();
-        await itemService.ensureSubscriptionItems(subsCat.id, activeSubs);
-
-        // Find the matching item
-        final items = await itemService.getItemsForCategory(subsCat.id);
-        final matchingItem = items.cast<Item?>().firstWhere(
-          (item) => item!.name.toLowerCase() == sub.name.toLowerCase(),
-          orElse: () => null,
-        );
-
-        if (matchingItem != null) {
-          await transactionService.createExpense(
-            monthId: targetMonth.id,
-            categoryId: subsCat.id,
-            itemId: matchingItem.id,
-            amount: sub.amount,
-            date: now,
-            note: 'Subscription: ${sub.name}',
-          );
-        }
-      } catch (_) {
-        // Transaction creation failed — subscription was still marked as paid
-        // The user can manually add the transaction if needed
-      }
+  Future<SubscriptionPaymentResult> markAsPaid(String subscriptionId) async {
+    if (_inFlightPaymentSubscriptionIds.contains(subscriptionId)) {
+      await _service.logPaymentEvent(
+        subscriptionId: subscriptionId,
+        status: 'duplicate_blocked_client',
+        paidAt: DateTime.now(),
+        duplicatePrevented: true,
+        details: {
+          'reason': 'mark_as_paid_already_in_flight',
+        },
+      );
+      throw StateError('Payment is already being processed');
     }
 
-    _invalidateAll();
+    _inFlightPaymentSubscriptionIds.add(subscriptionId);
+    try {
+      final result = await _service.markSubscriptionPaidAtomic(
+        subscriptionId: subscriptionId,
+        paidAt: DateTime.now(),
+      );
+
+      _invalidateAll();
+      return result;
+    } finally {
+      _inFlightPaymentSubscriptionIds.remove(subscriptionId);
+    }
   }
 
   void _invalidateAll() {
@@ -220,11 +195,15 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
 
       final now = DateTime.now();
       final currentMonth = await monthService.getMonthForDate(now);
-      final subsCat = await categoryService.ensureSubscriptionsCategory(currentMonth.id);
+      final subsCat =
+          await categoryService.ensureSubscriptionsCategory(currentMonth.id);
       final activeSubs = await _service.getActiveSubscriptions();
-      await itemService.ensureSubscriptionItems(subsCat.id, activeSubs);
+      await itemService.repairSubscriptionItemsForCategory(
+        subscriptionsCategoryId: subsCat.id,
+        activeSubscriptions: activeSubs,
+      );
     } catch (_) {
-      // Sync failed — not critical, will retry on next app startup
+      // Sync failed - not critical, will retry on next app startup
     }
   }
 }
@@ -232,4 +211,3 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
 final subscriptionNotifierProvider =
     AsyncNotifierProvider<SubscriptionNotifier, List<Subscription>>(
         () => SubscriptionNotifier());
-

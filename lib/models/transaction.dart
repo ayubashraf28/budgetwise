@@ -22,6 +22,7 @@ class Transaction {
   final String monthId;
   final String? categoryId;
   final String? itemId;
+  final String? subscriptionId;
   final String? incomeSourceId;
   final TransactionType type;
   final double amount;
@@ -34,6 +35,7 @@ class Transaction {
   final String? categoryName;
   final String? categoryColor;
   final String? itemName;
+  final String? subscriptionName;
   final String? incomeSourceName;
 
   const Transaction({
@@ -42,6 +44,7 @@ class Transaction {
     required this.monthId,
     this.categoryId,
     this.itemId,
+    this.subscriptionId,
     this.incomeSourceId,
     required this.type,
     required this.amount,
@@ -52,6 +55,7 @@ class Transaction {
     this.categoryName,
     this.categoryColor,
     this.itemName,
+    this.subscriptionName,
     this.incomeSourceName,
   });
 
@@ -76,12 +80,19 @@ class Transaction {
       incomeSourceName = json['income_sources']['name'] as String?;
     }
 
+    // Handle nested subscription data
+    String? subscriptionName;
+    if (json['subscriptions'] != null) {
+      subscriptionName = json['subscriptions']['name'] as String?;
+    }
+
     return Transaction(
       id: json['id'] as String,
       userId: json['user_id'] as String,
       monthId: json['month_id'] as String,
       categoryId: json['category_id'] as String?,
       itemId: json['item_id'] as String?,
+      subscriptionId: json['subscription_id'] as String?,
       incomeSourceId: json['income_source_id'] as String?,
       type: TransactionType.fromString(json['type'] as String),
       amount: (json['amount'] as num).toDouble(),
@@ -92,6 +103,8 @@ class Transaction {
       categoryName: categoryName ?? json['category_name'] as String?,
       categoryColor: categoryColor ?? json['category_color'] as String?,
       itemName: itemName ?? json['item_name'] as String?,
+      subscriptionName:
+          subscriptionName ?? json['subscription_name'] as String?,
       incomeSourceName:
           incomeSourceName ?? json['income_source_name'] as String?,
     );
@@ -104,6 +117,7 @@ class Transaction {
       'month_id': monthId,
       'category_id': categoryId,
       'item_id': itemId,
+      'subscription_id': subscriptionId,
       'income_source_id': incomeSourceId,
       'type': type.value,
       'amount': amount,
@@ -124,6 +138,7 @@ class Transaction {
     String? monthId,
     String? categoryId,
     String? itemId,
+    String? subscriptionId,
     String? incomeSourceId,
     TransactionType? type,
     double? amount,
@@ -134,6 +149,7 @@ class Transaction {
     String? categoryName,
     String? categoryColor,
     String? itemName,
+    String? subscriptionName,
     String? incomeSourceName,
   }) {
     return Transaction(
@@ -142,6 +158,7 @@ class Transaction {
       monthId: monthId ?? this.monthId,
       categoryId: categoryId ?? this.categoryId,
       itemId: itemId ?? this.itemId,
+      subscriptionId: subscriptionId ?? this.subscriptionId,
       incomeSourceId: incomeSourceId ?? this.incomeSourceId,
       type: type ?? this.type,
       amount: amount ?? this.amount,
@@ -152,6 +169,7 @@ class Transaction {
       categoryName: categoryName ?? this.categoryName,
       categoryColor: categoryColor ?? this.categoryColor,
       itemName: itemName ?? this.itemName,
+      subscriptionName: subscriptionName ?? this.subscriptionName,
       incomeSourceName: incomeSourceName ?? this.incomeSourceName,
     );
   }

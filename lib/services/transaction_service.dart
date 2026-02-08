@@ -12,7 +12,7 @@ class TransactionService {
 
   /// Select query with joins
   String get _selectWithJoins =>
-      '*, categories(name, color), items(name), income_sources(name)';
+      '*, categories(name, color), items(name), subscriptions(name), income_sources(name)';
 
   /// Get all transactions for a month
   Future<List<Transaction>> getTransactionsForMonth(String monthId) async {
@@ -28,7 +28,8 @@ class TransactionService {
   }
 
   /// Get all transactions for multiple months (for yearly aggregation)
-  Future<List<Transaction>> getTransactionsForMonths(List<String> monthIds) async {
+  Future<List<Transaction>> getTransactionsForMonths(
+      List<String> monthIds) async {
     if (monthIds.isEmpty) return [];
     final response = await _client
         .from(_table)
@@ -52,7 +53,8 @@ class TransactionService {
   }
 
   /// Get transactions for a specific category
-  Future<List<Transaction>> getTransactionsForCategory(String categoryId) async {
+  Future<List<Transaction>> getTransactionsForCategory(
+      String categoryId) async {
     final response = await _client
         .from(_table)
         .select(_selectWithJoins)
@@ -94,6 +96,7 @@ class TransactionService {
     required String monthId,
     required String categoryId,
     required String itemId,
+    String? subscriptionId,
     required double amount,
     required DateTime date,
     String? note,
@@ -105,6 +108,7 @@ class TransactionService {
       monthId: monthId,
       categoryId: categoryId,
       itemId: itemId,
+      subscriptionId: subscriptionId,
       type: TransactionType.expense,
       amount: amount,
       date: date,
@@ -158,6 +162,7 @@ class TransactionService {
     required String transactionId,
     String? categoryId,
     String? itemId,
+    String? subscriptionId,
     String? incomeSourceId,
     double? amount,
     DateTime? date,
@@ -166,6 +171,7 @@ class TransactionService {
     final updates = <String, dynamic>{};
     if (categoryId != null) updates['category_id'] = categoryId;
     if (itemId != null) updates['item_id'] = itemId;
+    if (subscriptionId != null) updates['subscription_id'] = subscriptionId;
     if (incomeSourceId != null) updates['income_source_id'] = incomeSourceId;
     if (amount != null) updates['amount'] = amount;
     if (date != null) updates['date'] = _formatDate(date);

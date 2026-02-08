@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 
 import '../../config/theme.dart';
 import '../../models/subscription.dart';
 import '../../providers/providers.dart';
+import '../../utils/subscription_payment_feedback.dart';
 import 'subscription_form_sheet.dart';
 
 class SubscriptionsScreen extends ConsumerWidget {
@@ -82,10 +84,8 @@ class SubscriptionsScreen extends ConsumerWidget {
             // Content
             ...subscriptionsAsync.when(
               data: (subscriptions) {
-                final active =
-                    subscriptions.where((s) => s.isActive).toList();
-                final paused =
-                    subscriptions.where((s) => !s.isActive).toList();
+                final active = subscriptions.where((s) => s.isActive).toList();
+                final paused = subscriptions.where((s) => !s.isActive).toList();
 
                 return <Widget>[
                   // Summary Card
@@ -120,15 +120,15 @@ class SubscriptionsScreen extends ConsumerWidget {
                       ),
                     ),
                     SliverPadding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             final sub = active[index];
                             return Padding(
-                              padding: const EdgeInsets.only(
-                                  bottom: AppSpacing.sm),
+                              padding:
+                                  const EdgeInsets.only(bottom: AppSpacing.sm),
                               child: _buildSubscriptionCard(
                                   context, ref, sub, currencySymbol),
                             );
@@ -162,15 +162,15 @@ class SubscriptionsScreen extends ConsumerWidget {
                       ),
                     ),
                     SliverPadding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
                             final sub = paused[index];
                             return Padding(
-                              padding: const EdgeInsets.only(
-                                  bottom: AppSpacing.sm),
+                              padding:
+                                  const EdgeInsets.only(bottom: AppSpacing.sm),
                               child: _buildSubscriptionCard(
                                   context, ref, sub, currencySymbol),
                             );
@@ -424,8 +424,7 @@ class SubscriptionsScreen extends ConsumerWidget {
                       Icon(LucideIcons.trash2,
                           size: 18, color: AppColors.error),
                       SizedBox(width: 8),
-                      Text('Delete',
-                          style: TextStyle(color: AppColors.error)),
+                      Text('Delete', style: TextStyle(color: AppColors.error)),
                     ],
                   ),
                 ),
@@ -630,8 +629,7 @@ class SubscriptionsScreen extends ConsumerWidget {
     );
   }
 
-  void _showEditSheet(
-      BuildContext context, WidgetRef ref, Subscription sub) {
+  void _showEditSheet(BuildContext context, WidgetRef ref, Subscription sub) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -643,20 +641,51 @@ class SubscriptionsScreen extends ConsumerWidget {
   Future<void> _markAsPaid(
       BuildContext context, WidgetRef ref, Subscription sub) async {
     try {
-      await ref
+      final result = await ref
           .read(subscriptionNotifierProvider.notifier)
           .markAsPaid(sub.id);
       if (context.mounted) {
+        final activeMonthId = ref.read(activeMonthProvider).valueOrNull?.id;
+        final paidMonthText = result.monthName;
+        final isDifferentMonth =
+            activeMonthId != null && activeMonthId != result.monthId;
+        final feedback = buildSubscriptionPaymentFeedback(
+          subscriptionName: sub.name,
+          paidMonthName: paidMonthText,
+          isDifferentMonth: isDifferentMonth,
+          duplicatePrevented: result.duplicatePrevented,
+        );
+
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${sub.name} marked as paid')),
+          SnackBar(
+            content: Text(feedback.message),
+            action: feedback.showViewMonthAction
+                ? SnackBarAction(
+                    label: 'View month',
+                    onPressed: () {
+                      ref
+                          .read(monthNotifierProvider.notifier)
+                          .setActiveMonth(result.monthId);
+                      context.go('/transactions');
+                    },
+                  )
+                : null,
+          ),
         );
       }
     } catch (e) {
       if (context.mounted) {
+        final message = e.toString();
+        final inFlightDuplicate =
+            message.toLowerCase().contains('already being processed');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: AppColors.error,
+            content: Text(
+              inFlightDuplicate
+                  ? 'Payment already in progress'
+                  : 'Error: ${e.toString()}',
+            ),
+            backgroundColor: inFlightDuplicate ? null : AppColors.error,
           ),
         );
       }
@@ -666,17 +695,14 @@ class SubscriptionsScreen extends ConsumerWidget {
   Future<void> _toggleActive(
       BuildContext context, WidgetRef ref, Subscription sub) async {
     try {
-      await ref
-          .read(subscriptionNotifierProvider.notifier)
-          .updateSubscription(
+      await ref.read(subscriptionNotifierProvider.notifier).updateSubscription(
             subscriptionId: sub.id,
             isActive: !sub.isActive,
           );
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                '${sub.name} ${sub.isActive ? 'paused' : 'resumed'}'),
+            content: Text('${sub.name} ${sub.isActive ? 'paused' : 'resumed'}'),
           ),
         );
       }
@@ -708,8 +734,7 @@ class SubscriptionsScreen extends ConsumerWidget {
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                style:
-                    TextButton.styleFrom(foregroundColor: AppColors.error),
+                style: TextButton.styleFrom(foregroundColor: AppColors.error),
                 child: const Text('Delete'),
               ),
             ],
