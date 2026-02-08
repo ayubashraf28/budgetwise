@@ -211,121 +211,164 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final monthName =
         summary?.monthName ?? DateFormat('MMMM').format(DateTime.now());
     final monthYear = _formatBalancePeriodLabel(monthName);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 150;
+        final cardPadding = isNarrow
+            ? const EdgeInsets.fromLTRB(12, 12, 12, 10)
+            : const EdgeInsets.fromLTRB(14, 14, 14, 12);
+        final headerIconSize = isNarrow ? 24.0 : 26.0;
+        final headerIconGlyphSize = isNarrow ? 12.0 : 13.0;
+        final eyeButtonSize = isNarrow ? 28.0 : 30.0;
+        final titleFontSize = isNarrow ? 15.0 : 17.0;
+        final monthFontSize = isNarrow ? 14.0 : 16.0;
+        final plusButtonSize = isNarrow ? 38.0 : 42.0;
+        final plusGlyphSize = isNarrow ? 18.0 : 20.0;
+        final amountHeight = isNarrow ? 66.0 : 72.0;
 
-    return _buildGlassCard(
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-      borderColor: AppColors.savings.withValues(alpha: 0.35),
-      gradientColors: const [
-        Color(0xFF0F4D63),
-        Color(0xFF0A3C4F),
-      ],
-      borderRadius: BorderRadius.circular(30),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        return _buildGlassCard(
+          padding: cardPadding,
+          borderColor: AppColors.savings.withValues(alpha: 0.35),
+          gradientColors: const [
+            Color(0xFF0F4D63),
+            Color(0xFF0A3C4F),
+          ],
+          borderRadius: BorderRadius.circular(30),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 26,
-                height: 26,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-                ),
-                child: Icon(
-                  LucideIcons.wallet,
-                  size: 13,
-                  color: Colors.white.withValues(alpha: 0.98),
-                ),
+              Row(
+                children: [
+                  Container(
+                    width: headerIconSize,
+                    height: headerIconSize,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.16),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                    ),
+                    child: Icon(
+                      LucideIcons.wallet,
+                      size: headerIconGlyphSize,
+                      color: Colors.white.withValues(alpha: 0.98),
+                    ),
+                  ),
+                  SizedBox(width: isNarrow ? 6 : 8),
+                  Expanded(
+                    child: SizedBox(
+                      height: 22,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Total Balance',
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.92),
+                              fontWeight: FontWeight.w500,
+                              fontSize: titleFontSize,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: isNarrow ? 4 : 6),
+                  InkWell(
+                    onTap: () =>
+                        setState(() => _isAmountsVisible = !_isAmountsVisible),
+                    borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+                    child: Container(
+                      width: eyeButtonSize,
+                      height: eyeButtonSize,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.16),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _isAmountsVisible
+                            ? LucideIcons.eye
+                            : LucideIcons.eyeOff,
+                        size: isNarrow ? 14 : 15,
+                        color: Colors.white.withValues(alpha: 0.94),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Text(
-                'Total Balance',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.92),
-                  fontWeight: FontWeight.w500,
-                  fontSize: 17,
+              const Spacer(),
+              SizedBox(
+                height: amountHeight,
+                child: FittedBox(
+                  alignment: Alignment.centerLeft,
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    _isAmountsVisible
+                        ? '$currencySymbol${_formatAmount(actualBalance)}'
+                        : '\u2022\u2022\u2022\u2022',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 66,
+                      fontWeight: FontWeight.w500,
+                      height: 1,
+                    ),
+                  ),
                 ),
               ),
               const Spacer(),
-              InkWell(
-                onTap: () =>
-                    setState(() => _isAmountsVisible = !_isAmountsVisible),
-                borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.16),
-                    shape: BoxShape.circle,
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 22,
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            monthYear,
+                            maxLines: 1,
+                            softWrap: false,
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.78),
+                              fontSize: monthFontSize,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                  child: Icon(
-                    _isAmountsVisible ? LucideIcons.eye : LucideIcons.eyeOff,
-                    size: 15,
-                    color: Colors.white.withValues(alpha: 0.94),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const Spacer(),
-          SizedBox(
-            height: 72,
-            child: FittedBox(
-              alignment: Alignment.centerLeft,
-              fit: BoxFit.scaleDown,
-              child: Text(
-                _isAmountsVisible
-                    ? '$currencySymbol${_formatAmount(actualBalance)}'
-                    : '\u2022\u2022\u2022\u2022',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 66,
-                  fontWeight: FontWeight.w500,
-                  height: 1,
-                ),
-              ),
-            ),
-          ),
-          const Spacer(),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  monthYear,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.78),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              InkWell(
-                onTap: () => _showAddTransaction(context),
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
+                  SizedBox(width: isNarrow ? 6 : 8),
+                  InkWell(
+                    onTap: () => _showAddTransaction(context),
                     borderRadius: BorderRadius.circular(8),
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: 0.28)),
+                    child: Container(
+                      width: plusButtonSize,
+                      height: plusButtonSize,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.28),
+                        ),
+                      ),
+                      child: Icon(
+                        LucideIcons.plus,
+                        size: plusGlyphSize,
+                        color: Colors.white.withValues(alpha: 0.95),
+                      ),
+                    ),
                   ),
-                  child: Icon(
-                    LucideIcons.plus,
-                    size: 20,
-                    color: Colors.white.withValues(alpha: 0.95),
-                  ),
-                ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -382,15 +425,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: Icon(icon, size: 13, color: accentColor),
                   ),
                   const SizedBox(width: 5),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      color: accentColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                      style: TextStyle(
+                        color: accentColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 6,
@@ -432,15 +480,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               Row(
                 children: [
-                  Text(
-                    isIncome ? 'Money received' : 'Money spent',
-                    style: AppTypography.bodySmall.copyWith(
-                      fontSize: 10,
-                      height: 1.1,
-                      color: accentColor.withValues(alpha: 0.85),
+                  Expanded(
+                    child: Text(
+                      isIncome ? 'Money received' : 'Money spent',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
+                      style: AppTypography.bodySmall.copyWith(
+                        fontSize: 10,
+                        height: 1.1,
+                        color: accentColor.withValues(alpha: 0.85),
+                      ),
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 4),
                   Icon(
                     isIncome
                         ? LucideIcons.arrowUpRight
