@@ -5,6 +5,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 
 import '../../config/theme.dart';
+import '../../models/account.dart';
 import '../../models/subscription.dart';
 import '../../providers/providers.dart';
 import '../../utils/subscription_payment_feedback.dart';
@@ -16,6 +17,7 @@ class SubscriptionsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final subscriptionsAsync = ref.watch(subscriptionsProvider);
+    final accounts = ref.watch(accountsProvider).value ?? <Account>[];
     final totalCost = ref.watch(totalSubscriptionCostProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
 
@@ -130,7 +132,12 @@ class SubscriptionsScreen extends ConsumerWidget {
                               padding:
                                   const EdgeInsets.only(bottom: AppSpacing.sm),
                               child: _buildSubscriptionCard(
-                                  context, ref, sub, currencySymbol),
+                                context,
+                                ref,
+                                sub,
+                                currencySymbol,
+                                accounts,
+                              ),
                             );
                           },
                           childCount: active.length,
@@ -172,7 +179,12 @@ class SubscriptionsScreen extends ConsumerWidget {
                               padding:
                                   const EdgeInsets.only(bottom: AppSpacing.sm),
                               child: _buildSubscriptionCard(
-                                  context, ref, sub, currencySymbol),
+                                context,
+                                ref,
+                                sub,
+                                currencySymbol,
+                                accounts,
+                              ),
                             );
                           },
                           childCount: paused.length,
@@ -274,8 +286,11 @@ class SubscriptionsScreen extends ConsumerWidget {
     WidgetRef ref,
     Subscription sub,
     String currencySymbol,
+    List<Account> accounts,
   ) {
     final color = sub.colorValue;
+    final defaultAccount =
+        accounts.where((a) => a.id == sub.defaultAccountId).firstOrNull;
 
     return Dismissible(
       key: Key(sub.id),
@@ -346,6 +361,15 @@ class SubscriptionsScreen extends ConsumerWidget {
                   const SizedBox(height: 4),
                   // Due date chip
                   _buildDueDateChip(sub),
+                  if (defaultAccount != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'Pays from ${defaultAccount.name}',
+                      style: AppTypography.bodySmall,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -363,7 +387,7 @@ class SubscriptionsScreen extends ConsumerWidget {
                     _showEditSheet(context, ref, sub);
                     break;
                   case 'mark_paid':
-                    _markAsPaid(context, ref, sub);
+                    _markAsPaid(context, ref, sub, accounts);
                     break;
                   case 'toggle':
                     _toggleActive(context, ref, sub);
@@ -639,11 +663,18 @@ class SubscriptionsScreen extends ConsumerWidget {
   }
 
   Future<void> _markAsPaid(
-      BuildContext context, WidgetRef ref, Subscription sub) async {
+    BuildContext context,
+    WidgetRef ref,
+    Subscription sub,
+    List<Account> accounts,
+  ) async {
     try {
+      final accountId = await _resolveAccountForPayment(context, sub, accounts);
+      if (accountId == null) return;
+
       final result = await ref
           .read(subscriptionNotifierProvider.notifier)
-          .markAsPaid(sub.id);
+          .markAsPaid(sub.id, accountId: accountId);
       if (context.mounted) {
         final activeMonthId = ref.read(activeMonthProvider).valueOrNull?.id;
         final paidMonthText = result.monthName;
@@ -689,6 +720,129 @@ class SubscriptionsScreen extends ConsumerWidget {
           ),
         );
       }
+    }
+  }
+
+  Future<String?> _resolveAccountForPayment(
+    BuildContext context,
+    Subscription sub,
+    List<Account> activeAccounts,
+  ) async {
+    if (activeAccounts.isEmpty) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content:
+                Text('Create an account before marking a subscription paid'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return null;
+    }
+
+    if (sub.defaultAccountId != null) {
+      final matched =
+          activeAccounts.where((a) => a.id == sub.defaultAccountId).firstOrNull;
+      if (matched != null) return matched.id;
+    }
+
+    return _showAccountPickerSheet(context, activeAccounts);
+  }
+
+  Future<String?> _showAccountPickerSheet(
+    BuildContext context,
+    List<Account> accounts,
+  ) async {
+    String selectedId = accounts.first.id;
+
+    return showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(AppSizing.radiusXl),
+        ),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.border,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                    const Text('Choose Payment Account',
+                        style: AppTypography.h3),
+                    const SizedBox(height: AppSpacing.sm),
+                    const Text(
+                      'This subscription has no default account. Select one for this payment.',
+                      style: AppTypography.bodySmall,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    ...accounts.map(
+                      (account) => RadioListTile<String>(
+                        value: account.id,
+                        groupValue: selectedId,
+                        onChanged: (value) {
+                          if (value == null) return;
+                          setModalState(() => selectedId = value);
+                        },
+                        activeColor: AppColors.savings,
+                        title: Text(
+                          account.name,
+                          style: AppTypography.bodyLarge,
+                        ),
+                        subtitle: Text(
+                          _accountTypeLabel(account.type),
+                          style: AppTypography.bodySmall,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    SizedBox(
+                      width: double.infinity,
+                      height: AppSizing.buttonHeightCompact,
+                      child: ElevatedButton(
+                        onPressed: () => Navigator.of(context).pop(selectedId),
+                        child: const Text('Use Account'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  String _accountTypeLabel(AccountType type) {
+    switch (type) {
+      case AccountType.cash:
+        return 'Cash';
+      case AccountType.debit:
+        return 'Debit';
+      case AccountType.credit:
+        return 'Credit';
+      case AccountType.savings:
+        return 'Savings';
+      case AccountType.other:
+        return 'Other';
     }
   }
 

@@ -5,6 +5,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 
 import '../../config/theme.dart';
+import '../../models/account.dart';
 import '../../models/monthly_summary.dart';
 import '../../models/transaction.dart';
 import '../../providers/providers.dart';
@@ -12,7 +13,12 @@ import '../../widgets/budget/budget_widgets.dart';
 import 'transaction_form_sheet.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
-  const TransactionsScreen({super.key});
+  final bool openComposerOnLoad;
+
+  const TransactionsScreen({
+    super.key,
+    this.openComposerOnLoad = false,
+  });
 
   @override
   ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
@@ -22,6 +28,24 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   final _searchController = TextEditingController();
   String _searchQuery = '';
   TransactionType? _filterType; // null = all
+  String? _filterAccountId; // null = all accounts
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.openComposerOnLoad) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!mounted) return;
+        await _showAddSheet();
+        if (!mounted) return;
+
+        final location = GoRouterState.of(context).matchedLocation;
+        if (location == '/transactions/new') {
+          context.go('/transactions');
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -38,14 +62,24 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       filtered = filtered.where((t) => t.type == _filterType).toList();
     }
 
+    // Apply account filter
+    if (_filterAccountId != null) {
+      filtered =
+          filtered.where((t) => t.accountId == _filterAccountId).toList();
+    }
+
     // Apply search query
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
       filtered = filtered.where((t) {
         final name = t.displayName.toLowerCase();
         final category = (t.categoryName ?? '').toLowerCase();
+        final account = (t.accountName ?? '').toLowerCase();
         final note = (t.note ?? '').toLowerCase();
-        return name.contains(query) || category.contains(query) || note.contains(query);
+        return name.contains(query) ||
+            category.contains(query) ||
+            account.contains(query) ||
+            note.contains(query);
       }).toList();
     }
 
@@ -53,7 +87,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 
   /// Group filtered transactions by date (descending)
-  Map<DateTime, List<Transaction>> _groupByDate(List<Transaction> transactions) {
+  Map<DateTime, List<Transaction>> _groupByDate(
+      List<Transaction> transactions) {
     final grouped = <DateTime, List<Transaction>>{};
     for (final tx in transactions) {
       final key = DateTime(tx.date.year, tx.date.month, tx.date.day);
@@ -68,6 +103,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final transactionsAsync = ref.watch(transactionsProvider);
     final summary = ref.watch(monthlySummaryProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
+    final accounts = ref.watch(accountsProvider).value ?? <Account>[];
 
     return Scaffold(
       body: RefreshIndicator(
@@ -75,6 +111,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           ref.invalidate(transactionsProvider);
           ref.invalidate(incomeSourcesProvider);
           ref.invalidate(categoriesProvider);
+          ref.invalidate(accountsProvider);
         },
         child: transactionsAsync.when(
           data: (transactions) {
@@ -87,7 +124,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 SliverToBoxAdapter(child: _buildHeader()),
 
                 // Search bar
-                SliverToBoxAdapter(child: _buildSearchBar()),
+                SliverToBoxAdapter(child: _buildSearchBar(accounts)),
 
                 // Summary cards
                 SliverToBoxAdapter(
@@ -133,7 +170,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       bottom: false,
       child: Padding(
         padding: EdgeInsets.fromLTRB(
-          AppSpacing.md, AppSpacing.lg, AppSpacing.md, AppSpacing.sm,
+          AppSpacing.md,
+          AppSpacing.lg,
+          AppSpacing.md,
+          AppSpacing.sm,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -154,7 +194,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   // SEARCH BAR
   // ──────────────────────────────────────────────
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(List<Account> accounts) {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -205,21 +245,25 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           const SizedBox(width: AppSpacing.sm),
           // Filter button
           GestureDetector(
-            onTap: _showFilterOptions,
+            onTap: () => _showFilterOptions(accounts),
             child: Container(
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: _filterType != null ? AppColors.savings : AppColors.surface,
+                color: (_filterType != null || _filterAccountId != null)
+                    ? AppColors.savings
+                    : AppColors.surface,
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                border: _filterType == null
+                border: (_filterType == null && _filterAccountId == null)
                     ? Border.all(color: AppColors.border)
                     : null,
               ),
               child: Icon(
                 LucideIcons.slidersHorizontal,
                 size: 20,
-                color: _filterType != null ? Colors.white : AppColors.textMuted,
+                color: (_filterType != null || _filterAccountId != null)
+                    ? Colors.white
+                    : AppColors.textMuted,
               ),
             ),
           ),
@@ -228,7 +272,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 
-  void _showFilterOptions() {
+  void _showFilterOptions(List<Account> accounts) {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
@@ -259,9 +303,24 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 const SizedBox(height: AppSpacing.lg),
                 const Text('Filter Transactions', style: AppTypography.h3),
                 const SizedBox(height: AppSpacing.md),
+                const Text('By Type', style: AppTypography.labelLarge),
+                const SizedBox(height: AppSpacing.xs),
                 _buildFilterOption('All Transactions', null),
                 _buildFilterOption('Income Only', TransactionType.income),
                 _buildFilterOption('Expenses Only', TransactionType.expense),
+                const SizedBox(height: AppSpacing.md),
+                const Divider(color: AppColors.border),
+                const SizedBox(height: AppSpacing.md),
+                const Text('By Account', style: AppTypography.labelLarge),
+                const SizedBox(height: AppSpacing.xs),
+                _buildAccountFilterOption(
+                    label: 'All Accounts', accountId: null),
+                ...accounts.map(
+                  (account) => _buildAccountFilterOption(
+                    label: account.name,
+                    accountId: account.id,
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.sm),
               ],
             ),
@@ -276,6 +335,34 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     return ListTile(
       onTap: () {
         setState(() => _filterType = type);
+        Navigator.pop(context);
+      },
+      leading: Icon(
+        isSelected ? LucideIcons.checkCircle2 : LucideIcons.circle,
+        color: isSelected ? AppColors.savings : AppColors.textMuted,
+        size: 20,
+      ),
+      title: Text(
+        label,
+        style: AppTypography.bodyLarge.copyWith(
+          color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+        ),
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+      ),
+    );
+  }
+
+  Widget _buildAccountFilterOption({
+    required String label,
+    required String? accountId,
+  }) {
+    final isSelected = _filterAccountId == accountId;
+    return ListTile(
+      onTap: () {
+        setState(() => _filterAccountId = accountId);
         Navigator.pop(context);
       },
       leading: Icon(
@@ -479,7 +566,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   Widget _buildTransactionsHeader(int count) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.sm,
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.sm,
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -542,7 +632,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(
-              AppSpacing.md, AppSpacing.md, AppSpacing.md, AppSpacing.sm,
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.sm,
             ),
             child: Text(
               _formatDateHeader(date),
@@ -579,9 +672,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         padding: const EdgeInsets.only(right: AppSpacing.md),
                         decoration: BoxDecoration(
                           color: AppColors.error,
-                          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+                          borderRadius:
+                              BorderRadius.circular(AppSizing.radiusLg),
                         ),
-                        child: const Icon(LucideIcons.trash2, color: Colors.white),
+                        child:
+                            const Icon(LucideIcons.trash2, color: Colors.white),
                       ),
                       confirmDismiss: (direction) async {
                         return await _showDeleteConfirmation();
@@ -622,7 +717,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   // ──────────────────────────────────────────────
 
   Widget _buildEmptyState() {
-    final hasFilters = _searchQuery.isNotEmpty || _filterType != null;
+    final hasFilters = _searchQuery.isNotEmpty ||
+        _filterType != null ||
+        _filterAccountId != null;
     return Container(
       margin: const EdgeInsets.all(AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -679,7 +776,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(LucideIcons.alertCircle, size: 48, color: AppColors.error),
+            const Icon(LucideIcons.alertCircle,
+                size: 48, color: AppColors.error),
             const SizedBox(height: AppSpacing.md),
             const Text('Something went wrong', style: AppTypography.h3),
             const SizedBox(height: AppSpacing.sm),
@@ -717,8 +815,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     return amount.toStringAsFixed(0);
   }
 
-  void _showAddSheet() {
-    showModalBottomSheet(
+  Future<void> _showAddSheet() async {
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,

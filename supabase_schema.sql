@@ -236,7 +236,57 @@ CREATE POLICY "Users can delete own subscriptions"
 
 
 -- -----------------------------------------------------
--- 6. ITEMS TABLE
+-- 6. ACCOUNTS TABLE
+-- User cash/debit/credit/savings accounts
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.accounts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'cash'
+        CHECK (type IN ('cash', 'debit', 'credit', 'savings', 'other')),
+    currency TEXT NOT NULL DEFAULT 'GBP',
+    opening_balance NUMERIC(12,2) NOT NULL DEFAULT 0,
+    credit_limit NUMERIC(12,2),
+    include_in_net_worth BOOLEAN NOT NULL DEFAULT TRUE,
+    is_archived BOOLEAN NOT NULL DEFAULT FALSE,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT accounts_name_not_blank CHECK (BTRIM(name) <> ''),
+    CONSTRAINT accounts_credit_limit_non_negative
+        CHECK (credit_limit IS NULL OR credit_limit >= 0)
+);
+
+ALTER TABLE public.accounts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own accounts" ON public.accounts;
+CREATE POLICY "Users can view own accounts"
+    ON public.accounts FOR SELECT
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own accounts" ON public.accounts;
+CREATE POLICY "Users can insert own accounts"
+    ON public.accounts FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own accounts" ON public.accounts;
+CREATE POLICY "Users can update own accounts"
+    ON public.accounts FOR UPDATE
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own accounts" ON public.accounts;
+CREATE POLICY "Users can delete own accounts"
+    ON public.accounts FOR DELETE
+    USING (auth.uid() = user_id);
+
+-- Backward-compat: subscriptions can set an optional default funding account.
+ALTER TABLE public.subscriptions
+ADD COLUMN IF NOT EXISTS default_account_id UUID REFERENCES public.accounts(id) ON DELETE SET NULL;
+
+
+-- -----------------------------------------------------
+-- 7. ITEMS TABLE
 -- Budget line items within categories
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.items (
@@ -288,7 +338,7 @@ CREATE POLICY "Users can delete own items"
 
 
 -- -----------------------------------------------------
--- 7. TRANSACTIONS TABLE
+-- 8. TRANSACTIONS TABLE
 -- Actual income and expense records
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.transactions (
@@ -299,6 +349,7 @@ CREATE TABLE IF NOT EXISTS public.transactions (
     item_id UUID REFERENCES public.items(id) ON DELETE SET NULL,
     subscription_id UUID REFERENCES public.subscriptions(id) ON DELETE SET NULL,
     income_source_id UUID REFERENCES public.income_sources(id) ON DELETE SET NULL,
+    account_id UUID REFERENCES public.accounts(id) ON DELETE RESTRICT,
     type TEXT NOT NULL CHECK (type IN ('expense', 'income')),
     amount DECIMAL(12,2) NOT NULL,
     date DATE NOT NULL,
@@ -311,6 +362,21 @@ CREATE TABLE IF NOT EXISTS public.transactions (
 -- need this column added explicitly.
 ALTER TABLE public.transactions
 ADD COLUMN IF NOT EXISTS subscription_id UUID REFERENCES public.subscriptions(id) ON DELETE SET NULL;
+ALTER TABLE public.transactions
+ADD COLUMN IF NOT EXISTS account_id UUID REFERENCES public.accounts(id) ON DELETE RESTRICT;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM public.transactions t
+        WHERE t.type IN ('income', 'expense')
+          AND t.account_id IS NULL
+    ) THEN
+        ALTER TABLE public.transactions
+        ALTER COLUMN account_id SET NOT NULL;
+    END IF;
+END $$;
 
 -- Enable RLS
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
@@ -337,7 +403,47 @@ CREATE POLICY "Users can delete own transactions"
     USING (auth.uid() = user_id);
 
 -- -----------------------------------------------------
--- 8. SUBSCRIPTION PAYMENT EVENTS TABLE
+-- 9. ACCOUNT TRANSFERS TABLE
+-- Transfer events between accounts (non-budget flows)
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.account_transfers (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    from_account_id UUID NOT NULL REFERENCES public.accounts(id) ON DELETE RESTRICT,
+    to_account_id UUID NOT NULL REFERENCES public.accounts(id) ON DELETE RESTRICT,
+    amount NUMERIC(12,2) NOT NULL CHECK (amount > 0),
+    date DATE NOT NULL,
+    note TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT account_transfers_distinct_accounts CHECK (from_account_id <> to_account_id)
+);
+
+ALTER TABLE public.account_transfers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own account transfers" ON public.account_transfers;
+CREATE POLICY "Users can view own account transfers"
+    ON public.account_transfers FOR SELECT
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own account transfers" ON public.account_transfers;
+CREATE POLICY "Users can insert own account transfers"
+    ON public.account_transfers FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own account transfers" ON public.account_transfers;
+CREATE POLICY "Users can update own account transfers"
+    ON public.account_transfers FOR UPDATE
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own account transfers" ON public.account_transfers;
+CREATE POLICY "Users can delete own account transfers"
+    ON public.account_transfers FOR DELETE
+    USING (auth.uid() = user_id);
+
+
+-- -----------------------------------------------------
+-- 10. SUBSCRIPTION PAYMENT EVENTS TABLE
 -- Structured payment logs for observability and idempotency
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.subscription_payment_events (
@@ -374,9 +480,39 @@ CREATE POLICY "Users can insert own subscription payment events"
     ON public.subscription_payment_events FOR INSERT
     WITH CHECK (auth.uid() = user_id);
 
+-- -----------------------------------------------------
+-- 11. TRANSACTION ACCOUNT BACKFILL AUDIT TABLE
+-- Logs Phase 6 account_id backfills for observability
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.transaction_account_backfill_audit (
+    id BIGSERIAL PRIMARY KEY,
+    user_id UUID NOT NULL,
+    transaction_id UUID NOT NULL,
+    assigned_account_id UUID,
+    strategy TEXT NOT NULL,
+    details JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.transaction_account_backfill_audit ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE schemaname = 'public'
+          AND tablename = 'transaction_account_backfill_audit'
+          AND policyname = 'Users can view own transaction account backfill audit'
+    ) THEN
+        CREATE POLICY "Users can view own transaction account backfill audit"
+            ON public.transaction_account_backfill_audit FOR SELECT
+            USING (auth.uid() = user_id);
+    END IF;
+END $$;
+
 
 -- -----------------------------------------------------
--- 9. INDEXES FOR PERFORMANCE
+-- 12. INDEXES FOR PERFORMANCE
 -- -----------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_months_user_id ON public.months(user_id);
 CREATE INDEX IF NOT EXISTS idx_months_active ON public.months(user_id, is_active);
@@ -392,6 +528,15 @@ CREATE INDEX IF NOT EXISTS idx_categories_sort ON public.categories(month_id, so
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_id ON public.subscriptions(user_id);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_due_date ON public.subscriptions(user_id, next_due_date);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_user_active ON public.subscriptions(user_id, is_active);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_default_account_id ON public.subscriptions(default_account_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_user_name_active_unique
+    ON public.accounts (user_id, LOWER(BTRIM(name)))
+    WHERE is_archived = FALSE;
+CREATE INDEX IF NOT EXISTS idx_accounts_user_archived
+    ON public.accounts(user_id, is_archived);
+CREATE INDEX IF NOT EXISTS idx_accounts_user_sort
+    ON public.accounts(user_id, sort_order);
 
 CREATE INDEX IF NOT EXISTS idx_items_category ON public.items(category_id);
 CREATE INDEX IF NOT EXISTS idx_items_user ON public.items(user_id);
@@ -409,6 +554,18 @@ CREATE INDEX IF NOT EXISTS idx_transactions_subscription_id ON public.transactio
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON public.transactions(date);
 CREATE INDEX IF NOT EXISTS idx_transactions_type ON public.transactions(type);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON public.transactions(user_id, date);
+CREATE INDEX IF NOT EXISTS idx_transactions_account_id ON public.transactions(account_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_account_date
+    ON public.transactions(user_id, account_id, date);
+CREATE INDEX IF NOT EXISTS idx_transactions_month_account
+    ON public.transactions(month_id, account_id);
+
+CREATE INDEX IF NOT EXISTS idx_account_transfers_user_date
+    ON public.account_transfers(user_id, date);
+CREATE INDEX IF NOT EXISTS idx_account_transfers_from_account
+    ON public.account_transfers(from_account_id, date);
+CREATE INDEX IF NOT EXISTS idx_account_transfers_to_account
+    ON public.account_transfers(to_account_id, date);
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_subscription_payment_events_user_request_unique
     ON public.subscription_payment_events(user_id, request_id)
@@ -417,10 +574,12 @@ CREATE INDEX IF NOT EXISTS idx_subscription_payment_events_user_created
     ON public.subscription_payment_events(user_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_subscription_payment_events_subscription_created
     ON public.subscription_payment_events(subscription_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_transaction_account_backfill_audit_user_id
+    ON public.transaction_account_backfill_audit(user_id);
 
 
 -- -----------------------------------------------------
--- 10. HELPER FUNCTIONS
+-- 13. HELPER FUNCTIONS
 -- -----------------------------------------------------
 
 -- Function: Get item actual total from transactions
@@ -473,13 +632,69 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+CREATE OR REPLACE FUNCTION public.enforce_subscription_default_account_ownership()
+RETURNS TRIGGER AS $$
+DECLARE
+    account_ok BOOLEAN;
+BEGIN
+    IF NEW.default_account_id IS NULL THEN
+        RETURN NEW;
+    END IF;
+
+    SELECT EXISTS (
+        SELECT 1
+        FROM public.accounts a
+        WHERE a.id = NEW.default_account_id
+          AND a.user_id = NEW.user_id
+          AND a.is_archived = FALSE
+    ) INTO account_ok;
+
+    IF NOT account_ok THEN
+        RAISE EXCEPTION 'default_account_id is invalid, archived, or not owned by user';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION public.enforce_transaction_account_ownership()
+RETURNS TRIGGER AS $$
+DECLARE
+    account_user_id UUID;
+    account_archived BOOLEAN;
+BEGIN
+    IF NEW.account_id IS NULL THEN
+        RAISE EXCEPTION 'account_id is required';
+    END IF;
+
+    SELECT a.user_id, a.is_archived
+    INTO account_user_id, account_archived
+    FROM public.accounts a
+    WHERE a.id = NEW.account_id;
+
+    IF account_user_id IS NULL OR account_user_id <> NEW.user_id THEN
+        RAISE EXCEPTION 'account_id is invalid or not owned by user';
+    END IF;
+
+    IF account_archived
+       AND (TG_OP = 'INSERT' OR NEW.account_id IS DISTINCT FROM OLD.account_id) THEN
+        RAISE EXCEPTION 'Archived accounts cannot be used for new transactions';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 DROP FUNCTION IF EXISTS public.mark_subscription_paid(UUID, DATE, NUMERIC);
+DROP FUNCTION IF EXISTS public.mark_subscription_paid(UUID, DATE, NUMERIC, UUID);
+DROP FUNCTION IF EXISTS public.mark_subscription_paid(UUID, DATE, NUMERIC, UUID, UUID);
 
 CREATE OR REPLACE FUNCTION public.mark_subscription_paid(
     p_subscription_id UUID,
     p_paid_at DATE DEFAULT CURRENT_DATE,
     p_amount_override NUMERIC DEFAULT NULL,
-    p_request_id UUID DEFAULT NULL
+    p_request_id UUID DEFAULT NULL,
+    p_account_id UUID DEFAULT NULL
 )
 RETURNS TABLE (
     transaction_id UUID,
@@ -508,6 +723,8 @@ DECLARE
     v_transaction_id UUID;
     v_existing_event public.subscription_payment_events%ROWTYPE;
     v_existing_tx public.transactions%ROWTYPE;
+    v_effective_account_id UUID;
+    v_account_is_valid BOOLEAN;
 BEGIN
     IF v_user_id IS NULL THEN
         RAISE EXCEPTION 'Not authenticated';
@@ -522,6 +739,24 @@ BEGIN
 
     IF NOT FOUND THEN
         RAISE EXCEPTION 'Subscription not found';
+    END IF;
+
+    v_effective_account_id := COALESCE(p_account_id, v_sub.default_account_id);
+
+    IF v_effective_account_id IS NULL THEN
+        RAISE EXCEPTION 'No funding account selected for subscription payment';
+    END IF;
+
+    SELECT EXISTS (
+        SELECT 1
+        FROM public.accounts a
+        WHERE a.id = v_effective_account_id
+          AND a.user_id = v_user_id
+          AND a.is_archived = FALSE
+    ) INTO v_account_is_valid;
+
+    IF NOT v_account_is_valid THEN
+        RAISE EXCEPTION 'Funding account is invalid, archived, or not owned by user';
     END IF;
 
     IF p_request_id IS NOT NULL THEN
@@ -589,7 +824,10 @@ BEGIN
             v_sub.id,
             'started',
             p_paid_at,
-            jsonb_build_object('source', 'mark_subscription_paid')
+            jsonb_build_object(
+                'source', 'mark_subscription_paid',
+                'account_id', v_effective_account_id
+            )
         );
     END IF;
 
@@ -703,6 +941,7 @@ BEGIN
         category_id,
         item_id,
         subscription_id,
+        account_id,
         type,
         amount,
         date,
@@ -714,6 +953,7 @@ BEGIN
         v_category_id,
         v_item_id,
         v_sub.id,
+        v_effective_account_id,
         'expense',
         v_amount,
         p_paid_at,
@@ -761,7 +1001,8 @@ BEGIN
                 'category_id', category_id,
                 'item_id', item_id,
                 'amount', amount,
-                'next_due_date', next_due_date
+                'next_due_date', next_due_date,
+                'account_id', v_effective_account_id
             )
         WHERE user_id = v_user_id
           AND request_id = p_request_id;
@@ -770,6 +1011,41 @@ BEGIN
     RETURN NEXT;
 END;
 $$;
+
+-- Function: Validate transfer account ownership and active status
+CREATE OR REPLACE FUNCTION public.enforce_account_transfer_ownership()
+RETURNS TRIGGER AS $$
+DECLARE
+    from_ok BOOLEAN;
+    to_ok BOOLEAN;
+BEGIN
+    SELECT EXISTS (
+        SELECT 1
+        FROM public.accounts a
+        WHERE a.id = NEW.from_account_id
+          AND a.user_id = NEW.user_id
+          AND a.is_archived = FALSE
+    ) INTO from_ok;
+
+    IF NOT from_ok THEN
+        RAISE EXCEPTION 'from_account_id is invalid, archived, or not owned by user';
+    END IF;
+
+    SELECT EXISTS (
+        SELECT 1
+        FROM public.accounts a
+        WHERE a.id = NEW.to_account_id
+          AND a.user_id = NEW.user_id
+          AND a.is_archived = FALSE
+    ) INTO to_ok;
+
+    IF NOT to_ok THEN
+        RAISE EXCEPTION 'to_account_id is invalid, archived, or not owned by user';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
 -- Function: Update updated_at timestamp
 CREATE OR REPLACE FUNCTION public.update_updated_at()
@@ -814,9 +1090,19 @@ SET
     is_budgeted = TRUE
 WHERE LOWER(BTRIM(name)) IN ('subscription', 'subscriptions');
 
+DROP TRIGGER IF EXISTS enforce_subscription_default_account_ownership_trg ON public.subscriptions;
+CREATE TRIGGER enforce_subscription_default_account_ownership_trg
+    BEFORE INSERT OR UPDATE ON public.subscriptions
+    FOR EACH ROW EXECUTE FUNCTION public.enforce_subscription_default_account_ownership();
+
 DROP TRIGGER IF EXISTS update_subscriptions_updated_at ON public.subscriptions;
 CREATE TRIGGER update_subscriptions_updated_at
     BEFORE UPDATE ON public.subscriptions
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+DROP TRIGGER IF EXISTS update_accounts_updated_at ON public.accounts;
+CREATE TRIGGER update_accounts_updated_at
+    BEFORE UPDATE ON public.accounts
     FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 DROP TRIGGER IF EXISTS update_items_updated_at ON public.items;
@@ -827,4 +1113,19 @@ CREATE TRIGGER update_items_updated_at
 DROP TRIGGER IF EXISTS update_transactions_updated_at ON public.transactions;
 CREATE TRIGGER update_transactions_updated_at
     BEFORE UPDATE ON public.transactions
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+DROP TRIGGER IF EXISTS enforce_transaction_account_ownership_trg ON public.transactions;
+CREATE TRIGGER enforce_transaction_account_ownership_trg
+    BEFORE INSERT OR UPDATE ON public.transactions
+    FOR EACH ROW EXECUTE FUNCTION public.enforce_transaction_account_ownership();
+
+DROP TRIGGER IF EXISTS enforce_account_transfer_ownership_trg ON public.account_transfers;
+CREATE TRIGGER enforce_account_transfer_ownership_trg
+    BEFORE INSERT OR UPDATE ON public.account_transfers
+    FOR EACH ROW EXECUTE FUNCTION public.enforce_account_transfer_ownership();
+
+DROP TRIGGER IF EXISTS update_account_transfers_updated_at ON public.account_transfers;
+CREATE TRIGGER update_account_transfers_updated_at
+    BEFORE UPDATE ON public.account_transfers
     FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();

@@ -9,6 +9,7 @@ import '../../models/transaction.dart';
 import '../../models/category.dart';
 import '../../models/item.dart';
 import '../../models/income_source.dart';
+import '../../models/account.dart';
 import '../../providers/providers.dart';
 import '../expenses/category_form_sheet.dart';
 import '../expenses/item_form_sheet.dart';
@@ -23,7 +24,8 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<TransactionFormSheet> createState() => _TransactionFormSheetState();
+  ConsumerState<TransactionFormSheet> createState() =>
+      _TransactionFormSheetState();
 }
 
 class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
@@ -35,6 +37,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   String? _selectedCategoryId;
   String? _selectedItemId;
   String? _selectedIncomeSourceId;
+  String? _selectedAccountId;
   late DateTime _selectedDate;
   bool _isLoading = false;
   int _dropdownResetCounter = 0;
@@ -59,6 +62,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     _selectedCategoryId = tx?.categoryId;
     _selectedItemId = tx?.itemId;
     _selectedIncomeSourceId = tx?.incomeSourceId;
+    _selectedAccountId = tx?.accountId;
     _selectedDate = tx?.date ?? DateTime.now();
   }
 
@@ -73,7 +77,21 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   Widget build(BuildContext context) {
     final categories = ref.watch(categoriesProvider).value ?? [];
     final incomeSources = ref.watch(incomeSourcesProvider).value ?? [];
+    final allAccounts = ref.watch(allAccountsProvider).value ?? [];
     final currencySymbol = ref.watch(currencySymbolProvider);
+
+    final activeAccounts = allAccounts.where((a) => !a.isArchived).toList();
+    final formAccounts = <Account>[...activeAccounts];
+
+    // Allow editing a transaction that references an archived account.
+    if (_selectedAccountId != null &&
+        !formAccounts.any((a) => a.id == _selectedAccountId)) {
+      final selectedAccount =
+          allAccounts.where((a) => a.id == _selectedAccountId).firstOrNull;
+      if (selectedAccount != null) {
+        formAccounts.insert(0, selectedAccount);
+      }
+    }
 
     // Defensive: if selected IDs don't exist in the loaded lists (e.g., the
     // transaction references entities from a different month), compute safe
@@ -86,33 +104,49 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
             incomeSources.any((s) => s.id == _selectedIncomeSourceId))
         ? _selectedIncomeSourceId
         : null;
+    final safeAccountId = (_selectedAccountId != null &&
+            formAccounts.any((a) => a.id == _selectedAccountId))
+        ? _selectedAccountId
+        : null;
 
     // Get items for the safe category
     List<Item> items = [];
     if (safeCategoryId != null) {
-      final matchedCategory = categories
-          .where((c) => c.id == safeCategoryId)
-          .firstOrNull;
+      final matchedCategory =
+          categories.where((c) => c.id == safeCategoryId).firstOrNull;
       if (matchedCategory != null) {
         items = matchedCategory.items ?? [];
       }
     }
 
-    final safeItemId = (_selectedItemId != null &&
-            items.any((i) => i.id == _selectedItemId))
-        ? _selectedItemId
-        : null;
+    final safeItemId =
+        (_selectedItemId != null && items.any((i) => i.id == _selectedItemId))
+            ? _selectedItemId
+            : null;
 
     // Schedule state reset so subsequent builds use corrected values
     if (safeCategoryId != _selectedCategoryId ||
         safeItemId != _selectedItemId ||
-        safeIncomeSourceId != _selectedIncomeSourceId) {
+        safeIncomeSourceId != _selectedIncomeSourceId ||
+        safeAccountId != _selectedAccountId) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           setState(() {
             _selectedCategoryId = safeCategoryId;
             _selectedItemId = safeItemId;
             _selectedIncomeSourceId = safeIncomeSourceId;
+            _selectedAccountId = safeAccountId;
+          });
+        }
+      });
+    }
+
+    // For new transactions, preselect first active account for smoother UX.
+    if (!isEditing && _selectedAccountId == null && activeAccounts.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _selectedAccountId == null) {
+          setState(() {
+            _selectedAccountId = activeAccounts.first.id;
           });
         }
       });
@@ -121,7 +155,8 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
       ),
       child: Padding(
         padding: EdgeInsets.only(
@@ -178,9 +213,11 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                       hintText: '0.00',
                       prefixText: '$currencySymbol ',
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,2}')),
                     ],
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -193,6 +230,21 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                       return null;
                     },
                   ),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Account Dropdown
+                  _buildLabel('Account'),
+                  const SizedBox(height: AppSpacing.sm),
+                  _buildAccountDropdown(formAccounts, safeAccountId),
+                  if (activeAccounts.isEmpty) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      'No active accounts found. Add one in Settings > Accounts.',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AppColors.error,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: AppSpacing.lg),
 
                   // Show Category/Item for expenses, Income Source for income
@@ -212,7 +264,8 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     // Income Source Dropdown
                     _buildLabel('Income Source'),
                     const SizedBox(height: AppSpacing.sm),
-                    _buildIncomeSourceDropdown(incomeSources, safeIncomeSourceId),
+                    _buildIncomeSourceDropdown(
+                        incomeSources, safeIncomeSourceId),
                     const SizedBox(height: AppSpacing.lg),
                   ],
 
@@ -249,7 +302,8 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                                 color: Colors.white,
                               ),
                             )
-                          : Text(isEditing ? 'Save Changes' : 'Add Transaction'),
+                          : Text(
+                              isEditing ? 'Save Changes' : 'Add Transaction'),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -325,9 +379,12 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
+          color:
+              isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
           borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-          border: isSelected ? Border.all(color: color.withValues(alpha: 0.5)) : null,
+          border: isSelected
+              ? Border.all(color: color.withValues(alpha: 0.5))
+              : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -497,7 +554,8 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     );
   }
 
-  Widget _buildIncomeSourceDropdown(List<IncomeSource> incomeSources, String? safeValue) {
+  Widget _buildIncomeSourceDropdown(
+      List<IncomeSource> incomeSources, String? safeValue) {
     return DropdownButtonFormField<String>(
       key: ValueKey('income_dropdown_$_dropdownResetCounter'),
       value: safeValue,
@@ -615,6 +673,61 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     );
   }
 
+  Widget _buildAccountDropdown(List<Account> accounts, String? safeValue) {
+    return DropdownButtonFormField<String>(
+      key: ValueKey('account_dropdown_$_dropdownResetCounter'),
+      value: safeValue,
+      decoration: const InputDecoration(
+        hintText: 'Select account',
+      ),
+      dropdownColor: AppColors.surface,
+      items: accounts.map((account) {
+        final isArchived = account.isArchived;
+        return DropdownMenuItem<String>(
+          value: account.id,
+          child: Row(
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: (isArchived ? AppColors.textMuted : AppColors.savings)
+                      .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  _getAccountTypeIcon(account.type),
+                  color: isArchived ? AppColors.textMuted : AppColors.savings,
+                  size: 14,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  isArchived ? '${account.name} (Archived)' : account.name,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+      onChanged: accounts.isEmpty
+          ? null
+          : (value) {
+              setState(() {
+                _selectedAccountId = value;
+              });
+            },
+      validator: (value) {
+        if (accounts.isNotEmpty && value == null) {
+          return 'Please select an account';
+        }
+        return null;
+      },
+    );
+  }
+
   Future<void> _selectDate(BuildContext context) async {
     final now = DateTime.now();
     final firstDate = DateTime(now.year - 1, 1, 1);
@@ -675,6 +788,21 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     return icons[iconName] ?? LucideIcons.wallet;
   }
 
+  IconData _getAccountTypeIcon(AccountType accountType) {
+    switch (accountType) {
+      case AccountType.cash:
+        return LucideIcons.wallet;
+      case AccountType.debit:
+        return LucideIcons.creditCard;
+      case AccountType.credit:
+        return LucideIcons.landmark;
+      case AccountType.savings:
+        return LucideIcons.piggyBank;
+      case AccountType.other:
+        return LucideIcons.circleDollarSign;
+    }
+  }
+
   Future<void> _handleAddCategory(BuildContext context) async {
     final newCategoryId = await showModalBottomSheet<String>(
       context: context,
@@ -684,7 +812,8 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     );
     if (newCategoryId != null && mounted) {
       // Wait for new categories to load BEFORE setting the selected ID
-      await ref.refresh(categoriesProvider.future);
+      ref.invalidate(categoriesProvider);
+      await ref.read(categoriesProvider.future);
       if (mounted) {
         setState(() {
           _selectedCategoryId = newCategoryId;
@@ -702,7 +831,8 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     if (_selectedCategoryId == null) return;
     // Pass the parent category's isBudgeted flag
     final categories = ref.read(categoriesProvider).value ?? [];
-    final parentCat = categories.where((c) => c.id == _selectedCategoryId).firstOrNull;
+    final parentCat =
+        categories.where((c) => c.id == _selectedCategoryId).firstOrNull;
     final newItemId = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
@@ -714,7 +844,8 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     );
     if (newItemId != null && mounted) {
       // Wait for categories (with items) to load BEFORE setting the selected ID
-      await ref.refresh(categoriesProvider.future);
+      ref.invalidate(categoriesProvider);
+      await ref.read(categoriesProvider.future);
       if (mounted) {
         setState(() {
           _selectedItemId = newItemId;
@@ -736,7 +867,8 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     );
     if (newSourceId != null && mounted) {
       // Wait for income sources to load BEFORE setting the selected ID
-      await ref.refresh(incomeSourcesProvider.future);
+      ref.invalidate(incomeSourcesProvider);
+      await ref.read(incomeSourcesProvider.future);
       if (mounted) {
         setState(() {
           _selectedIncomeSourceId = newSourceId;
@@ -750,6 +882,22 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   }
 
   Future<void> _handleSubmit() async {
+    final activeAccounts = await ref.read(accountsProvider.future);
+    if (!mounted) return;
+    if (activeAccounts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Create an account first from Settings > Accounts',
+          ),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    final accountId = _selectedAccountId ?? activeAccounts.first.id;
+
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -766,6 +914,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
             transactionId: widget.transaction!.id,
             categoryId: _selectedCategoryId,
             itemId: _selectedItemId,
+            accountId: accountId,
             amount: amount,
             date: _selectedDate,
             note: note.isEmpty ? null : note,
@@ -774,6 +923,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
           await notifier.updateTransaction(
             transactionId: widget.transaction!.id,
             incomeSourceId: _selectedIncomeSourceId,
+            accountId: accountId,
             amount: amount,
             date: _selectedDate,
             note: note.isEmpty ? null : note,
@@ -785,6 +935,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
           await notifier.addExpense(
             categoryId: _selectedCategoryId!,
             itemId: _selectedItemId!,
+            accountId: accountId,
             amount: amount,
             date: _selectedDate,
             note: note.isEmpty ? null : note,
@@ -792,6 +943,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
         } else {
           await notifier.addIncome(
             incomeSourceId: _selectedIncomeSourceId!,
+            accountId: accountId,
             amount: amount,
             date: _selectedDate,
             note: note.isEmpty ? null : note,
@@ -802,12 +954,15 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       if (mounted) {
         // Refresh category and income data to update actual amounts
         // Use refresh().future to WAIT for data to load before closing
-        await ref.refresh(categoriesProvider.future);
-        await ref.refresh(incomeSourcesProvider.future);
+        ref.invalidate(categoriesProvider);
+        await ref.read(categoriesProvider.future);
+        ref.invalidate(incomeSourcesProvider);
+        await ref.read(incomeSourcesProvider.future);
 
         // Also refresh specific category to update item-level amounts
         if (_selectedCategoryId != null) {
-          await ref.refresh(categoryByIdProvider(_selectedCategoryId!).future);
+          ref.invalidate(categoryByIdProvider(_selectedCategoryId!));
+          await ref.read(categoryByIdProvider(_selectedCategoryId!).future);
         }
 
         if (!mounted) return;

@@ -5,32 +5,32 @@ class AppColors {
   AppColors._();
 
   // Base colors
-  static const Color background = Color(0xFF111827);      // Gray 900
-  static const Color surface = Color(0xFF1F2937);         // Gray 800
-  static const Color surfaceLight = Color(0xFF374151);    // Gray 700
-  static const Color border = Color(0xFF4B5563);          // Gray 600
+  static const Color background = Color(0xFF111827); // Gray 900
+  static const Color surface = Color(0xFF1F2937); // Gray 800
+  static const Color surfaceLight = Color(0xFF374151); // Gray 700
+  static const Color border = Color(0xFF4B5563); // Gray 600
 
   // Text colors
-  static const Color textPrimary = Color(0xFFFFFFFF);     // White
-  static const Color textSecondary = Color(0xFF9CA3AF);   // Gray 400
-  static const Color textMuted = Color(0xFF6B7280);       // Gray 500
+  static const Color textPrimary = Color(0xFFFFFFFF); // White
+  static const Color textSecondary = Color(0xFF9CA3AF); // Gray 400
+  static const Color textMuted = Color(0xFF6B7280); // Gray 500
 
   // Brand colors
-  static const Color primary = Color(0xFF6366F1);         // Indigo
-  static const Color primaryLight = Color(0xFF818CF8);    // Indigo 400
-  static const Color primaryDark = Color(0xFF4F46E5);     // Indigo 600
+  static const Color primary = Color(0xFF6366F1); // Indigo
+  static const Color primaryLight = Color(0xFF818CF8); // Indigo 400
+  static const Color primaryDark = Color(0xFF4F46E5); // Indigo 600
 
   // Semantic colors
-  static const Color success = Color(0xFF22C55E);         // Green
-  static const Color warning = Color(0xFFF59E0B);         // Amber
-  static const Color error = Color(0xFFEF4444);           // Red
-  static const Color info = Color(0xFF3B82F6);            // Blue
+  static const Color success = Color(0xFF22C55E); // Green
+  static const Color warning = Color(0xFFF59E0B); // Amber
+  static const Color error = Color(0xFFEF4444); // Red
+  static const Color info = Color(0xFF3B82F6); // Blue
 
   // Budget-specific colors
-  static const Color income = Color(0xFF22C55E);          // Green
-  static const Color expense = Color(0xFFEF4444);         // Red
-  static const Color savings = Color(0xFF14B8A6);         // Teal
-  static const Color tealDark = Color(0xFF0D9488);         // Teal 600
+  static const Color income = Color(0xFF22C55E); // Green
+  static const Color expense = Color(0xFFEF4444); // Red
+  static const Color savings = Color(0xFF14B8A6); // Teal
+  static const Color tealDark = Color(0xFF0D9488); // Teal 600
   static const Color overBudget = Color(0xFFEF4444);
   static const Color underBudget = Color(0xFF22C55E);
   static const Color onBudget = Color(0xFF3B82F6);
@@ -170,7 +170,8 @@ class AppSpacing {
 
   // Screen padding
   static const EdgeInsets screenPadding = EdgeInsets.all(16);
-  static const EdgeInsets screenPaddingHorizontal = EdgeInsets.symmetric(horizontal: 16);
+  static const EdgeInsets screenPaddingHorizontal =
+      EdgeInsets.symmetric(horizontal: 16);
 
   // Card padding
   static const EdgeInsets cardPadding = EdgeInsets.all(16);
@@ -208,6 +209,14 @@ class AppSizing {
 /// App theme configuration
 class AppTheme {
   AppTheme._();
+
+  static const Color _lightBackground = Color(0xFFF5F6F8);
+  static const Color _lightSurface = Color(0xFFFFFFFF);
+  static const Color _lightSurfaceAlt = Color(0xFFF0F2F6);
+  static const Color _lightBorder = Color(0xFFD7DCE5);
+  static const Color _lightTextPrimary = Color(0xFF151B26);
+  static const Color _lightTextSecondary = Color(0xFF5E6675);
+  static const Color _lightTextMuted = Color(0xFF8791A3);
 
   static ThemeData get darkTheme {
     return ThemeData(
@@ -266,7 +275,8 @@ class AppTheme {
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
           borderSide: const BorderSide(color: AppColors.error),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         hintStyle: const TextStyle(color: AppColors.textMuted),
       ),
 
@@ -296,14 +306,16 @@ class AppTheme {
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
         ),
       ),
 
       // Snackbar
       snackBarTheme: SnackBarThemeData(
         backgroundColor: AppColors.surfaceLight,
-        contentTextStyle: AppTypography.bodyMedium.copyWith(color: Colors.white),
+        contentTextStyle:
+            AppTypography.bodyMedium.copyWith(color: Colors.white),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizing.radiusSm),
         ),
@@ -341,8 +353,186 @@ class AppTheme {
     );
   }
 
-  // For backwards compatibility
-  static ThemeData get lightTheme => darkTheme;
+  static ThemeData get lightTheme {
+    return ThemeData(
+      useMaterial3: true,
+      brightness: Brightness.light,
+      scaffoldBackgroundColor: _lightBackground,
+      colorScheme: const ColorScheme.light(
+        primary: AppColors.primary,
+        secondary: AppColors.primaryLight,
+        surface: _lightSurface,
+        error: AppColors.error,
+      ),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: _lightBackground,
+        foregroundColor: _lightTextPrimary,
+        elevation: 0,
+        centerTitle: false,
+        titleTextStyle: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: _lightTextPrimary,
+        ),
+      ),
+      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+        backgroundColor: _lightSurface,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: _lightTextMuted,
+        type: BottomNavigationBarType.fixed,
+        elevation: 8,
+      ),
+      cardTheme: CardThemeData(
+        color: _lightSurface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          side: const BorderSide(color: _lightBorder),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: _lightSurfaceAlt,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+          borderSide: const BorderSide(color: AppColors.error),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        hintStyle: const TextStyle(color: _lightTextMuted),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+          ),
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          foregroundColor: AppColors.primary,
+          textStyle: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: _lightSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: _lightSurface,
+        contentTextStyle: const TextStyle(
+          fontSize: 14,
+          color: _lightTextPrimary,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+          side: const BorderSide(color: _lightBorder),
+        ),
+        behavior: SnackBarBehavior.floating,
+      ),
+      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+        backgroundColor: AppColors.primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+      ),
+      dividerTheme: const DividerThemeData(
+        color: _lightBorder,
+        thickness: 1,
+      ),
+      textTheme: const TextTheme(
+        displayLarge: TextStyle(
+          fontSize: 32,
+          fontWeight: FontWeight.w700,
+          color: _lightTextPrimary,
+          height: 1.2,
+        ),
+        displayMedium: TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.w700,
+          color: _lightTextPrimary,
+          height: 1.3,
+        ),
+        displaySmall: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: _lightTextPrimary,
+          height: 1.4,
+        ),
+        headlineMedium: TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          color: _lightTextPrimary,
+          height: 1.4,
+        ),
+        headlineSmall: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: _lightTextPrimary,
+        ),
+        titleLarge: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: _lightTextPrimary,
+        ),
+        titleMedium: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          color: _lightTextPrimary,
+          height: 1.5,
+        ),
+        bodyLarge: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w400,
+          color: _lightTextPrimary,
+          height: 1.5,
+        ),
+        bodyMedium: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+          color: _lightTextSecondary,
+          height: 1.5,
+        ),
+        bodySmall: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w400,
+          color: _lightTextMuted,
+          height: 1.5,
+        ),
+        labelLarge: TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+          color: _lightTextPrimary,
+        ),
+        labelMedium: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          color: _lightTextSecondary,
+        ),
+      ),
+    );
+  }
 
   // Legacy color accessors for existing code
   static const Color primaryColor = AppColors.primary;

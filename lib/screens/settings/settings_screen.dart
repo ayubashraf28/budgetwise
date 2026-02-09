@@ -17,6 +17,7 @@ class SettingsScreen extends ConsumerWidget {
     final user = authState.valueOrNull;
     final currentCurrency = ref.watch(currencyProvider);
     final currentSymbol = ref.watch(currencySymbolProvider);
+    final currentThemeMode = ref.watch(themeModeProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -35,7 +36,10 @@ class SettingsScreen extends ConsumerWidget {
               _SettingsTile(
                 icon: LucideIcons.user,
                 title: 'Profile',
-                subtitle: ref.watch(userProfileProvider).valueOrNull?.displayName ?? user?.email ?? 'Not signed in',
+                subtitle:
+                    ref.watch(userProfileProvider).valueOrNull?.displayName ??
+                        user?.email ??
+                        'Not signed in',
                 onTap: () {
                   HapticFeedback.selectionClick();
                   context.push('/settings/profile');
@@ -48,6 +52,16 @@ class SettingsScreen extends ConsumerWidget {
             _buildSectionHeader('Budget'),
             const SizedBox(height: AppSpacing.sm),
             _buildSettingsCard([
+              _SettingsTile(
+                icon: LucideIcons.wallet,
+                title: 'Accounts',
+                subtitle: 'Manage cash, debit, credit, and savings accounts',
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  context.push('/settings/accounts');
+                },
+              ),
+              const Divider(height: 1, color: AppColors.border),
               _SettingsTile(
                 icon: LucideIcons.calendar,
                 title: 'Month History',
@@ -74,6 +88,26 @@ class SettingsScreen extends ConsumerWidget {
                     backgroundColor: Colors.transparent,
                     builder: (context) => const CurrencyPickerSheet(),
                   );
+                },
+              ),
+            ]),
+            const SizedBox(height: AppSpacing.lg),
+
+            // Appearance Section
+            _buildSectionHeader('Appearance'),
+            const SizedBox(height: AppSpacing.sm),
+            _buildSettingsCard([
+              _SettingsTile(
+                icon: LucideIcons.palette,
+                title: 'Theme',
+                subtitle: 'System default, light, or dark',
+                trailing: Text(
+                  themeModeLabel(currentThemeMode),
+                  style: const TextStyle(color: AppColors.textSecondary),
+                ),
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  _showThemeModeSheet(context, ref, currentThemeMode);
                 },
               ),
             ]),
@@ -193,6 +227,71 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showThemeModeSheet(
+    BuildContext context,
+    WidgetRef ref,
+    ThemeMode currentMode,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
+      ),
+      builder: (sheetContext) {
+        Future<void> setMode(ThemeMode mode) async {
+          await ref.read(themeModeProvider.notifier).setThemeMode(mode);
+          if (sheetContext.mounted) {
+            Navigator.of(sheetContext).pop();
+          }
+        }
+
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: AppSpacing.sm),
+              const Text('Choose theme', style: AppTypography.h3),
+              const SizedBox(height: AppSpacing.sm),
+              RadioListTile<ThemeMode>(
+                value: ThemeMode.system,
+                groupValue: currentMode,
+                onChanged: (value) {
+                  if (value != null) {
+                    setMode(value);
+                  }
+                },
+                title: const Text('System default'),
+              ),
+              RadioListTile<ThemeMode>(
+                value: ThemeMode.light,
+                groupValue: currentMode,
+                onChanged: (value) {
+                  if (value != null) {
+                    setMode(value);
+                  }
+                },
+                title: const Text('Light'),
+              ),
+              RadioListTile<ThemeMode>(
+                value: ThemeMode.dark,
+                groupValue: currentMode,
+                onChanged: (value) {
+                  if (value != null) {
+                    setMode(value);
+                  }
+                },
+                title: const Text('Dark'),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+          ),
+        );
+      },
     );
   }
 

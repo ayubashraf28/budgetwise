@@ -77,8 +77,10 @@ class TransactionListItem extends StatelessWidget {
                       ),
                       child: Center(
                         child: isIncome
-                            ? const Icon(LucideIcons.plus, size: 8, color: Colors.white)
-                            : const Icon(LucideIcons.minus, size: 8, color: Colors.white),
+                            ? const Icon(LucideIcons.plus,
+                                size: 8, color: Colors.white)
+                            : const Icon(LucideIcons.minus,
+                                size: 8, color: Colors.white),
                       ),
                     ),
                   ),
@@ -98,37 +100,42 @@ class TransactionListItem extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Row(
+                    Wrap(
+                      spacing: AppSpacing.xs,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         // Category/type badge chip
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: isIncome
-                                ? AppColors.success.withValues(alpha: 0.15)
-                                : categoryColor.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-                          ),
-                          child: Text(
-                            isIncome ? 'Income' : (transaction.categoryName ?? 'Expense'),
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w500,
-                              color: isIncome ? AppColors.success : categoryColor,
-                            ),
-                          ),
+                        _buildMetaChip(
+                          text: isIncome
+                              ? 'Income'
+                              : (transaction.categoryName ?? 'Expense'),
+                          color: isIncome ? AppColors.success : categoryColor,
                         ),
-                        const SizedBox(width: AppSpacing.sm),
+
+                        if (transaction.accountName != null)
+                          _buildMetaChip(
+                            text: transaction.accountName!,
+                            color: AppColors.savings,
+                            icon: LucideIcons.wallet,
+                          ),
+
                         // Calendar icon + date
-                        const Icon(
-                          LucideIcons.calendar,
-                          size: 12,
-                          color: AppColors.textMuted,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          DateFormat('MMM d, yyyy').format(transaction.date),
-                          style: AppTypography.bodySmall,
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              LucideIcons.calendar,
+                              size: 12,
+                              color: AppColors.textMuted,
+                            ),
+                            const SizedBox(width: 3),
+                            Text(
+                              DateFormat('MMM d, yyyy')
+                                  .format(transaction.date),
+                              style: AppTypography.bodySmall,
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -199,5 +206,40 @@ class TransactionListItem extends StatelessWidget {
     }
 
     return LucideIcons.receipt;
+  }
+
+  Widget _buildMetaChip({
+    required String text,
+    required Color color,
+    IconData? icon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(
+              icon,
+              size: 10,
+              color: color,
+            ),
+            const SizedBox(width: 3),
+          ],
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w500,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

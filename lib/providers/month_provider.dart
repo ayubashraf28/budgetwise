@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/month.dart';
+import '../services/account_service.dart';
 import '../services/category_service.dart';
 import '../services/income_service.dart';
 import '../services/month_service.dart';
 import '../services/item_service.dart';
 import '../services/subscription_service.dart';
+import 'account_provider.dart';
 import 'auth_provider.dart';
 
 /// Month service provider
@@ -40,14 +42,18 @@ final ensureMonthSetupProvider = FutureProvider<void>((ref) async {
   if (user == null) return;
 
   final monthService = ref.read(monthServiceProvider);
+  final accountService = AccountService();
   final categoryService = CategoryService();
   final incomeService = IncomeService();
   final now = DateTime.now();
 
-  // 1. Ensure all 12 months exist for current year
+  // 1. Ensure at least one active account exists.
+  await accountService.ensureDefaultAccount();
+
+  // 2. Ensure all 12 months exist for current year
   await monthService.ensureYearMonths(now.year);
 
-  // 2. Get the current calendar month and ensure it's active
+  // 3. Get the current calendar month and ensure it's active
   final currentMonth = await monthService.getMonthByDate(now);
   if (currentMonth != null) {
     final activeMonth = await monthService.getActiveMonth();
@@ -55,11 +61,11 @@ final ensureMonthSetupProvider = FutureProvider<void>((ref) async {
       await monthService.setActiveMonth(currentMonth.id);
     }
 
-    // 3. Ensure current month has categories AND income sources
+    // 4. Ensure current month has categories AND income sources
     await categoryService.ensureCategoriesForMonth(currentMonth.id);
     await incomeService.ensureIncomeSourcesForMonth(currentMonth.id);
 
-    // 4. Ensure Subscriptions category and items are synced
+    // 5. Ensure Subscriptions category and items are synced
     final subscriptionService = SubscriptionService();
     final itemService = ItemService();
     final subsCat =
@@ -71,9 +77,14 @@ final ensureMonthSetupProvider = FutureProvider<void>((ref) async {
     );
   }
 
-  // 5. Invalidate dependent providers to pick up new data
+  // 6. Invalidate dependent providers to pick up new data
   ref.invalidate(activeMonthProvider);
   ref.invalidate(userMonthsProvider);
+  ref.invalidate(accountsProvider);
+  ref.invalidate(allAccountsProvider);
+  ref.invalidate(accountBalancesProvider);
+  ref.invalidate(allAccountBalancesProvider);
+  ref.invalidate(netWorthProvider);
 });
 
 /// Budget screen's selected month ID.

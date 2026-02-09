@@ -12,7 +12,7 @@ class TransactionService {
 
   /// Select query with joins
   String get _selectWithJoins =>
-      '*, categories(name, color), items(name), subscriptions(name), income_sources(name)';
+      '*, categories(name, color), items(name), subscriptions(name), income_sources(name), accounts(name, type)';
 
   /// Get all transactions for a month
   Future<List<Transaction>> getTransactionsForMonth(String monthId) async {
@@ -47,6 +47,18 @@ class TransactionService {
         .select(_selectWithJoins)
         .eq('user_id', _userId)
         .eq('item_id', itemId)
+        .order('date', ascending: false);
+
+    return (response as List).map((e) => Transaction.fromJson(e)).toList();
+  }
+
+  /// Get transactions for a specific account
+  Future<List<Transaction>> getTransactionsForAccount(String accountId) async {
+    final response = await _client
+        .from(_table)
+        .select(_selectWithJoins)
+        .eq('user_id', _userId)
+        .eq('account_id', accountId)
         .order('date', ascending: false);
 
     return (response as List).map((e) => Transaction.fromJson(e)).toList();
@@ -97,6 +109,7 @@ class TransactionService {
     required String categoryId,
     required String itemId,
     String? subscriptionId,
+    required String accountId,
     required double amount,
     required DateTime date,
     String? note,
@@ -109,6 +122,7 @@ class TransactionService {
       categoryId: categoryId,
       itemId: itemId,
       subscriptionId: subscriptionId,
+      accountId: accountId,
       type: TransactionType.expense,
       amount: amount,
       date: date,
@@ -130,6 +144,7 @@ class TransactionService {
   Future<Transaction> createIncome({
     required String monthId,
     required String incomeSourceId,
+    required String accountId,
     required double amount,
     required DateTime date,
     String? note,
@@ -140,6 +155,7 @@ class TransactionService {
       userId: _userId,
       monthId: monthId,
       incomeSourceId: incomeSourceId,
+      accountId: accountId,
       type: TransactionType.income,
       amount: amount,
       date: date,
@@ -164,6 +180,7 @@ class TransactionService {
     String? itemId,
     String? subscriptionId,
     String? incomeSourceId,
+    String? accountId,
     double? amount,
     DateTime? date,
     String? note,
@@ -173,6 +190,9 @@ class TransactionService {
     if (itemId != null) updates['item_id'] = itemId;
     if (subscriptionId != null) updates['subscription_id'] = subscriptionId;
     if (incomeSourceId != null) updates['income_source_id'] = incomeSourceId;
+    if (accountId != null) {
+      updates['account_id'] = accountId;
+    }
     if (amount != null) updates['amount'] = amount;
     if (date != null) updates['date'] = _formatDate(date);
     if (note != null) updates['note'] = note;

@@ -9,12 +9,15 @@ import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/income/income_screen.dart';
+import '../screens/categories/categories_screen.dart';
+import '../screens/manage/manage_screen.dart';
 import '../screens/expenses/expenses_overview_screen.dart';
 import '../screens/expenses/category_detail_screen.dart';
 import '../screens/expenses/item_detail_screen.dart';
 import '../screens/transactions/transactions_screen.dart';
 import '../screens/settings/settings_screen.dart';
 import '../screens/settings/profile_screen.dart';
+import '../screens/settings/accounts_screen.dart';
 import '../screens/subscriptions/subscriptions_screen.dart';
 import '../screens/onboarding/welcome_screen.dart';
 import '../screens/onboarding/template_selection_screen.dart';
@@ -132,9 +135,30 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const HomeScreen(),
           ),
           GoRoute(
+            path: '/analysis',
+            name: 'analysis',
+            redirect: (context, state) => '/budget',
+          ),
+          GoRoute(
+            path: '/categories',
+            name: 'categories',
+            builder: (context, state) => const CategoriesScreen(),
+          ),
+          GoRoute(
+            path: '/manage',
+            name: 'manage',
+            builder: (context, state) => const ManageScreen(),
+          ),
+          GoRoute(
             path: '/income',
             name: 'income',
             builder: (context, state) => const IncomeScreen(),
+          ),
+          GoRoute(
+            path: '/transactions/new',
+            name: 'transactions-new',
+            builder: (context, state) =>
+                const TransactionsScreen(openComposerOnLoad: true),
           ),
           GoRoute(
             path: '/transactions',
@@ -151,7 +175,8 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: 'category',
                 builder: (context, state) {
                   final id = state.pathParameters['id']!;
-                  final yearMode = state.uri.queryParameters['yearMode'] == 'true';
+                  final yearMode =
+                      state.uri.queryParameters['yearMode'] == 'true';
                   return CategoryDetailScreen(
                     categoryId: id,
                     yearMode: yearMode,
@@ -194,6 +219,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: 'profile',
                 name: 'profile',
                 builder: (context, state) => const ProfileScreen(),
+              ),
+              GoRoute(
+                path: 'accounts',
+                name: 'accounts',
+                builder: (context, state) => AccountsScreen(
+                  initialAccountId: state.uri.queryParameters['accountId'],
+                ),
               ),
             ],
           ),

@@ -125,6 +125,7 @@ class SubscriptionService {
     String? color,
     String? categoryName,
     String? notes,
+    String? defaultAccountId,
     int reminderDaysBefore = 2,
   }) async {
     final response = await _client
@@ -141,6 +142,7 @@ class SubscriptionService {
           'color': color ?? '#6366f1',
           'category_name': categoryName,
           'notes': notes,
+          'default_account_id': defaultAccountId,
           'reminder_days_before': reminderDaysBefore,
         })
         .select()
@@ -162,6 +164,8 @@ class SubscriptionService {
     String? color,
     String? categoryName,
     String? notes,
+    String? defaultAccountId,
+    bool clearDefaultAccountId = false,
     bool? isActive,
     int? reminderDaysBefore,
   }) async {
@@ -178,6 +182,11 @@ class SubscriptionService {
     if (color != null) updates['color'] = color;
     if (categoryName != null) updates['category_name'] = categoryName;
     if (notes != null) updates['notes'] = notes;
+    if (clearDefaultAccountId) {
+      updates['default_account_id'] = null;
+    } else if (defaultAccountId != null) {
+      updates['default_account_id'] = defaultAccountId;
+    }
     if (isActive != null) updates['is_active'] = isActive;
     if (reminderDaysBefore != null) {
       updates['reminder_days_before'] = reminderDaysBefore;
@@ -224,6 +233,7 @@ class SubscriptionService {
     DateTime? paidAt,
     double? amountOverride,
     String? requestId,
+    String? accountId,
   }) async {
     final paidAtDate = paidAt ?? DateTime.now();
     final effectiveRequestId = requestId ?? _uuid.v4();
@@ -232,6 +242,7 @@ class SubscriptionService {
       'p_paid_at': paidAtDate.toIso8601String().split('T').first,
       if (amountOverride != null) 'p_amount_override': amountOverride,
       'p_request_id': effectiveRequestId,
+      if (accountId != null) 'p_account_id': accountId,
     };
 
     try {

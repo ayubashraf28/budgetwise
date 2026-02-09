@@ -18,6 +18,7 @@ class Subscription {
   final int? customCycleDays;
   final String? categoryName;
   final String? notes;
+  final String? defaultAccountId;
   final bool isActive;
   final int reminderDaysBefore;
   final DateTime createdAt;
@@ -37,6 +38,7 @@ class Subscription {
     this.customCycleDays,
     this.categoryName,
     this.notes,
+    this.defaultAccountId,
     this.isActive = true,
     this.reminderDaysBefore = 2,
     required this.createdAt,
@@ -58,6 +60,7 @@ class Subscription {
       customCycleDays: json['custom_cycle_days'] as int?,
       categoryName: json['category_name'] as String?,
       notes: json['notes'] as String?,
+      defaultAccountId: json['default_account_id'] as String?,
       isActive: json['is_active'] as bool? ?? true,
       reminderDaysBefore: json['reminder_days_before'] as int? ?? 2,
       createdAt: DateTime.parse(json['created_at'] as String),
@@ -80,6 +83,7 @@ class Subscription {
       'custom_cycle_days': customCycleDays,
       'category_name': categoryName,
       'notes': notes,
+      'default_account_id': defaultAccountId,
       'is_active': isActive,
       'reminder_days_before': reminderDaysBefore,
     };
@@ -99,6 +103,8 @@ class Subscription {
     int? customCycleDays,
     String? categoryName,
     String? notes,
+    String? defaultAccountId,
+    bool clearDefaultAccountId = false,
     bool? isActive,
     int? reminderDaysBefore,
     DateTime? createdAt,
@@ -118,6 +124,9 @@ class Subscription {
       customCycleDays: customCycleDays ?? this.customCycleDays,
       categoryName: categoryName ?? this.categoryName,
       notes: notes ?? this.notes,
+      defaultAccountId: clearDefaultAccountId
+          ? null
+          : defaultAccountId ?? this.defaultAccountId,
       isActive: isActive ?? this.isActive,
       reminderDaysBefore: reminderDaysBefore ?? this.reminderDaysBefore,
       createdAt: createdAt ?? this.createdAt,
@@ -152,7 +161,8 @@ class Subscription {
   bool get isOverdue => daysUntilDue < 0;
 
   /// Whether this subscription should show in "Upcoming" section
-  bool get isUpcoming => daysUntilDue >= 0 && daysUntilDue <= reminderDaysBefore;
+  bool get isUpcoming =>
+      daysUntilDue >= 0 && daysUntilDue <= reminderDaysBefore;
 
   /// Whether due within the next 7 days (for home page display)
   bool get isDueSoon => daysUntilDue >= 0 && daysUntilDue <= 7;
@@ -169,7 +179,9 @@ class Subscription {
       case BillingCycle.yearly:
         return 'Yearly';
       case BillingCycle.custom:
-        return customCycleDays != null ? 'Every $customCycleDays days' : 'Custom';
+        return customCycleDays != null
+            ? 'Every $customCycleDays days'
+            : 'Custom';
     }
   }
 
@@ -181,11 +193,14 @@ class Subscription {
       case BillingCycle.weekly:
         return nextDueDate.add(const Duration(days: 7));
       case BillingCycle.monthly:
-        return DateTime(nextDueDate.year, nextDueDate.month + 1, nextDueDate.day);
+        return DateTime(
+            nextDueDate.year, nextDueDate.month + 1, nextDueDate.day);
       case BillingCycle.quarterly:
-        return DateTime(nextDueDate.year, nextDueDate.month + 3, nextDueDate.day);
+        return DateTime(
+            nextDueDate.year, nextDueDate.month + 3, nextDueDate.day);
       case BillingCycle.yearly:
-        return DateTime(nextDueDate.year + 1, nextDueDate.month, nextDueDate.day);
+        return DateTime(
+            nextDueDate.year + 1, nextDueDate.month, nextDueDate.day);
       case BillingCycle.custom:
         return nextDueDate.add(Duration(days: customCycleDays ?? 30));
     }
@@ -225,6 +240,6 @@ class Subscription {
   int get hashCode => id.hashCode;
 
   @override
-  String toString() => 'Subscription(id: $id, name: $name, amount: $amount, due: $nextDueDate)';
+  String toString() =>
+      'Subscription(id: $id, name: $name, amount: $amount, due: $nextDueDate)';
 }
-

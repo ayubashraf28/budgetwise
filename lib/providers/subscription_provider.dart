@@ -8,6 +8,7 @@ import '../services/subscription_service.dart';
 import 'auth_provider.dart';
 import 'category_provider.dart';
 import 'transaction_provider.dart';
+import 'account_provider.dart';
 
 /// Subscription service provider
 final subscriptionServiceProvider = Provider<SubscriptionService>((ref) {
@@ -84,6 +85,7 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
     String? color,
     String? categoryName,
     String? notes,
+    String? defaultAccountId,
     int reminderDaysBefore = 2,
   }) async {
     final user = ref.read(currentUserProvider);
@@ -100,6 +102,7 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
       color: color,
       categoryName: categoryName,
       notes: notes,
+      defaultAccountId: defaultAccountId,
       reminderDaysBefore: reminderDaysBefore,
     );
 
@@ -120,6 +123,8 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
     String? color,
     String? categoryName,
     String? notes,
+    String? defaultAccountId,
+    bool clearDefaultAccountId = false,
     bool? isActive,
     int? reminderDaysBefore,
   }) async {
@@ -135,6 +140,8 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
       color: color,
       categoryName: categoryName,
       notes: notes,
+      defaultAccountId: defaultAccountId,
+      clearDefaultAccountId: clearDefaultAccountId,
       isActive: isActive,
       reminderDaysBefore: reminderDaysBefore,
     );
@@ -149,7 +156,10 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
     _invalidateAll();
   }
 
-  Future<SubscriptionPaymentResult> markAsPaid(String subscriptionId) async {
+  Future<SubscriptionPaymentResult> markAsPaid(
+    String subscriptionId, {
+    String? accountId,
+  }) async {
     if (_inFlightPaymentSubscriptionIds.contains(subscriptionId)) {
       await _service.logPaymentEvent(
         subscriptionId: subscriptionId,
@@ -168,6 +178,7 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
       final result = await _service.markSubscriptionPaidAtomic(
         subscriptionId: subscriptionId,
         paidAt: DateTime.now(),
+        accountId: accountId,
       );
 
       _invalidateAll();
@@ -184,6 +195,9 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
     ref.invalidate(upcomingSubscriptionsProvider);
     ref.invalidate(transactionsProvider);
     ref.invalidate(categoriesProvider);
+    ref.invalidate(accountBalancesProvider);
+    ref.invalidate(allAccountBalancesProvider);
+    ref.invalidate(netWorthProvider);
   }
 
   /// Sync subscription items in the current month's Subscriptions category.

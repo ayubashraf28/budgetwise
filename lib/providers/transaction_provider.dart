@@ -10,6 +10,7 @@ import 'auth_provider.dart';
 import 'month_provider.dart';
 import 'category_provider.dart';
 import 'income_provider.dart';
+import 'account_provider.dart';
 
 /// Transaction service provider
 final transactionServiceProvider = Provider<TransactionService>((ref) {
@@ -93,6 +94,7 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
   Future<Transaction> addExpense({
     required String categoryId,
     required String itemId,
+    required String accountId,
     required double amount,
     required DateTime date,
     String? note,
@@ -124,6 +126,7 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
       monthId: targetMonth.id,
       categoryId: resolvedCategoryId,
       itemId: resolvedItemId,
+      accountId: accountId,
       amount: amount,
       date: date,
       note: note,
@@ -137,6 +140,7 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
   /// Month is derived from the transaction date, NOT the active month.
   Future<Transaction> addIncome({
     required String incomeSourceId,
+    required String accountId,
     required double amount,
     required DateTime date,
     String? note,
@@ -151,6 +155,7 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
     final tx = await _service.createIncome(
       monthId: targetMonth.id,
       incomeSourceId: incomeSourceId,
+      accountId: accountId,
       amount: amount,
       date: date,
       note: note,
@@ -166,6 +171,7 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
     String? categoryId,
     String? itemId,
     String? incomeSourceId,
+    String? accountId,
     double? amount,
     DateTime? date,
     String? note,
@@ -175,6 +181,7 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
       categoryId: categoryId,
       itemId: itemId,
       incomeSourceId: incomeSourceId,
+      accountId: accountId,
       amount: amount,
       date: date,
       note: note,
@@ -196,6 +203,9 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
     ref.invalidate(transactionsProvider);
     ref.invalidate(categoriesProvider);
     ref.invalidate(incomeSourcesProvider);
+    ref.invalidate(accountBalancesProvider);
+    ref.invalidate(allAccountBalancesProvider);
+    ref.invalidate(netWorthProvider);
   }
 
   /// Resolves category/item IDs from one month to another by matching names.
@@ -208,17 +218,19 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
     final categoryService = CategoryService();
 
     // Get the source category to know its name
-    final sourceCategory = await categoryService.getCategoryById(sourceCategoryId);
+    final sourceCategory =
+        await categoryService.getCategoryById(sourceCategoryId);
     if (sourceCategory == null) {
       return {'categoryId': sourceCategoryId, 'itemId': sourceItemId};
     }
 
     // Find the matching category in the target month by name
-    final targetCategories = await categoryService.getCategoriesForMonth(targetMonthId);
+    final targetCategories =
+        await categoryService.getCategoriesForMonth(targetMonthId);
     final targetCategory = targetCategories.cast<Category?>().firstWhere(
-      (c) => c!.name.toLowerCase() == sourceCategory.name.toLowerCase(),
-      orElse: () => null,
-    );
+          (c) => c!.name.toLowerCase() == sourceCategory.name.toLowerCase(),
+          orElse: () => null,
+        );
 
     if (targetCategory == null) {
       // No matching category in target month — fall back to source IDs
@@ -227,18 +239,18 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
 
     // Find matching item by name
     final sourceItem = sourceCategory.items?.cast<Item?>().firstWhere(
-      (i) => i!.id == sourceItemId,
-      orElse: () => null,
-    );
+          (i) => i!.id == sourceItemId,
+          orElse: () => null,
+        );
 
     if (sourceItem == null || targetCategory.items == null) {
       return {'categoryId': targetCategory.id, 'itemId': sourceItemId};
     }
 
     final targetItem = targetCategory.items!.cast<Item?>().firstWhere(
-      (i) => i!.name.toLowerCase() == sourceItem.name.toLowerCase(),
-      orElse: () => null,
-    );
+          (i) => i!.name.toLowerCase() == sourceItem.name.toLowerCase(),
+          orElse: () => null,
+        );
 
     return {
       'categoryId': targetCategory.id,

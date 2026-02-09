@@ -11,3 +11,5 @@ export 'transaction_provider.dart';
 export 'calculation_provider.dart';
 export 'subscription_provider.dart';
 export 'yearly_provider.dart';
+export 'account_provider.dart';
+export 'theme_mode_provider.dart';

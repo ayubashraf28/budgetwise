@@ -5,6 +5,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 
 import '../../config/theme.dart';
+import '../../models/account.dart';
 import '../../models/subscription.dart';
 import '../../providers/providers.dart';
 
@@ -17,7 +18,8 @@ class SubscriptionFormSheet extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<SubscriptionFormSheet> createState() => _SubscriptionFormSheetState();
+  ConsumerState<SubscriptionFormSheet> createState() =>
+      _SubscriptionFormSheetState();
 }
 
 class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
@@ -34,6 +36,7 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
   late bool _isAutoRenew;
   late String _selectedIcon;
   late String _selectedColor;
+  String? _selectedDefaultAccountId;
   bool _isLoading = false;
 
   bool get isEditing => widget.subscription != null;
@@ -81,7 +84,8 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
     _amountController = TextEditingController(
       text: sub?.amount.toStringAsFixed(2) ?? '',
     );
-    _categoryNameController = TextEditingController(text: sub?.categoryName ?? '');
+    _categoryNameController =
+        TextEditingController(text: sub?.categoryName ?? '');
     _notesController = TextEditingController(text: sub?.notes ?? '');
     _customDaysController = TextEditingController(
       text: sub?.customCycleDays?.toString() ?? '',
@@ -95,6 +99,7 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
     _isAutoRenew = sub?.isAutoRenew ?? true;
     _selectedIcon = sub?.icon ?? 'credit-card';
     _selectedColor = sub?.color ?? '#6366f1';
+    _selectedDefaultAccountId = sub?.defaultAccountId;
   }
 
   @override
@@ -111,11 +116,38 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
   @override
   Widget build(BuildContext context) {
     final currencySymbol = ref.watch(currencySymbolProvider);
+    final allAccounts = ref.watch(allAccountsProvider).value ?? <Account>[];
+    final activeAccounts = allAccounts.where((a) => !a.isArchived).toList();
+    final formAccounts = <Account>[...activeAccounts];
+
+    if (_selectedDefaultAccountId != null &&
+        !formAccounts.any((a) => a.id == _selectedDefaultAccountId)) {
+      final selected = allAccounts
+          .where((a) => a.id == _selectedDefaultAccountId)
+          .firstOrNull;
+      if (selected != null) {
+        formAccounts.insert(0, selected);
+      }
+    }
+
+    final safeDefaultAccountId = (_selectedDefaultAccountId != null &&
+            formAccounts.any((a) => a.id == _selectedDefaultAccountId))
+        ? _selectedDefaultAccountId
+        : null;
+
+    if (safeDefaultAccountId != _selectedDefaultAccountId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() => _selectedDefaultAccountId = safeDefaultAccountId);
+        }
+      });
+    }
 
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
       ),
       child: Padding(
         padding: EdgeInsets.only(
@@ -186,9 +218,11 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
                       hintText: '0.00',
                       prefixText: '$currencySymbol ',
                     ),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                      FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,2}')),
                     ],
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -287,14 +321,16 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
                       children: [
                         const Row(
                           children: [
-                            Icon(LucideIcons.repeat, size: 20, color: AppColors.textSecondary),
+                            Icon(LucideIcons.repeat,
+                                size: 20, color: AppColors.textSecondary),
                             SizedBox(width: AppSpacing.sm),
                             Text('Auto-renew', style: AppTypography.bodyLarge),
                           ],
                         ),
                         Switch(
                           value: _isAutoRenew,
-                          onChanged: (value) => setState(() => _isAutoRenew = value),
+                          onChanged: (value) =>
+                              setState(() => _isAutoRenew = value),
                           activeTrackColor: AppColors.primary,
                         ),
                       ],
@@ -312,6 +348,13 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
                     ),
                     textCapitalization: TextCapitalization.words,
                   ),
+                  const SizedBox(height: AppSpacing.lg),
+
+                  // Default Account (optional)
+                  _buildLabel('Default Payment Account (optional)'),
+                  const SizedBox(height: AppSpacing.sm),
+                  _buildDefaultAccountDropdown(
+                      formAccounts, safeDefaultAccountId),
                   const SizedBox(height: AppSpacing.lg),
 
                   // Icon Selector
@@ -376,7 +419,8 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
                                 color: Colors.white,
                               ),
                             )
-                          : Text(isEditing ? 'Save Changes' : 'Add Subscription'),
+                          : Text(
+                              isEditing ? 'Save Changes' : 'Add Subscription'),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -481,11 +525,11 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: isSelected ? _parseColor(_selectedColor) : Colors.transparent,
+                color: isSelected
+                    ? _parseColor(_selectedColor)
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-                border: isSelected
-                    ? null
-                    : Border.all(color: AppColors.border),
+                border: isSelected ? null : Border.all(color: AppColors.border),
               ),
               child: Icon(
                 _getIconData(icon),
@@ -533,6 +577,50 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
     );
   }
 
+  Widget _buildDefaultAccountDropdown(
+    List<Account> accounts,
+    String? safeValue,
+  ) {
+    return DropdownButtonFormField<String?>(
+      value: safeValue,
+      decoration: const InputDecoration(
+        hintText: 'Choose default account',
+      ),
+      dropdownColor: AppColors.surface,
+      items: [
+        const DropdownMenuItem<String?>(
+          value: null,
+          child: Text('No default account'),
+        ),
+        ...accounts.map((account) {
+          final isArchived = account.isArchived;
+          return DropdownMenuItem<String?>(
+            value: account.id,
+            child: Row(
+              children: [
+                Icon(
+                  _accountTypeIcon(account.type),
+                  size: 16,
+                  color: isArchived ? AppColors.textMuted : AppColors.savings,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    isArchived ? '${account.name} (Archived)' : account.name,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+      onChanged: (value) {
+        setState(() => _selectedDefaultAccountId = value);
+      },
+    );
+  }
+
   Color _parseColor(String hex) {
     try {
       final hexCode = hex.replaceFirst('#', '');
@@ -567,6 +655,21 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
     return icons[iconName] ?? LucideIcons.creditCard;
   }
 
+  IconData _accountTypeIcon(AccountType type) {
+    switch (type) {
+      case AccountType.cash:
+        return LucideIcons.wallet;
+      case AccountType.debit:
+        return LucideIcons.creditCard;
+      case AccountType.credit:
+        return LucideIcons.landmark;
+      case AccountType.savings:
+        return LucideIcons.piggyBank;
+      case AccountType.other:
+        return LucideIcons.circleDollarSign;
+    }
+  }
+
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -596,6 +699,10 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
           color: _selectedColor,
           categoryName: categoryName.isEmpty ? null : categoryName,
           notes: notes.isEmpty ? null : notes,
+          defaultAccountId: _selectedDefaultAccountId,
+          clearDefaultAccountId:
+              widget.subscription!.defaultAccountId != null &&
+                  _selectedDefaultAccountId == null,
           reminderDaysBefore: reminderDays,
         );
         if (mounted) {
@@ -616,6 +723,7 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
           color: _selectedColor,
           categoryName: categoryName.isEmpty ? null : categoryName,
           notes: notes.isEmpty ? null : notes,
+          defaultAccountId: _selectedDefaultAccountId,
           reminderDaysBefore: reminderDays,
         );
         if (mounted) {
@@ -641,4 +749,3 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
     }
   }
 }
-

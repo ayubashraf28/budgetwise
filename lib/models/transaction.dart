@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 
+import 'account.dart';
+
 /// Transaction type enum
 enum TransactionType {
   expense,
@@ -24,6 +26,7 @@ class Transaction {
   final String? itemId;
   final String? subscriptionId;
   final String? incomeSourceId;
+  final String? accountId;
   final TransactionType type;
   final double amount;
   final DateTime date;
@@ -37,6 +40,8 @@ class Transaction {
   final String? itemName;
   final String? subscriptionName;
   final String? incomeSourceName;
+  final String? accountName;
+  final AccountType? accountType;
 
   const Transaction({
     required this.id,
@@ -46,6 +51,7 @@ class Transaction {
     this.itemId,
     this.subscriptionId,
     this.incomeSourceId,
+    this.accountId,
     required this.type,
     required this.amount,
     required this.date,
@@ -57,6 +63,8 @@ class Transaction {
     this.itemName,
     this.subscriptionName,
     this.incomeSourceName,
+    this.accountName,
+    this.accountType,
   });
 
   factory Transaction.fromJson(Map<String, dynamic> json) {
@@ -86,6 +94,17 @@ class Transaction {
       subscriptionName = json['subscriptions']['name'] as String?;
     }
 
+    // Handle nested account data
+    String? accountName;
+    AccountType? accountType;
+    if (json['accounts'] != null) {
+      accountName = json['accounts']['name'] as String?;
+      final accountTypeValue = json['accounts']['type'] as String?;
+      if (accountTypeValue != null) {
+        accountType = AccountType.fromString(accountTypeValue);
+      }
+    }
+
     return Transaction(
       id: json['id'] as String,
       userId: json['user_id'] as String,
@@ -94,6 +113,7 @@ class Transaction {
       itemId: json['item_id'] as String?,
       subscriptionId: json['subscription_id'] as String?,
       incomeSourceId: json['income_source_id'] as String?,
+      accountId: json['account_id'] as String?,
       type: TransactionType.fromString(json['type'] as String),
       amount: (json['amount'] as num).toDouble(),
       date: DateTime.parse(json['date'] as String),
@@ -107,6 +127,11 @@ class Transaction {
           subscriptionName ?? json['subscription_name'] as String?,
       incomeSourceName:
           incomeSourceName ?? json['income_source_name'] as String?,
+      accountName: accountName ?? json['account_name'] as String?,
+      accountType: accountType ??
+          (json['account_type'] != null
+              ? AccountType.fromString(json['account_type'] as String)
+              : null),
     );
   }
 
@@ -119,6 +144,7 @@ class Transaction {
       'item_id': itemId,
       'subscription_id': subscriptionId,
       'income_source_id': incomeSourceId,
+      'account_id': accountId,
       'type': type.value,
       'amount': amount,
       'date': _formatDate(date),
@@ -140,6 +166,7 @@ class Transaction {
     String? itemId,
     String? subscriptionId,
     String? incomeSourceId,
+    String? accountId,
     TransactionType? type,
     double? amount,
     DateTime? date,
@@ -151,6 +178,8 @@ class Transaction {
     String? itemName,
     String? subscriptionName,
     String? incomeSourceName,
+    String? accountName,
+    AccountType? accountType,
   }) {
     return Transaction(
       id: id ?? this.id,
@@ -160,6 +189,7 @@ class Transaction {
       itemId: itemId ?? this.itemId,
       subscriptionId: subscriptionId ?? this.subscriptionId,
       incomeSourceId: incomeSourceId ?? this.incomeSourceId,
+      accountId: accountId ?? this.accountId,
       type: type ?? this.type,
       amount: amount ?? this.amount,
       date: date ?? this.date,
@@ -171,6 +201,8 @@ class Transaction {
       itemName: itemName ?? this.itemName,
       subscriptionName: subscriptionName ?? this.subscriptionName,
       incomeSourceName: incomeSourceName ?? this.incomeSourceName,
+      accountName: accountName ?? this.accountName,
+      accountType: accountType ?? this.accountType,
     );
   }
 
