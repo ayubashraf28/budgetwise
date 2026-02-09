@@ -59,3 +59,6 @@ app.*.map.json
 
 # Documentation / implementation plans
 docs/
+FINCUBE_INSPIRED_UI_GUIDELINES.md
+ACCOUNTS_FEATURE_INTEGRATION_PLAN.md
+ANALYSIS_PAGE_IMPLEMENTATION_PLAN.md
