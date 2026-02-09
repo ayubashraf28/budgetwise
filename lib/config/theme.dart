@@ -5,15 +5,15 @@ class AppColors {
   AppColors._();
 
   // Base colors
-  static const Color background = Color(0xFF111827); // Gray 900
-  static const Color surface = Color(0xFF1F2937); // Gray 800
-  static const Color surfaceLight = Color(0xFF374151); // Gray 700
-  static const Color border = Color(0xFF4B5563); // Gray 600
+  static const Color background = Color(0xFF0E0E0E);
+  static const Color surface = Color(0xFF171A20);
+  static const Color surfaceLight = Color(0xFF1D2128);
+  static const Color border = Color(0xFF2B313B);
 
   // Text colors
   static const Color textPrimary = Color(0xFFFFFFFF); // White
-  static const Color textSecondary = Color(0xFF9CA3AF); // Gray 400
-  static const Color textMuted = Color(0xFF6B7280); // Gray 500
+  static const Color textSecondary = Color(0xFFA8B0BF);
+  static const Color textMuted = Color(0xFF737C8D);
 
   // Brand colors
   static const Color primary = Color(0xFF6366F1); // Indigo
@@ -190,6 +190,7 @@ class AppSizing {
   static const double radiusFull = 9999;
 
   // Icon sizes
+  static const double iconXs = 14;
   static const double iconSm = 16;
   static const double iconMd = 20;
   static const double iconLg = 24;
@@ -206,17 +207,254 @@ class AppSizing {
   static const double fabSize = 56;
 }
 
+@immutable
+class NeoPalette {
+  final Color appBg;
+  final Color surface1;
+  final Color surface2;
+  final Color stroke;
+  final Color textPrimary;
+  final Color textSecondary;
+  final Color textMuted;
+  final Color iconPrimary;
+  final Color iconSecondary;
+  final Color accent;
+  final Color accentViolet;
+  final Color accentBlue;
+  final Color balanceCardStart;
+  final Color balanceCardEnd;
+  final Color expenseCardStart;
+  final Color expenseCardEnd;
+  final Color incomeCardStart;
+  final Color incomeCardEnd;
+
+  const NeoPalette({
+    required this.appBg,
+    required this.surface1,
+    required this.surface2,
+    required this.stroke,
+    required this.textPrimary,
+    required this.textSecondary,
+    required this.textMuted,
+    required this.iconPrimary,
+    required this.iconSecondary,
+    required this.accent,
+    required this.accentViolet,
+    required this.accentBlue,
+    required this.balanceCardStart,
+    required this.balanceCardEnd,
+    required this.expenseCardStart,
+    required this.expenseCardEnd,
+    required this.incomeCardStart,
+    required this.incomeCardEnd,
+  });
+}
+
+class NeoTheme {
+  NeoTheme._();
+
+  static final NeoPalette dark = NeoPalette(
+    appBg: const HSLColor.fromAHSL(1, 0, 0, 0.055).toColor(),
+    surface1: const HSLColor.fromAHSL(1, 220, 0.164, 0.108).toColor(),
+    surface2: const HSLColor.fromAHSL(1, 218.2, 0.159, 0.135).toColor(),
+    stroke: const HSLColor.fromAHSL(1, 217.5, 0.157, 0.200).toColor(),
+    textPrimary: const HSLColor.fromAHSL(1, 217.5, 0.500, 0.969).toColor(),
+    textSecondary: const HSLColor.fromAHSL(1, 219.1, 0.152, 0.704).toColor(),
+    textMuted: const HSLColor.fromAHSL(1, 219.2, 0.102, 0.502).toColor(),
+    iconPrimary: const HSLColor.fromAHSL(1, 217.5, 0.500, 0.969).toColor(),
+    iconSecondary: const HSLColor.fromAHSL(1, 219.1, 0.152, 0.704).toColor(),
+    accent: const HSLColor.fromAHSL(1, 69.7, 0.850, 0.686).toColor(),
+    accentViolet: const HSLColor.fromAHSL(1, 263.5, 1.000, 0.775).toColor(),
+    accentBlue: const HSLColor.fromAHSL(1, 223.6, 1.000, 0.763).toColor(),
+    balanceCardStart: const HSLColor.fromAHSL(1, 189.3, 0.630, 0.180).toColor(),
+    balanceCardEnd: const HSLColor.fromAHSL(1, 182.7, 0.556, 0.159).toColor(),
+    expenseCardStart: const HSLColor.fromAHSL(1, 341.1, 0.432, 0.159).toColor(),
+    expenseCardEnd: const HSLColor.fromAHSL(1, 333.6, 0.352, 0.139).toColor(),
+    incomeCardStart: const HSLColor.fromAHSL(1, 164.7, 0.595, 0.155).toColor(),
+    incomeCardEnd: const HSLColor.fromAHSL(1, 164.7, 0.558, 0.151).toColor(),
+  );
+
+  static final NeoPalette light = NeoPalette(
+    appBg: const HSLColor.fromAHSL(1, 220, 0.18, 0.96).toColor(),
+    surface1: const HSLColor.fromAHSL(1, 220, 0.22, 0.99).toColor(),
+    surface2: const HSLColor.fromAHSL(1, 220, 0.18, 0.95).toColor(),
+    stroke: const HSLColor.fromAHSL(1, 220, 0.18, 0.86).toColor(),
+    textPrimary: const HSLColor.fromAHSL(1, 220, 0.28, 0.14).toColor(),
+    textSecondary: const HSLColor.fromAHSL(1, 220, 0.14, 0.40).toColor(),
+    textMuted: const HSLColor.fromAHSL(1, 220, 0.14, 0.52).toColor(),
+    iconPrimary: const HSLColor.fromAHSL(1, 220, 0.28, 0.14).toColor(),
+    iconSecondary: const HSLColor.fromAHSL(1, 220, 0.14, 0.40).toColor(),
+    accent: const HSLColor.fromAHSL(1, 74, 0.52, 0.36).toColor(),
+    accentViolet: const HSLColor.fromAHSL(1, 264.2, 0.633, 0.647).toColor(),
+    accentBlue: const HSLColor.fromAHSL(1, 222.6, 0.734, 0.631).toColor(),
+    balanceCardStart: const HSLColor.fromAHSL(1, 196, 0.66, 0.84).toColor(),
+    balanceCardEnd: const HSLColor.fromAHSL(1, 196, 0.58, 0.78).toColor(),
+    expenseCardStart: const HSLColor.fromAHSL(1, 351, 0.65, 0.86).toColor(),
+    expenseCardEnd: const HSLColor.fromAHSL(1, 351, 0.56, 0.79).toColor(),
+    incomeCardStart: const HSLColor.fromAHSL(1, 152, 0.56, 0.84).toColor(),
+    incomeCardEnd: const HSLColor.fromAHSL(1, 152, 0.48, 0.77).toColor(),
+  );
+
+  static bool isLight(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.light;
+
+  static NeoPalette of(BuildContext context) => isLight(context) ? light : dark;
+
+  static Color positiveValue(BuildContext context) => isLight(context)
+      ? const HSLColor.fromAHSL(1, 94.3, 0.461, 0.327).toColor()
+      : const HSLColor.fromAHSL(1, 96.5, 0.723, 0.675).toColor();
+
+  static Color negativeValue(BuildContext context) => isLight(context)
+      ? const HSLColor.fromAHSL(1, 349.3, 0.488, 0.525).toColor()
+      : const HSLColor.fromAHSL(1, 0, 1.0, 0.739).toColor();
+
+  static Color warningValue(BuildContext context) => isLight(context)
+      ? const HSLColor.fromAHSL(1, 36.2, 0.608, 0.480).toColor()
+      : const HSLColor.fromAHSL(1, 37.0, 1.0, 0.704).toColor();
+
+  static Color infoValue(BuildContext context) => isLight(context)
+      ? const HSLColor.fromAHSL(1, 202.4, 0.593, 0.433).toColor()
+      : const HSLColor.fromAHSL(1, 202.1, 1.0, 0.708).toColor();
+
+  static Color controlIdleBackground(BuildContext context) =>
+      of(context).surface2;
+
+  static Color controlIdleForeground(BuildContext context) =>
+      of(context).textSecondary;
+
+  static Color controlIdleBorder(BuildContext context) =>
+      of(context).stroke.withValues(alpha: 0.9);
+
+  static Color controlSelectedBackground(BuildContext context) =>
+      of(context).accent.withValues(alpha: isLight(context) ? 0.18 : 0.15);
+
+  static Color controlSelectedForeground(BuildContext context) =>
+      of(context).accent.withValues(alpha: 0.95);
+
+  static Color controlSelectedBorder(BuildContext context) =>
+      controlSelectedForeground(context)
+          .withValues(alpha: isLight(context) ? 0.55 : 0.42);
+}
+
+class NeoTypography {
+  NeoTypography._();
+
+  static TextStyle pageTitle(BuildContext context) => AppTypography.h2.copyWith(
+        color: NeoTheme.of(context).textPrimary,
+        fontSize: 24,
+        fontWeight: FontWeight.w700,
+        height: 1.15,
+      );
+
+  static TextStyle pageContext(BuildContext context) =>
+      AppTypography.bodySmall.copyWith(
+        color: NeoTheme.of(context).textSecondary,
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        height: 1.1,
+      );
+
+  static TextStyle sectionTitle(BuildContext context) =>
+      AppTypography.h3.copyWith(
+        color: NeoTheme.of(context).textPrimary,
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+        height: 1.2,
+      );
+
+  static TextStyle sectionAction(BuildContext context) =>
+      AppTypography.labelMedium.copyWith(
+        color: NeoTheme.of(context).accent,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+        height: 1.1,
+      );
+
+  static TextStyle cardTitle(BuildContext context) =>
+      AppTypography.labelLarge.copyWith(
+        color: NeoTheme.of(context).textPrimary,
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        height: 1.12,
+      );
+
+  static TextStyle chipLabel(
+    BuildContext context, {
+    required bool isSelected,
+  }) {
+    final palette = NeoTheme.of(context);
+    return AppTypography.labelMedium.copyWith(
+      color: isSelected ? palette.iconPrimary : palette.textSecondary,
+      fontSize: 12,
+      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+      height: 1.0,
+    );
+  }
+
+  static TextStyle rowTitle(BuildContext context) =>
+      AppTypography.bodyLarge.copyWith(
+        color: NeoTheme.of(context).textPrimary,
+        fontWeight: FontWeight.w600,
+        fontSize: 16,
+        height: 1.2,
+      );
+
+  static TextStyle rowSecondary(BuildContext context) =>
+      AppTypography.bodySmall.copyWith(
+        color: NeoTheme.of(context).textSecondary,
+        fontSize: 13,
+        fontWeight: FontWeight.w500,
+        height: 1.2,
+      );
+
+  static TextStyle rowAmount(BuildContext context, Color color) =>
+      AppTypography.amountSmall.copyWith(
+        color: color,
+        fontWeight: FontWeight.w700,
+        fontSize: 16,
+        height: 1.1,
+        fontFeatures: const [FontFeature.tabularFigures()],
+      );
+}
+
+class NeoIconSizes {
+  NeoIconSizes._();
+
+  static const double xxs = 10;
+  static const double xs = 11;
+  static const double sm = 14;
+  static const double md = 16;
+  static const double lg = 18;
+  static const double xl = 20;
+  static const double xxl = AppSizing.iconLg;
+}
+
+class NeoControlSizing {
+  NeoControlSizing._();
+
+  static const double radius = 20;
+  static const double minHeight = 44;
+  static const double minWidth = 64;
+}
+
 /// App theme configuration
 class AppTheme {
   AppTheme._();
 
-  static const Color _lightBackground = Color(0xFFF5F6F8);
-  static const Color _lightSurface = Color(0xFFFFFFFF);
-  static const Color _lightSurfaceAlt = Color(0xFFF0F2F6);
-  static const Color _lightBorder = Color(0xFFD7DCE5);
-  static const Color _lightTextPrimary = Color(0xFF151B26);
-  static const Color _lightTextSecondary = Color(0xFF5E6675);
-  static const Color _lightTextMuted = Color(0xFF8791A3);
+  static final Color _lightBackground =
+      const HSLColor.fromAHSL(1, 220.0, 0.176, 0.967).toColor();
+  static final Color _lightSurface =
+      const HSLColor.fromAHSL(1, 0, 0, 1.0).toColor();
+  static final Color _lightSurfaceAlt =
+      const HSLColor.fromAHSL(1, 220.0, 0.250, 0.953).toColor();
+  static final Color _lightBorder =
+      const HSLColor.fromAHSL(1, 218.6, 0.212, 0.871).toColor();
+  static final Color _lightTextPrimary =
+      const HSLColor.fromAHSL(1, 218.8, 0.288, 0.116).toColor();
+  static final Color _lightTextSecondary =
+      const HSLColor.fromAHSL(1, 219.1, 0.109, 0.414).toColor();
+  static final Color _lightTextMuted =
+      const HSLColor.fromAHSL(1, 218.6, 0.132, 0.584).toColor();
 
   static ThemeData get darkTheme {
     return ThemeData(
@@ -358,13 +596,13 @@ class AppTheme {
       useMaterial3: true,
       brightness: Brightness.light,
       scaffoldBackgroundColor: _lightBackground,
-      colorScheme: const ColorScheme.light(
+      colorScheme: ColorScheme.light(
         primary: AppColors.primary,
         secondary: AppColors.primaryLight,
         surface: _lightSurface,
         error: AppColors.error,
       ),
-      appBarTheme: const AppBarTheme(
+      appBarTheme: AppBarTheme(
         backgroundColor: _lightBackground,
         foregroundColor: _lightTextPrimary,
         elevation: 0,
@@ -375,7 +613,7 @@ class AppTheme {
           color: _lightTextPrimary,
         ),
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: _lightSurface,
         selectedItemColor: AppColors.primary,
         unselectedItemColor: _lightTextMuted,
@@ -387,7 +625,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          side: const BorderSide(color: _lightBorder),
+          side: BorderSide(color: _lightBorder),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -407,7 +645,7 @@ class AppTheme {
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        hintStyle: const TextStyle(color: _lightTextMuted),
+        hintStyle: TextStyle(color: _lightTextMuted),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -433,22 +671,22 @@ class AppTheme {
           ),
         ),
       ),
-      bottomSheetTheme: const BottomSheetThemeData(
+      bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: _lightSurface,
-        shape: RoundedRectangleBorder(
+        shape: const RoundedRectangleBorder(
           borderRadius:
               BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
         ),
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: _lightSurface,
-        contentTextStyle: const TextStyle(
+        contentTextStyle: TextStyle(
           fontSize: 14,
           color: _lightTextPrimary,
         ),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-          side: const BorderSide(color: _lightBorder),
+          side: BorderSide(color: _lightBorder),
         ),
         behavior: SnackBarBehavior.floating,
       ),
@@ -457,11 +695,11 @@ class AppTheme {
         foregroundColor: Colors.white,
         elevation: 4,
       ),
-      dividerTheme: const DividerThemeData(
+      dividerTheme: DividerThemeData(
         color: _lightBorder,
         thickness: 1,
       ),
-      textTheme: const TextTheme(
+      textTheme: TextTheme(
         displayLarge: TextStyle(
           fontSize: 32,
           fontWeight: FontWeight.w700,

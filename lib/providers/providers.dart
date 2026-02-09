@@ -13,3 +13,5 @@ export 'subscription_provider.dart';
 export 'yearly_provider.dart';
 export 'account_provider.dart';
 export 'theme_mode_provider.dart';
+export 'analysis_provider.dart';
+export 'analysis_metrics_provider.dart';

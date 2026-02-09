@@ -28,109 +28,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _isUpcomingExpanded = true;
   bool _isRecentTransactionsExpanded = true;
 
-  static final _darkPalette = _HomePalette(
-    appBg: const HSLColor.fromAHSL(1.0, 0.0, 0.0, 0.055).toColor(),
-    surface1: const Color(0xFF171A20),
-    surface2: const Color(0xFF1D2128),
-    stroke: const Color(0xFF2B313B),
-    textPrimary: const Color(0xFFF3F6FB),
-    textSecondary: const Color(0xFFA8B0BF),
-    accent: const Color(0xFFDDF36B),
-    // Deep tinted KPI cards for dark mode (closer to provided reference)
-    balanceCardStart: const HSLColor.fromAHSL(1, 198, 0.64, 0.18).toColor(),
-    balanceCardEnd: const HSLColor.fromAHSL(1, 199, 0.56, 0.16).toColor(),
-    expenseCardStart: const HSLColor.fromAHSL(1, 338, 0.43, 0.16).toColor(),
-    expenseCardEnd: const HSLColor.fromAHSL(1, 338, 0.36, 0.14).toColor(),
-    incomeCardStart: const HSLColor.fromAHSL(1, 165, 0.63, 0.17).toColor(),
-    incomeCardEnd: const HSLColor.fromAHSL(1, 165, 0.56, 0.15).toColor(),
-  );
+  NeoPalette get _palette => NeoTheme.of(context);
 
-  static final _lightPalette = _HomePalette(
-    appBg: const HSLColor.fromAHSL(1, 220, 0.18, 0.96).toColor(),
-    surface1: const HSLColor.fromAHSL(1, 220, 0.22, 0.99).toColor(),
-    surface2: const HSLColor.fromAHSL(1, 220, 0.18, 0.95).toColor(),
-    stroke: const HSLColor.fromAHSL(1, 220, 0.18, 0.86).toColor(),
-    textPrimary: const HSLColor.fromAHSL(1, 220, 0.28, 0.14).toColor(),
-    textSecondary: const HSLColor.fromAHSL(1, 220, 0.14, 0.40).toColor(),
-    accent: const HSLColor.fromAHSL(1, 74, 0.52, 0.36).toColor(),
-    // Light counterparts for dark KPI palette
-    // Higher-contrast light KPI cards so they stand off the page background
-    balanceCardStart: const HSLColor.fromAHSL(1, 196, 0.66, 0.84).toColor(),
-    balanceCardEnd: const HSLColor.fromAHSL(1, 196, 0.58, 0.78).toColor(),
-    expenseCardStart: const HSLColor.fromAHSL(1, 351, 0.65, 0.86).toColor(),
-    expenseCardEnd: const HSLColor.fromAHSL(1, 351, 0.56, 0.79).toColor(),
-    incomeCardStart: const HSLColor.fromAHSL(1, 152, 0.56, 0.84).toColor(),
-    incomeCardEnd: const HSLColor.fromAHSL(1, 152, 0.48, 0.77).toColor(),
-  );
+  bool _isLightMode(BuildContext context) => NeoTheme.isLight(context);
 
-  _HomePalette _palette(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.light
-          ? _lightPalette
-          : _darkPalette;
+  Color _hsl(double h, double s, double l) =>
+      HSLColor.fromAHSL(1, h, s, l).toColor();
 
-  bool _isLightMode(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.light;
-
-  Color get _neoAppBg => _palette(context).appBg;
-  Color get _neoSurface1 => _palette(context).surface1;
-  Color get _neoSurface2 => _palette(context).surface2;
-  Color get _neoStroke => _palette(context).stroke;
-  Color get _neoTextPrimary => _palette(context).textPrimary;
-  Color get _neoTextSecondary => _palette(context).textSecondary;
-  Color get _neoLime => _palette(context).accent;
-  Color get _neoBlueCardStart => _palette(context).balanceCardStart;
-  Color get _neoBlueCardEnd => _palette(context).balanceCardEnd;
-  Color get _neoExpenseCardStart => _palette(context).expenseCardStart;
-  Color get _neoExpenseCardEnd => _palette(context).expenseCardEnd;
-  Color get _neoIncomeCardStart => _palette(context).incomeCardStart;
-  Color get _neoIncomeCardEnd => _palette(context).incomeCardEnd;
-  Color get _positiveColor =>
-      _isLightMode(context) ? const Color(0xFF4E7A2D) : const Color(0xFF9FE870);
-  Color get _negativeColor =>
-      _isLightMode(context) ? const Color(0xFFC14B60) : const Color(0xFFFF7A7A);
-  Color get _warningColor =>
-      _isLightMode(context) ? const Color(0xFFC58A30) : const Color(0xFFFFC568);
+  Color get _neoAppBg => _palette.appBg;
+  Color get _neoSurface1 => _palette.surface1;
+  Color get _neoSurface2 => _palette.surface2;
+  Color get _neoStroke => _palette.stroke;
+  Color get _neoTextPrimary => _palette.textPrimary;
+  Color get _neoTextSecondary => _palette.textSecondary;
+  Color get _neoLime => _palette.accent;
+  Color get _neoBlueCardStart => _palette.balanceCardStart;
+  Color get _neoBlueCardEnd => _palette.balanceCardEnd;
+  Color get _neoExpenseCardStart => _palette.expenseCardStart;
+  Color get _neoExpenseCardEnd => _palette.expenseCardEnd;
+  Color get _neoIncomeCardStart => _palette.incomeCardStart;
+  Color get _neoIncomeCardEnd => _palette.incomeCardEnd;
+  Color get _positiveColor => NeoTheme.positiveValue(context);
+  Color get _negativeColor => NeoTheme.negativeValue(context);
+  Color get _warningColor => NeoTheme.warningValue(context);
   static const double _homeCardRadius = 16;
   static const double _homeHorizontalPadding = AppSpacing.md;
   static const double _homeSectionSpacing = 14;
   static const double _homeHeaderActionHeight = 34;
   static const double _homeRowVerticalPadding = 6;
 
-  TextStyle get _sectionTitleStyle => AppTypography.h3.copyWith(
-        color: _neoTextPrimary,
-        fontSize: 18,
-        fontWeight: FontWeight.w600,
-        height: 1.2,
-      );
+  TextStyle get _sectionTitleStyle => NeoTypography.sectionTitle(context);
 
-  TextStyle get _sectionActionStyle => AppTypography.labelMedium.copyWith(
-        color: _neoLime,
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        height: 1.1,
-      );
+  TextStyle get _sectionActionStyle => NeoTypography.sectionAction(context);
 
-  TextStyle get _rowTitleStyle => AppTypography.bodyLarge.copyWith(
-        color: _neoTextPrimary,
-        fontWeight: FontWeight.w600,
-        fontSize: 16,
-        height: 1.2,
-      );
+  TextStyle get _rowTitleStyle => NeoTypography.rowTitle(context);
 
-  TextStyle get _rowSecondaryStyle => AppTypography.bodySmall.copyWith(
-        color: _neoTextSecondary,
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-        height: 1.2,
-      );
+  TextStyle get _rowSecondaryStyle => NeoTypography.rowSecondary(context);
 
-  TextStyle _rowAmountStyle(Color color) => AppTypography.amountSmall.copyWith(
-        color: color,
-        fontWeight: FontWeight.w700,
-        fontSize: 16,
-        height: 1.1,
-        fontFeatures: const [FontFeature.tabularFigures()],
-      );
+  TextStyle _rowAmountStyle(Color color) =>
+      NeoTypography.rowAmount(context, color);
 
   @override
   void initState() {
@@ -371,7 +307,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         child: Icon(
           icon,
-          size: 18,
+          size: NeoIconSizes.lg,
           color: _neoTextSecondary,
         ),
       ),
@@ -445,11 +381,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final isLight = _isLightMode(context);
         final isNarrow = constraints.maxWidth < 360;
         final inkColor =
-            isLight ? const Color(0xFF085864) : const Color(0xFF1ED0C0);
+            isLight ? _hsl(187.8, 0.852, 0.212) : _hsl(174.6, 0.748, 0.467);
         final iconInkColor =
-            isLight ? const Color(0xFF0A6664) : const Color(0xFF1FC3B6);
+            isLight ? _hsl(178.7, 0.821, 0.220) : _hsl(175.2, 0.726, 0.443);
         final trendColor =
-            isLight ? const Color(0xFF0B7367) : const Color(0xFF1AB3A8);
+            isLight ? _hsl(173.1, 0.825, 0.247) : _hsl(173.8, 0.743, 0.403);
         final eyeBgColor = isLight
             ? Color.alphaBlend(
                 Colors.white.withValues(alpha: 0.42),
@@ -462,7 +398,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final eyeBorderColor = isLight
             ? inkColor.withValues(alpha: 0.25)
             : Colors.white.withValues(alpha: 0.22);
-        final eyeIconColor = isLight ? const Color(0xFF25374A) : iconInkColor;
+        final eyeIconColor = isLight ? _hsl(210.8, 0.333, 0.218) : iconInkColor;
         final cardHeight = isNarrow ? 98.0 : 104.0;
         final rightColumnWidth = isNarrow ? 116.0 : 126.0;
         final eyeSize = isNarrow ? 42.0 : 46.0;
@@ -614,7 +550,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               children: [
                                 Icon(
                                   LucideIcons.trendingUp,
-                                  size: 14,
+                                  size: NeoIconSizes.sm,
                                   color: trendColor,
                                 ),
                                 const SizedBox(width: 4),
@@ -723,7 +659,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               child: Icon(
                 _getAccountTypeIcon(account.type),
-                size: 18,
+                size: NeoIconSizes.lg,
                 color: _neoTextSecondary,
               ),
             ),
@@ -758,9 +694,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }) {
     final isLight = _isLightMode(context);
     final darkAccent =
-        isIncome ? const Color(0xFF2FDE8C) : const Color(0xFFFF5B6A);
+        isIncome ? _hsl(151.9, 0.726, 0.527) : _hsl(354.5, 1.0, 0.678);
     final lightAccent =
-        isIncome ? const Color(0xFF0E7A4C) : const Color(0xFFAA384A);
+        isIncome ? _hsl(154.4, 0.794, 0.267) : _hsl(350.5, 0.504, 0.443);
     final textColor = isLight ? lightAccent : darkAccent;
     final iconBgColor = isLight
         ? lightAccent.withValues(alpha: 0.22)
@@ -769,8 +705,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ? <Color>[_neoIncomeCardStart, _neoIncomeCardEnd]
         : <Color>[_neoExpenseCardStart, _neoExpenseCardEnd];
     final changeColor = isIncome
-        ? (isLight ? const Color(0xFF136C45) : const Color(0xFF546A37))
-        : (isLight ? const Color(0xFF9A3343) : const Color(0xFFB2485A));
+        ? (isLight ? _hsl(153.7, 0.701, 0.249) : _hsl(85.9, 0.317, 0.316))
+        : (isLight ? _hsl(350.7, 0.502, 0.402) : _hsl(349.8, 0.424, 0.490));
     final amountStyle = AppTypography.amountMedium.copyWith(
       color: textColor,
       fontWeight: FontWeight.w700,
@@ -812,7 +748,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               : darkAccent.withValues(alpha: 0.34),
                         ),
                       ),
-                      child: Icon(icon, size: 11, color: textColor),
+                      child:
+                          Icon(icon, size: NeoIconSizes.xs, color: textColor),
                     ),
                     const SizedBox(width: 6),
                     Expanded(
@@ -888,7 +825,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isLight = _isLightMode(context);
     return OutlinedButton.icon(
       onPressed: onPressed,
-      icon: Icon(icon, size: 14, color: _neoLime),
+      icon: Icon(icon, size: NeoIconSizes.sm, color: _neoLime),
       label: Text(label, style: _sectionActionStyle),
       style: OutlinedButton.styleFrom(
         foregroundColor: _neoLime,
@@ -926,7 +863,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
         child: Icon(
           expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown,
-          size: 16,
+          size: NeoIconSizes.md,
           color: _neoTextSecondary,
         ),
       ),
@@ -1045,7 +982,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Icon(
               LucideIcons.calendarCheck2,
               color: _neoTextSecondary,
-              size: 20,
+              size: NeoIconSizes.xl,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -1086,7 +1023,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 borderRadius: BorderRadius.circular(11),
                 border: Border.all(color: _neoStroke),
               ),
-              child: Icon(_getIcon(sub.icon), size: 18, color: accentColor),
+              child: Icon(
+                _getIcon(sub.icon),
+                size: NeoIconSizes.lg,
+                color: accentColor,
+              ),
             ),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
@@ -1635,7 +1576,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Icon(
               LucideIcons.receipt,
               color: _neoTextSecondary,
-              size: 20,
+              size: NeoIconSizes.xl,
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
@@ -1656,7 +1597,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               foregroundColor:
                   _isLightMode(context) ? _neoTextPrimary : _neoSurface1,
             ),
-            icon: const Icon(LucideIcons.plus, size: 16),
+            icon: const Icon(LucideIcons.plus, size: NeoIconSizes.md),
             label: const Text('Add transaction'),
           ),
         ],
@@ -1685,7 +1626,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               child: Icon(
                 _getTransactionIcon(transaction),
-                size: 18,
+                size: NeoIconSizes.lg,
                 color: amountColor,
               ),
             ),
@@ -1824,36 +1765,4 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       builder: (context) => const TransactionFormSheet(),
     );
   }
-}
-
-class _HomePalette {
-  final Color appBg;
-  final Color surface1;
-  final Color surface2;
-  final Color stroke;
-  final Color textPrimary;
-  final Color textSecondary;
-  final Color accent;
-  final Color balanceCardStart;
-  final Color balanceCardEnd;
-  final Color expenseCardStart;
-  final Color expenseCardEnd;
-  final Color incomeCardStart;
-  final Color incomeCardEnd;
-
-  const _HomePalette({
-    required this.appBg,
-    required this.surface1,
-    required this.surface2,
-    required this.stroke,
-    required this.textPrimary,
-    required this.textSecondary,
-    required this.accent,
-    required this.balanceCardStart,
-    required this.balanceCardEnd,
-    required this.expenseCardStart,
-    required this.expenseCardEnd,
-    required this.incomeCardStart,
-    required this.incomeCardEnd,
-  });
 }

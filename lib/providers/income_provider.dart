@@ -25,16 +25,33 @@ final incomeSourcesProvider = FutureProvider<List<IncomeSource>>((ref) async {
   final incomeService = ref.read(incomeServiceProvider);
   final transactionService = ref.read(_transactionServiceProvider);
 
-  // Fetch income sources
   final sources = await incomeService.getIncomeSourcesForMonth(month.id);
+  final transactions =
+      await transactionService.getTransactionsForMonth(month.id);
+  return _withCalculatedActuals(sources, transactions);
+});
 
-  // Fetch all transactions for this month to calculate actuals
-  final transactions = await transactionService.getTransactionsForMonth(month.id);
+/// Income sources for a specific month (with calculated actuals from transactions).
+/// Used by Analysis and other month-scoped screens.
+final incomeSourcesForMonthProvider =
+    FutureProvider.family<List<IncomeSource>, String>((ref, monthId) async {
+  final incomeService = ref.read(incomeServiceProvider);
+  final transactionService = ref.read(_transactionServiceProvider);
 
-  // Calculate actuals for each income source from transactions
+  final sources = await incomeService.getIncomeSourcesForMonth(monthId);
+  final transactions =
+      await transactionService.getTransactionsForMonth(monthId);
+  return _withCalculatedActuals(sources, transactions);
+});
+
+List<IncomeSource> _withCalculatedActuals(
+  List<IncomeSource> sources,
+  List<Transaction> transactions,
+) {
   return sources.map((source) {
     final sourceTransactions = transactions.where(
-      (tx) => tx.incomeSourceId == source.id && tx.type == TransactionType.income,
+      (tx) =>
+          tx.incomeSourceId == source.id && tx.type == TransactionType.income,
     );
     final actual = sourceTransactions.fold<double>(
       0.0,
@@ -42,7 +59,7 @@ final incomeSourcesProvider = FutureProvider<List<IncomeSource>>((ref) async {
     );
     return source.copyWith(actual: actual);
   }).toList();
-});
+}
 
 /// Total projected income for active month (only recurring sources)
 final totalProjectedIncomeProvider = Provider<double>((ref) {
@@ -118,6 +135,7 @@ class IncomeNotifier extends AsyncNotifier<List<IncomeSource>> {
 
     ref.invalidateSelf();
     ref.invalidate(incomeSourcesProvider);
+    ref.invalidate(incomeSourcesForMonthProvider);
     return source;
   }
 
@@ -141,6 +159,7 @@ class IncomeNotifier extends AsyncNotifier<List<IncomeSource>> {
 
     ref.invalidateSelf();
     ref.invalidate(incomeSourcesProvider);
+    ref.invalidate(incomeSourcesForMonthProvider);
     return source;
   }
 
@@ -150,6 +169,7 @@ class IncomeNotifier extends AsyncNotifier<List<IncomeSource>> {
 
     ref.invalidateSelf();
     ref.invalidate(incomeSourcesProvider);
+    ref.invalidate(incomeSourcesForMonthProvider);
   }
 
   /// Reorder income sources
@@ -158,6 +178,7 @@ class IncomeNotifier extends AsyncNotifier<List<IncomeSource>> {
 
     ref.invalidateSelf();
     ref.invalidate(incomeSourcesProvider);
+    ref.invalidate(incomeSourcesForMonthProvider);
   }
 
   /// Copy income sources from another month
@@ -176,6 +197,7 @@ class IncomeNotifier extends AsyncNotifier<List<IncomeSource>> {
 
     ref.invalidateSelf();
     ref.invalidate(incomeSourcesProvider);
+    ref.invalidate(incomeSourcesForMonthProvider);
     return sources;
   }
 }

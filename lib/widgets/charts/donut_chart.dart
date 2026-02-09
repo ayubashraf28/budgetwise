@@ -66,6 +66,7 @@ class _DonutChartState extends State<DonutChart> {
     }
 
     return SizedBox(
+      width: double.infinity,
       height: widget.height,
       child: LayoutBuilder(
         builder: (context, constraints) {

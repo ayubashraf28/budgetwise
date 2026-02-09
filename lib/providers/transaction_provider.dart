@@ -201,8 +201,11 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
   void _invalidateAll() {
     ref.invalidateSelf();
     ref.invalidate(transactionsProvider);
+    ref.invalidate(transactionsForMonthProvider);
     ref.invalidate(categoriesProvider);
+    ref.invalidate(categoriesForMonthProvider);
     ref.invalidate(incomeSourcesProvider);
+    ref.invalidate(incomeSourcesForMonthProvider);
     ref.invalidate(accountBalancesProvider);
     ref.invalidate(allAccountBalancesProvider);
     ref.invalidate(netWorthProvider);

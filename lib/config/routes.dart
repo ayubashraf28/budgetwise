@@ -11,6 +11,7 @@ import '../screens/home/home_screen.dart';
 import '../screens/income/income_screen.dart';
 import '../screens/categories/categories_screen.dart';
 import '../screens/manage/manage_screen.dart';
+import '../screens/analysis/analysis_screen.dart';
 import '../screens/expenses/expenses_overview_screen.dart';
 import '../screens/expenses/category_detail_screen.dart';
 import '../screens/expenses/item_detail_screen.dart';
@@ -137,7 +138,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/analysis',
             name: 'analysis',
-            redirect: (context, state) => '/budget',
+            builder: (context, state) => const AnalysisScreen(),
           ),
           GoRoute(
             path: '/categories',
