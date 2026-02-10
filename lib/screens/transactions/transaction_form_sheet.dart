@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
-import '../../models/transaction.dart';
-import '../../models/category.dart';
-import '../../models/item.dart';
-import '../../models/income_source.dart';
 import '../../models/account.dart';
+import '../../models/category.dart';
+import '../../models/income_source.dart';
+import '../../models/item.dart';
+import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
-import '../../widgets/common/dropdown_menu_item_label.dart';
-import '../../widgets/common/neo_dropdown_form_field.dart';
+import '../../widgets/common/calculator_keypad.dart';
+import '../../widgets/common/selection_picker_sheet.dart';
 import '../expenses/category_form_sheet.dart';
 import '../expenses/item_form_sheet.dart';
 import '../income/income_form_sheet.dart';
@@ -32,8 +31,6 @@ class TransactionFormSheet extends ConsumerStatefulWidget {
 }
 
 class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
-  final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _amountController;
   late final TextEditingController _noteController;
 
   late TransactionType _transactionType;
@@ -43,11 +40,11 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   String? _selectedAccountId;
   late DateTime _selectedDate;
   bool _isLoading = false;
-  int _dropdownResetCounter = 0;
 
-  static const _addNewCategoryValue = '__add_new_category__';
-  static const _addNewItemValue = '__add_new_item__';
-  static const _addNewIncomeValue = '__add_new_income_source__';
+  String _displayValue = '0';
+  double _runningTotal = 0;
+  String? _pendingOperator;
+  bool _shouldResetDisplay = false;
 
   bool get isEditing => widget.transaction != null;
 
@@ -55,23 +52,22 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   void initState() {
     super.initState();
     final tx = widget.transaction;
+    final initialAmount = tx?.amount ?? 0;
 
-    _amountController = TextEditingController(
-      text: tx?.amount.toStringAsFixed(2) ?? '',
-    );
     _noteController = TextEditingController(text: tx?.note ?? '');
-
     _transactionType = tx?.type ?? TransactionType.expense;
     _selectedCategoryId = tx?.categoryId;
     _selectedItemId = tx?.itemId;
     _selectedIncomeSourceId = tx?.incomeSourceId;
     _selectedAccountId = tx?.accountId;
     _selectedDate = tx?.date ?? DateTime.now();
+
+    _displayValue = _formatDisplayNumber(initialAmount);
+    _runningTotal = initialAmount;
   }
 
   @override
   void dispose() {
-    _amountController.dispose();
     _noteController.dispose();
     super.dispose();
   }
@@ -79,15 +75,15 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   @override
   Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
-    final categories = ref.watch(categoriesProvider).value ?? [];
-    final incomeSources = ref.watch(incomeSourcesProvider).value ?? [];
-    final allAccounts = ref.watch(allAccountsProvider).value ?? [];
+    final categories = ref.watch(categoriesProvider).value ?? <Category>[];
+    final incomeSources =
+        ref.watch(incomeSourcesProvider).value ?? <IncomeSource>[];
+    final allAccounts = ref.watch(allAccountsProvider).value ?? <Account>[];
     final currencySymbol = ref.watch(currencySymbolProvider);
 
     final activeAccounts = allAccounts.where((a) => !a.isArchived).toList();
     final formAccounts = <Account>[...activeAccounts];
 
-    // Allow editing a transaction that references an archived account.
     if (_selectedAccountId != null &&
         !formAccounts.any((a) => a.id == _selectedAccountId)) {
       final selectedAccount =
@@ -97,9 +93,6 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       }
     }
 
-    // Defensive: if selected IDs don't exist in the loaded lists (e.g., the
-    // transaction references entities from a different month), compute safe
-    // values for this frame and schedule a state reset for the next frame.
     final safeCategoryId = (_selectedCategoryId != null &&
             categories.any((c) => c.id == _selectedCategoryId))
         ? _selectedCategoryId
@@ -113,14 +106,11 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
         ? _selectedAccountId
         : null;
 
-    // Get items for the safe category
-    List<Item> items = [];
+    List<Item> items = <Item>[];
     if (safeCategoryId != null) {
-      final matchedCategory =
+      final category =
           categories.where((c) => c.id == safeCategoryId).firstOrNull;
-      if (matchedCategory != null) {
-        items = matchedCategory.items ?? [];
-      }
+      items = category?.items ?? <Item>[];
     }
 
     final safeItemId =
@@ -128,189 +118,137 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
             ? _selectedItemId
             : null;
 
-    // Schedule state reset so subsequent builds use corrected values
     if (safeCategoryId != _selectedCategoryId ||
         safeItemId != _selectedItemId ||
         safeIncomeSourceId != _selectedIncomeSourceId ||
         safeAccountId != _selectedAccountId) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {
-            _selectedCategoryId = safeCategoryId;
-            _selectedItemId = safeItemId;
-            _selectedIncomeSourceId = safeIncomeSourceId;
-            _selectedAccountId = safeAccountId;
-          });
-        }
+        if (!mounted) return;
+        setState(() {
+          _selectedCategoryId = safeCategoryId;
+          _selectedItemId = safeItemId;
+          _selectedIncomeSourceId = safeIncomeSourceId;
+          _selectedAccountId = safeAccountId;
+        });
       });
     }
 
-    // For new transactions, preselect first active account for smoother UX.
     if (!isEditing && _selectedAccountId == null && activeAccounts.isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _selectedAccountId == null) {
-          setState(() {
-            _selectedAccountId = activeAccounts.first.id;
-          });
-        }
+        if (!mounted || _selectedAccountId != null) return;
+        setState(() => _selectedAccountId = activeAccounts.first.id);
       });
     }
+
+    final selectedAccount =
+        formAccounts.where((a) => a.id == safeAccountId).firstOrNull;
+    final selectedCategory =
+        categories.where((c) => c.id == safeCategoryId).firstOrNull;
+    final selectedItem = items.where((i) => i.id == safeItemId).firstOrNull;
+    final selectedIncomeSource =
+        incomeSources.where((s) => s.id == safeIncomeSourceId).firstOrNull;
+
+    final categoryPillValue = selectedCategory == null
+        ? 'Category'
+        : selectedItem == null
+            ? selectedCategory.name
+            : '${selectedCategory.name} - ${selectedItem.name}';
+    final sourcePillValue = selectedIncomeSource?.name ?? 'Source';
+    final accountPillValue = selectedAccount == null
+        ? 'Account'
+        : selectedAccount.isArchived
+            ? '${selectedAccount.name} (Archived)'
+            : selectedAccount.name;
 
     return Container(
       decoration: BoxDecoration(
         color: palette.surface1,
         borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppSizing.radiusXl)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
+          top: Radius.circular(AppSizing.radiusXl),
         ),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.md),
-            child: Form(
-              key: _formKey,
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.94,
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 180),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Handle
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: palette.stroke,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
+                  _buildTopBar(),
                   const SizedBox(height: AppSpacing.md),
-
-                  // Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        isEditing ? 'Edit Transaction' : 'Add Transaction',
-                        style: NeoTypography.sectionTitle(context),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(LucideIcons.x),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Type Toggle
                   _buildTypeToggle(),
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Amount Field
-                  _buildLabel('Amount'),
-                  const SizedBox(height: AppSpacing.sm),
-                  TextFormField(
-                    controller: _amountController,
-                    decoration: InputDecoration(
-                      hintText: '0.00',
-                      prefixText: '$currencySymbol ',
-                    ),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d{0,2}')),
+                  const SizedBox(height: AppSpacing.md),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildSelectorPill(
+                          icon: LucideIcons.landmark,
+                          label: 'Account',
+                          value: accountPillValue,
+                          onTap: _isLoading
+                              ? null
+                              : () => _pickAccount(formAccounts),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: _buildSelectorPill(
+                          icon: _transactionType == TransactionType.expense
+                              ? LucideIcons.tag
+                              : LucideIcons.wallet,
+                          label: _transactionType == TransactionType.expense
+                              ? 'Category'
+                              : 'Source',
+                          value: _transactionType == TransactionType.expense
+                              ? categoryPillValue
+                              : sourcePillValue,
+                          onTap: _isLoading
+                              ? null
+                              : () {
+                                  if (_transactionType ==
+                                      TransactionType.expense) {
+                                    _pickCategoryAndItem(categories);
+                                  } else {
+                                    _pickIncomeSource(incomeSources);
+                                  }
+                                },
+                        ),
+                      ),
                     ],
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter an amount';
-                      }
-                      final amount = double.tryParse(value);
-                      if (amount == null || amount <= 0) {
-                        return 'Please enter a valid amount';
-                      }
-                      return null;
-                    },
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Account Dropdown
-                  _buildLabel('Account'),
-                  const SizedBox(height: AppSpacing.sm),
-                  _buildAccountDropdown(formAccounts, safeAccountId),
                   if (activeAccounts.isEmpty) ...[
                     const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      'No active accounts found. Add one in Settings > Accounts.',
-                      style: AppTypography.bodySmall.copyWith(
-                        color: NeoTheme.negativeValue(context),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'No active accounts found. Add one in Settings > Accounts.',
+                        style: AppTypography.bodySmall.copyWith(
+                          color: NeoTheme.negativeValue(context),
+                        ),
                       ),
                     ),
                   ],
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Show Category/Item for expenses, Income Source for income
-                  if (_transactionType == TransactionType.expense) ...[
-                    // Category Dropdown
-                    _buildLabel('Category'),
-                    const SizedBox(height: AppSpacing.sm),
-                    _buildCategoryDropdown(categories, safeCategoryId),
-                    const SizedBox(height: AppSpacing.lg),
-
-                    // Item Dropdown
-                    _buildLabel('Item'),
-                    const SizedBox(height: AppSpacing.sm),
-                    _buildItemDropdown(items, safeItemId),
-                    const SizedBox(height: AppSpacing.lg),
-                  ] else ...[
-                    // Income Source Dropdown
-                    _buildLabel('Income Source'),
-                    const SizedBox(height: AppSpacing.sm),
-                    _buildIncomeSourceDropdown(
-                        incomeSources, safeIncomeSourceId),
-                    const SizedBox(height: AppSpacing.lg),
-                  ],
-
-                  // Date Picker
-                  _buildLabel('Date'),
-                  const SizedBox(height: AppSpacing.sm),
-                  _buildDatePicker(context),
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Note Field
-                  _buildLabel('Note (optional)'),
-                  const SizedBox(height: AppSpacing.sm),
-                  TextFormField(
-                    controller: _noteController,
-                    decoration: const InputDecoration(
-                      hintText: 'Add a note...',
-                    ),
-                    maxLines: 2,
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-
-                  // Submit Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: AppSizing.buttonHeight,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleSubmit,
-                      child: _isLoading
-                          ? const SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : Text(
-                              isEditing ? 'Save Changes' : 'Add Transaction'),
-                    ),
-                  ),
                   const SizedBox(height: AppSpacing.md),
+                  _buildNotesField(),
+                  const Spacer(),
+                  CalculatorKeypad(
+                    displayValue: _displayValue,
+                    activeOperator: _pendingOperator,
+                    currencySymbol: currencySymbol,
+                    onDigit: _handleDigit,
+                    onOperator: _handleOperator,
+                    onEquals: _handleEquals,
+                    onBackspace: _handleBackspace,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  _buildBottomBar(),
                 ],
               ),
             ),
@@ -320,12 +258,43 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: AppTypography.labelMedium.copyWith(
-        color: NeoTheme.of(context).textSecondary,
-      ),
+  Widget _buildTopBar() {
+    final palette = NeoTheme.of(context);
+    return Row(
+      children: [
+        TextButton.icon(
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+          icon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
+          label: Text(
+            'CANCEL',
+            style: AppTypography.labelLarge.copyWith(letterSpacing: 0.2),
+          ),
+          style: TextButton.styleFrom(
+            foregroundColor: palette.textSecondary,
+          ),
+        ),
+        const Spacer(),
+        TextButton.icon(
+          onPressed: _isLoading ? null : _handleSubmit,
+          icon: _isLoading
+              ? SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: palette.accent,
+                  ),
+                )
+              : const Icon(LucideIcons.check, size: AppSizing.iconSm),
+          label: Text(
+            _isLoading ? 'SAVING' : 'SAVE',
+            style: AppTypography.labelLarge.copyWith(letterSpacing: 0.2),
+          ),
+          style: TextButton.styleFrom(
+            foregroundColor: palette.accent,
+          ),
+        ),
+      ],
     );
   }
 
@@ -340,11 +309,23 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       child: Row(
         children: [
           Expanded(
-            child: _buildTypeButton(
-              label: 'Expense',
-              icon: LucideIcons.trendingDown,
+            child: _buildTypeSegment(
+              label: 'INCOME',
+              isSelected: _transactionType == TransactionType.income,
+              onTap: () {
+                setState(() {
+                  _transactionType = TransactionType.income;
+                  _selectedCategoryId = null;
+                  _selectedItemId = null;
+                });
+              },
+            ),
+          ),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _buildTypeSegment(
+              label: 'EXPENSE',
               isSelected: _transactionType == TransactionType.expense,
-              color: NeoTheme.negativeValue(context),
               onTap: () {
                 setState(() {
                   _transactionType = TransactionType.expense;
@@ -355,17 +336,13 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
           ),
           const SizedBox(width: 4),
           Expanded(
-            child: _buildTypeButton(
-              label: 'Income',
-              icon: LucideIcons.trendingUp,
-              isSelected: _transactionType == TransactionType.income,
-              color: NeoTheme.positiveValue(context),
+            child: _buildTypeSegment(
+              label: 'TRANSFER',
+              isSelected: false,
               onTap: () {
-                setState(() {
-                  _transactionType = TransactionType.income;
-                  _selectedCategoryId = null;
-                  _selectedItemId = null;
-                });
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Coming Soon')),
+                );
               },
             ),
           ),
@@ -374,40 +351,46 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     );
   }
 
-  Widget _buildTypeButton({
+  Widget _buildTypeSegment({
     required String label,
-    required IconData icon,
     required bool isSelected,
-    required Color color,
     required VoidCallback onTap,
   }) {
     final palette = NeoTheme.of(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+      onTap: _isLoading ? null : onTap,
+      child: Ink(
         padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         decoration: BoxDecoration(
-          color:
-              isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
+          color: isSelected
+              ? NeoTheme.controlSelectedBackground(context)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-          border: isSelected
-              ? Border.all(color: color.withValues(alpha: 0.5))
-              : null,
+          border: Border.all(
+            color: isSelected
+                ? NeoTheme.controlSelectedBorder(context)
+                : Colors.transparent,
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              size: 18,
-              color: isSelected ? color : palette.textSecondary,
-            ),
-            const SizedBox(width: AppSpacing.xs),
+            if (isSelected) ...[
+              Icon(
+                LucideIcons.check,
+                size: AppSizing.iconXs,
+                color: NeoTheme.controlSelectedForeground(context),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+            ],
             Text(
               label,
-              style: TextStyle(
-                color: isSelected ? color : palette.textSecondary,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              style: AppTypography.labelMedium.copyWith(
+                color: isSelected
+                    ? NeoTheme.controlSelectedForeground(context)
+                    : palette.textSecondary,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
           ],
@@ -416,318 +399,455 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     );
   }
 
-  Widget _buildCategoryDropdown(List<Category> categories, String? safeValue) {
+  Widget _buildSelectorPill({
+    required IconData icon,
+    required String label,
+    required String value,
+    required VoidCallback? onTap,
+  }) {
     final palette = NeoTheme.of(context);
-    return NeoDropdownFormField<String>(
-      key: ValueKey('category_dropdown_$_dropdownResetCounter'),
-      value: safeValue,
-      hintText: 'Select category',
-      items: [
-        ...categories.map((category) {
-          return DropdownMenuItem<String>(
-            value: category.id,
-            child: Row(
-              children: [
-                Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: category.colorValue,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Icon(
-                    _getCategoryIcon(category.icon),
-                    color: Colors.white,
-                    size: 14,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Text(category.name),
-              ],
-            ),
-          );
-        }),
-        DropdownMenuItem<String>(
-          value: _addNewCategoryValue,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm + 2,
+          ),
+          decoration: BoxDecoration(
+            color: palette.surface2,
+            borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+            border: Border.all(color: palette.stroke),
+          ),
           child: Row(
             children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: palette.accent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(
-                  LucideIcons.plus,
-                  color: palette.accent,
-                  size: 14,
+              Icon(
+                icon,
+                size: AppSizing.iconSm,
+                color: palette.textSecondary,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: palette.textMuted,
+                      ),
+                    ),
+                    Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodyLarge.copyWith(
+                        color: palette.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              Text(
-                'Add New Category',
-                style: TextStyle(
-                  color: palette.accent,
-                  fontWeight: FontWeight.w600,
-                ),
+              Icon(
+                LucideIcons.chevronDown,
+                size: AppSizing.iconSm,
+                color: palette.textSecondary,
               ),
             ],
           ),
-        ),
-      ],
-      onChanged: (value) {
-        if (value == _addNewCategoryValue) {
-          _handleAddCategory(context);
-          return;
-        }
-        setState(() {
-          _selectedCategoryId = value;
-          _selectedItemId = null;
-        });
-      },
-      validator: (value) {
-        if (_transactionType == TransactionType.expense &&
-            (value == null || value == _addNewCategoryValue)) {
-          return 'Please select a category';
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildItemDropdown(List<Item> items, String? safeValue) {
-    final palette = NeoTheme.of(context);
-    return NeoDropdownFormField<String>(
-      key: ValueKey('item_dropdown_$_dropdownResetCounter'),
-      value: safeValue,
-      hintText: 'Select item',
-      items: [
-        ...items.map((item) {
-          return DropdownMenuItem<String>(
-            value: item.id,
-            child: Text(item.name),
-          );
-        }),
-        if (_selectedCategoryId != null)
-          DropdownMenuItem<String>(
-            value: _addNewItemValue,
-            child: Row(
-              children: [
-                Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: palette.accent.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Icon(
-                    LucideIcons.plus,
-                    color: palette.accent,
-                    size: 14,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  'Add New Item',
-                  style: TextStyle(
-                    color: palette.accent,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-      ],
-      onChanged: (value) {
-        if (value == _addNewItemValue) {
-          _handleAddItem(context);
-          return;
-        }
-        setState(() {
-          _selectedItemId = value;
-        });
-      },
-      validator: (value) {
-        if (_transactionType == TransactionType.expense &&
-            (value == null || value == _addNewItemValue)) {
-          return 'Please select an item';
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildIncomeSourceDropdown(
-      List<IncomeSource> incomeSources, String? safeValue) {
-    final palette = NeoTheme.of(context);
-    final positive = NeoTheme.positiveValue(context);
-    return NeoDropdownFormField<String>(
-      key: ValueKey('income_dropdown_$_dropdownResetCounter'),
-      value: safeValue,
-      hintText: 'Select income source',
-      items: [
-        ...incomeSources.map((source) {
-          return DropdownMenuItem<String>(
-            value: source.id,
-            child: Row(
-              children: [
-                Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    color: positive.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Icon(
-                    LucideIcons.wallet,
-                    color: positive,
-                    size: 14,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                Text(source.name),
-              ],
-            ),
-          );
-        }),
-        DropdownMenuItem<String>(
-          value: _addNewIncomeValue,
-          child: Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: palette.accent.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(
-                  LucideIcons.plus,
-                  color: palette.accent,
-                  size: 14,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                'Add New Source',
-                style: TextStyle(
-                  color: palette.accent,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-      onChanged: (value) {
-        if (value == _addNewIncomeValue) {
-          _handleAddIncomeSource(context);
-          return;
-        }
-        setState(() {
-          _selectedIncomeSourceId = value;
-        });
-      },
-      validator: (value) {
-        if (_transactionType == TransactionType.income &&
-            (value == null || value == _addNewIncomeValue)) {
-          return 'Please select an income source';
-        }
-        return null;
-      },
-    );
-  }
-
-  Widget _buildDatePicker(BuildContext context) {
-    final palette = NeoTheme.of(context);
-    return GestureDetector(
-      onTap: () => _selectDate(context),
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.md,
-        ),
-        decoration: BoxDecoration(
-          color: palette.surface2,
-          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(color: palette.stroke),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              LucideIcons.calendar,
-              size: 20,
-              color: palette.textSecondary,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              DateFormat('d MMMM yyyy').format(_selectedDate),
-              style: AppTypography.bodyLarge,
-            ),
-            const Spacer(),
-            Icon(
-              LucideIcons.chevronDown,
-              size: 20,
-              color: palette.textSecondary,
-            ),
-          ],
         ),
       ),
     );
   }
 
-  Widget _buildAccountDropdown(List<Account> accounts, String? safeValue) {
+  Widget _buildNotesField() {
     final palette = NeoTheme.of(context);
-    final accent = NeoTheme.infoValue(context);
-    return NeoDropdownFormField<String>(
-      key: ValueKey('account_dropdown_$_dropdownResetCounter'),
-      value: safeValue,
-      hintText: 'Select account',
-      items: accounts.map((account) {
-        final isArchived = account.isArchived;
-        final optionColor = isArchived ? palette.textMuted : accent;
-        return DropdownMenuItem<String>(
-          value: account.id,
-          child: DropdownMenuItemLabel(
-            leading: Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: optionColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Icon(
-                _getAccountTypeIcon(account.type),
-                color: optionColor,
-                size: 14,
-              ),
-            ),
-            text: isArchived ? '${account.name} (Archived)' : account.name,
-            textStyle: AppTypography.bodyLarge.copyWith(
-              color: isArchived ? palette.textMuted : palette.textPrimary,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm + 2,
+      ),
+      decoration: BoxDecoration(
+        color: palette.surface2,
+        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+      ),
+      child: TextField(
+        controller: _noteController,
+        minLines: 1,
+        maxLines: 2,
+        style: AppTypography.bodyLarge.copyWith(
+          color: palette.textPrimary,
+        ),
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          isCollapsed: true,
+          hintText: 'Add notes',
+          hintStyle: AppTypography.bodyMedium.copyWith(
+            color: palette.textMuted,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomBar() {
+    final palette = NeoTheme.of(context);
+    return Container(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: palette.stroke.withValues(alpha: 0.8)),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildBottomAction(
+              icon: LucideIcons.calendar,
+              value: DateFormat('MMM d, yyyy').format(_selectedDate),
+              onTap: _isLoading ? null : _selectDate,
             ),
           ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: _buildBottomAction(
+              icon: LucideIcons.clock3,
+              value: DateFormat('h:mm a').format(_selectedDate),
+              onTap: _isLoading ? null : _selectTime,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomAction({
+    required IconData icon,
+    required String value,
+    required VoidCallback? onTap,
+  }) {
+    final palette = NeoTheme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: AppSizing.iconSm,
+                color: palette.textSecondary,
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: palette.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _dismissKeyboard() {
+    FocusScope.of(context).unfocus();
+  }
+
+  void _handleDigit(String digit) {
+    _dismissKeyboard();
+
+    setState(() {
+      if (_shouldResetDisplay) {
+        _displayValue = digit == '.' ? '0.' : digit;
+        _shouldResetDisplay = false;
+        return;
+      }
+
+      if (digit == '.') {
+        if (_displayValue.contains('.')) return;
+        if (_displayValue.length >= 12) return;
+        _displayValue = '$_displayValue.';
+        return;
+      }
+
+      if (_displayValue == '0') {
+        _displayValue = digit;
+        return;
+      }
+
+      if (_displayValue.length >= 12) return;
+      _displayValue = '$_displayValue$digit';
+    });
+  }
+
+  void _handleOperator(String operator) {
+    _dismissKeyboard();
+
+    final currentValue = double.tryParse(_displayValue) ?? 0;
+    setState(() {
+      if (_pendingOperator == null) {
+        _runningTotal = currentValue;
+      } else if (!_shouldResetDisplay) {
+        _applyPendingOperation(currentValue);
+      }
+
+      _pendingOperator = operator;
+      _displayValue = _formatDisplayNumber(_runningTotal);
+      _shouldResetDisplay = true;
+    });
+  }
+
+  void _handleEquals() {
+    _dismissKeyboard();
+    if (_pendingOperator == null) return;
+
+    setState(() {
+      final operand = _shouldResetDisplay
+          ? _runningTotal
+          : double.tryParse(_displayValue) ?? 0;
+      _applyPendingOperation(operand);
+      _pendingOperator = null;
+      _displayValue = _formatDisplayNumber(_runningTotal);
+      _shouldResetDisplay = true;
+    });
+  }
+
+  void _handleBackspace() {
+    _dismissKeyboard();
+
+    setState(() {
+      if (_shouldResetDisplay) {
+        _displayValue = '0';
+        _shouldResetDisplay = false;
+        return;
+      }
+
+      if (_displayValue.length <= 1) {
+        _displayValue = '0';
+        return;
+      }
+
+      _displayValue = _displayValue.substring(0, _displayValue.length - 1);
+    });
+  }
+
+  void _applyPendingOperation(double operand) {
+    switch (_pendingOperator) {
+      case '+':
+        _runningTotal += operand;
+      case '-':
+        _runningTotal -= operand;
+      case '\u00D7':
+        _runningTotal *= operand;
+      case '\u00F7':
+        if (operand == 0) {
+          _showError('Cannot divide by zero');
+          return;
+        }
+        _runningTotal /= operand;
+    }
+
+    if (_runningTotal.abs() < 0.0000001) {
+      _runningTotal = 0;
+    } else {
+      _runningTotal = double.parse(_runningTotal.toStringAsFixed(6));
+    }
+  }
+
+  double _resolveAmountForSubmit() {
+    if (_pendingOperator != null) {
+      return _runningTotal;
+    }
+    return double.tryParse(_displayValue) ?? 0;
+  }
+
+  String _formatDisplayNumber(double value) {
+    if (value.isNaN || value.isInfinite) return '0';
+
+    var formatted = value.toStringAsFixed(6);
+    formatted = formatted.replaceFirst(RegExp(r'\.?0+$'), '');
+    if (formatted.isEmpty || formatted == '-0') {
+      formatted = '0';
+    }
+
+    if (formatted.length > 12) {
+      formatted = value.toStringAsPrecision(8);
+      if (formatted.contains('e') || formatted.contains('E')) {
+        formatted = value.toStringAsFixed(2);
+      }
+      if (formatted.length > 12) {
+        formatted = formatted.substring(0, 12);
+      }
+    }
+
+    return formatted;
+  }
+
+  Future<void> _pickAccount(List<Account> accounts) async {
+    if (accounts.isEmpty) {
+      _showError('Create an account first from Settings > Accounts');
+      return;
+    }
+
+    final selectedId = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final palette = NeoTheme.of(context);
+        return SelectionPickerSheet<String>(
+          title: 'Select Account',
+          selectedValue: _selectedAccountId,
+          options: accounts
+              .map(
+                (account) => SelectionPickerOption<String>(
+                  value: account.id,
+                  label: account.isArchived
+                      ? '${account.name} (Archived)'
+                      : account.name,
+                  subtitle: account.isArchived ? 'Archived' : null,
+                  icon: _getAccountTypeIcon(account.type),
+                  iconColor: account.isArchived
+                      ? palette.textMuted
+                      : NeoTheme.infoValue(context),
+                ),
+              )
+              .toList(),
         );
-      }).toList(),
-      onChanged: accounts.isEmpty
-          ? null
-          : (value) {
-              setState(() {
-                _selectedAccountId = value;
-              });
-            },
-      validator: (value) {
-        if (accounts.isNotEmpty && value == null) {
-          return 'Please select an account';
-        }
-        return null;
       },
     );
+
+    if (selectedId != null && mounted) {
+      setState(() => _selectedAccountId = selectedId);
+    }
   }
 
-  Future<void> _selectDate(BuildContext context) async {
+  Future<void> _pickCategoryAndItem(List<Category> categories) async {
+    final previousCategoryId = _selectedCategoryId;
+    final selectedCategoryId = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SelectionPickerSheet<String>(
+        title: 'Select Category',
+        selectedValue: _selectedCategoryId,
+        addNewLabel: 'Add New Category',
+        onAddNew: () => _handleAddCategory(context),
+        emptyLabel: 'No categories yet. Add one to continue.',
+        options: categories
+            .map(
+              (category) => SelectionPickerOption<String>(
+                value: category.id,
+                label: category.name,
+                icon: _getCategoryIcon(category.icon),
+                iconColor: Colors.white,
+                iconBackgroundColor: category.colorValue,
+              ),
+            )
+            .toList(),
+      ),
+    );
+
+    if (!mounted || selectedCategoryId == null) return;
+
+    final selectedCategory =
+        categories.where((c) => c.id == selectedCategoryId).firstOrNull;
+    if (selectedCategory == null) return;
+
+    final initialItemId =
+        previousCategoryId == selectedCategoryId ? _selectedItemId : null;
+
+    setState(() {
+      _selectedCategoryId = selectedCategoryId;
+      if (previousCategoryId != selectedCategoryId) {
+        _selectedItemId = null;
+      }
+    });
+
+    final selectedItemId = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SelectionPickerSheet<String>(
+        title: 'Select Item',
+        selectedValue: initialItemId,
+        addNewLabel: 'Add New Item',
+        onAddNew: () =>
+            _handleAddItem(context, categoryId: selectedCategory.id),
+        emptyLabel: 'No items yet. Add one to continue.',
+        options: (selectedCategory.items ?? <Item>[])
+            .map(
+              (item) => SelectionPickerOption<String>(
+                value: item.id,
+                label: item.name,
+                icon: LucideIcons.tag,
+                iconColor: NeoTheme.of(context).textSecondary,
+              ),
+            )
+            .toList(),
+      ),
+    );
+
+    if (selectedItemId != null && mounted) {
+      setState(() => _selectedItemId = selectedItemId);
+    }
+  }
+
+  Future<void> _pickIncomeSource(List<IncomeSource> incomeSources) async {
+    final selectedId = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => SelectionPickerSheet<String>(
+        title: 'Select Source',
+        selectedValue: _selectedIncomeSourceId,
+        addNewLabel: 'Add New Source',
+        onAddNew: () => _handleAddIncomeSource(context),
+        emptyLabel: 'No income sources yet. Add one to continue.',
+        options: incomeSources
+            .map(
+              (source) => SelectionPickerOption<String>(
+                value: source.id,
+                label: source.name,
+                icon: LucideIcons.wallet,
+                iconColor: NeoTheme.positiveValue(context),
+              ),
+            )
+            .toList(),
+      ),
+    );
+
+    if (selectedId != null && mounted) {
+      setState(() => _selectedIncomeSourceId = selectedId);
+    }
+  }
+
+  Future<void> _selectDate() async {
     final palette = NeoTheme.of(context);
+    final baseTheme = Theme.of(context);
     final now = DateTime.now();
     final firstDate = DateTime(now.year - 1, 1, 1);
     final lastDate = DateTime(now.year + 1, 12, 31);
@@ -739,10 +859,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       lastDate: lastDate,
       builder: (context, child) {
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.dark(
+          data: baseTheme.copyWith(
+            colorScheme: baseTheme.colorScheme.copyWith(
               primary: palette.accent,
-              onPrimary: palette.textPrimary,
+              onPrimary: Colors.white,
               surface: palette.surface1,
               onSurface: palette.textPrimary,
             ),
@@ -755,11 +875,120 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       },
     );
 
-    if (picked != null && picked != _selectedDate) {
-      setState(() {
-        _selectedDate = picked;
-      });
-    }
+    if (picked == null || !mounted) return;
+    setState(() {
+      _selectedDate = DateTime(
+        picked.year,
+        picked.month,
+        picked.day,
+        _selectedDate.hour,
+        _selectedDate.minute,
+      );
+    });
+  }
+
+  Future<void> _selectTime() async {
+    final palette = NeoTheme.of(context);
+    final baseTheme = Theme.of(context);
+
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_selectedDate),
+      builder: (context, child) {
+        return Theme(
+          data: baseTheme.copyWith(
+            colorScheme: baseTheme.colorScheme.copyWith(
+              primary: palette.accent,
+              onPrimary: Colors.white,
+              surface: palette.surface1,
+              onSurface: palette.textPrimary,
+            ),
+            dialogTheme: DialogThemeData(
+              backgroundColor: palette.surface1,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked == null || !mounted) return;
+    setState(() {
+      _selectedDate = DateTime(
+        _selectedDate.year,
+        _selectedDate.month,
+        _selectedDate.day,
+        picked.hour,
+        picked.minute,
+      );
+    });
+  }
+
+  Future<void> _handleAddCategory(BuildContext context) async {
+    final newCategoryId = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const CategoryFormSheet(),
+    );
+
+    if (newCategoryId == null || !mounted) return;
+
+    ref.invalidate(categoriesProvider);
+    await ref.read(categoriesProvider.future);
+    if (!mounted) return;
+
+    setState(() {
+      _selectedCategoryId = newCategoryId;
+      _selectedItemId = null;
+    });
+  }
+
+  Future<void> _handleAddItem(
+    BuildContext context, {
+    required String categoryId,
+  }) async {
+    final categories = ref.read(categoriesProvider).value ?? <Category>[];
+    final parentCategory =
+        categories.where((c) => c.id == categoryId).firstOrNull;
+
+    final newItemId = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ItemFormSheet(
+        categoryId: categoryId,
+        categoryIsBudgeted: parentCategory?.isBudgeted ?? true,
+      ),
+    );
+
+    if (newItemId == null || !mounted) return;
+
+    ref.invalidate(categoriesProvider);
+    await ref.read(categoriesProvider.future);
+    if (!mounted) return;
+
+    setState(() {
+      _selectedCategoryId = categoryId;
+      _selectedItemId = newItemId;
+    });
+  }
+
+  Future<void> _handleAddIncomeSource(BuildContext context) async {
+    final newSourceId = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const IncomeFormSheet(),
+    );
+
+    if (newSourceId == null || !mounted) return;
+
+    ref.invalidate(incomeSourcesProvider);
+    await ref.read(incomeSourcesProvider.future);
+    if (!mounted) return;
+
+    setState(() => _selectedIncomeSourceId = newSourceId);
   }
 
   IconData _getCategoryIcon(String iconName) {
@@ -781,112 +1010,54 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     }
   }
 
-  Future<void> _handleAddCategory(BuildContext context) async {
-    final newCategoryId = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const CategoryFormSheet(),
-    );
-    if (newCategoryId != null && mounted) {
-      // Wait for new categories to load BEFORE setting the selected ID
-      ref.invalidate(categoriesProvider);
-      await ref.read(categoriesProvider.future);
-      if (mounted) {
-        setState(() {
-          _selectedCategoryId = newCategoryId;
-          _selectedItemId = null;
-          _dropdownResetCounter++;
-        });
-      }
-    } else if (mounted) {
-      // Cancelled — reset dropdown to previous value
-      setState(() => _dropdownResetCounter++);
-    }
-  }
-
-  Future<void> _handleAddItem(BuildContext context) async {
-    if (_selectedCategoryId == null) return;
-    // Pass the parent category's isBudgeted flag
-    final categories = ref.read(categoriesProvider).value ?? [];
-    final parentCat =
-        categories.where((c) => c.id == _selectedCategoryId).firstOrNull;
-    final newItemId = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ItemFormSheet(
-        categoryId: _selectedCategoryId!,
-        categoryIsBudgeted: parentCat?.isBudgeted ?? true,
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: NeoTheme.negativeValue(context),
       ),
     );
-    if (newItemId != null && mounted) {
-      // Wait for categories (with items) to load BEFORE setting the selected ID
-      ref.invalidate(categoriesProvider);
-      await ref.read(categoriesProvider.future);
-      if (mounted) {
-        setState(() {
-          _selectedItemId = newItemId;
-          _dropdownResetCounter++;
-        });
-      }
-    } else if (mounted) {
-      // Cancelled — reset dropdown to previous value
-      setState(() => _dropdownResetCounter++);
-    }
-  }
-
-  Future<void> _handleAddIncomeSource(BuildContext context) async {
-    final newSourceId = await showModalBottomSheet<String>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => const IncomeFormSheet(),
-    );
-    if (newSourceId != null && mounted) {
-      // Wait for income sources to load BEFORE setting the selected ID
-      ref.invalidate(incomeSourcesProvider);
-      await ref.read(incomeSourcesProvider.future);
-      if (mounted) {
-        setState(() {
-          _selectedIncomeSourceId = newSourceId;
-          _dropdownResetCounter++;
-        });
-      }
-    } else if (mounted) {
-      // Cancelled — reset dropdown to previous value
-      setState(() => _dropdownResetCounter++);
-    }
   }
 
   Future<void> _handleSubmit() async {
     final activeAccounts = await ref.read(accountsProvider.future);
     if (!mounted) return;
+
     if (activeAccounts.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Create an account first from Settings > Accounts',
-          ),
-          backgroundColor: NeoTheme.negativeValue(context),
-        ),
-      );
+      _showError('Create an account first from Settings > Accounts');
       return;
     }
 
     final accountId = _selectedAccountId ?? activeAccounts.first.id;
+    final amount = _resolveAmountForSubmit();
 
-    if (!_formKey.currentState!.validate()) return;
+    if (amount <= 0) {
+      _showError('Enter an amount greater than zero');
+      return;
+    }
+    if (_transactionType == TransactionType.expense) {
+      if (_selectedCategoryId == null) {
+        _showError('Select a category');
+        return;
+      }
+      if (_selectedItemId == null) {
+        _showError('Select an item');
+        return;
+      }
+    } else {
+      if (_selectedIncomeSourceId == null) {
+        _showError('Select an income source');
+        return;
+      }
+    }
 
     setState(() => _isLoading = true);
 
     try {
       final notifier = ref.read(transactionNotifierProvider.notifier);
-      final amount = double.tryParse(_amountController.text) ?? 0;
       final note = _noteController.text.trim();
 
       if (isEditing) {
-        // Update existing transaction
         if (_transactionType == TransactionType.expense) {
           await notifier.updateTransaction(
             transactionId: widget.transaction!.id,
@@ -908,7 +1079,6 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
           );
         }
       } else {
-        // Create new transaction
         if (_transactionType == TransactionType.expense) {
           await notifier.addExpense(
             categoryId: _selectedCategoryId!,
@@ -929,39 +1099,29 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
         }
       }
 
-      if (mounted) {
-        // Refresh category and income data to update actual amounts
-        // Use refresh().future to WAIT for data to load before closing
-        ref.invalidate(categoriesProvider);
-        await ref.read(categoriesProvider.future);
-        ref.invalidate(incomeSourcesProvider);
-        await ref.read(incomeSourcesProvider.future);
+      if (!mounted) return;
 
-        // Also refresh specific category to update item-level amounts
-        if (_selectedCategoryId != null) {
-          ref.invalidate(categoryByIdProvider(_selectedCategoryId!));
-          await ref.read(categoryByIdProvider(_selectedCategoryId!).future);
-        }
+      ref.invalidate(categoriesProvider);
+      await ref.read(categoriesProvider.future);
+      ref.invalidate(incomeSourcesProvider);
+      await ref.read(incomeSourcesProvider.future);
 
-        if (!mounted) return;
-        Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              isEditing ? 'Transaction updated' : 'Transaction added',
-            ),
-          ),
-        );
+      if (_selectedCategoryId != null) {
+        ref.invalidate(categoryByIdProvider(_selectedCategoryId!));
+        await ref.read(categoryByIdProvider(_selectedCategoryId!).future);
       }
+
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:
+              Text(isEditing ? 'Transaction updated' : 'Transaction added'),
+        ),
+      );
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: NeoTheme.negativeValue(context),
-          ),
-        );
-      }
+      if (!mounted) return;
+      _showError('Error: ${e.toString()}');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
