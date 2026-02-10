@@ -24,10 +24,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int? _selectedYearlyBarIndex;
-  bool _isAmountsVisible = true;
-  bool _isAccountsExpanded = true;
-  bool _isUpcomingExpanded = true;
-  bool _isRecentTransactionsExpanded = true;
 
   NeoPalette get _palette => NeoTheme.of(context);
 
@@ -96,6 +92,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final accountBalances =
         ref.watch(allAccountBalancesProvider).value ?? const <String, double>{};
     final transactions = ref.watch(transactionsProvider);
+    final hideSensitiveAmounts = ref.watch(hideSensitiveAmountsProvider);
+    final isAmountsVisible = !hideSensitiveAmounts;
+    final isAccountsExpanded =
+        ref.watch(uiSectionExpandedProvider(UiSectionKeys.homeAccounts));
+    final isUpcomingExpanded =
+        ref.watch(uiSectionExpandedProvider(UiSectionKeys.homeUpcoming));
+    final isRecentTransactionsExpanded = ref.watch(
+      uiSectionExpandedProvider(UiSectionKeys.homeRecentTransactions),
+    );
     final monthScopeLabel = activeMonth != null
         ? DateFormat('MMM yyyy').format(activeMonth.startDate)
         : DateFormat('MMM yyyy').format(DateTime.now());
@@ -130,6 +135,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   totalActualExpenses,
                   netWorth,
                   monthScopeLabel,
+                  isAmountsVisible,
                 ),
               ),
               SliverToBoxAdapter(
@@ -137,13 +143,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   accounts,
                   accountBalances,
                   currencySymbol,
+                  isAccountsExpanded,
                 ),
               ),
               SliverToBoxAdapter(
-                child: _buildUpcomingPayments(currencySymbol, upcoming),
+                child: _buildUpcomingPayments(
+                  currencySymbol,
+                  upcoming,
+                  isUpcomingExpanded,
+                ),
               ),
               SliverToBoxAdapter(
-                child: _buildRecentTransactions(transactions, currencySymbol),
+                child: _buildRecentTransactions(
+                  transactions,
+                  currencySymbol,
+                  isRecentTransactionsExpanded,
+                ),
               ),
               const SliverToBoxAdapter(
                 child: SizedBox(height: AppSpacing.xl),
@@ -330,7 +345,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     HapticFeedback.selectionClick();
     final isLight = _isLightMode(context);
     final nextMode = isLight ? ThemeMode.dark : ThemeMode.light;
-    await ref.read(themeModeProvider.notifier).setThemeMode(nextMode);
+    await setThemeModePreference(ref, nextMode);
   }
 
   Widget _buildOverviewHero(
@@ -340,6 +355,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     double actualExpenses,
     double netWorth,
     String monthScopeLabel,
+    bool isAmountsVisible,
   ) {
     final monthlyCashflow = summary?.actualBalance ?? 0.0;
     final monthScopeText = monthScopeLabel;
@@ -380,8 +396,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   Text('Overview', style: _sectionTitleStyle),
                   const Spacer(),
                   InkWell(
-                    onTap: () =>
-                        setState(() => _isAmountsVisible = !_isAmountsVisible),
+                    onTap: () {
+                      ref
+                          .read(uiPreferencesProvider.notifier)
+                          .setHideSensitiveAmounts(isAmountsVisible);
+                    },
                     borderRadius: BorderRadius.circular(AppSizing.radiusFull),
                     child: Container(
                       width: 34,
@@ -392,9 +411,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         border: Border.all(color: _neoStroke),
                       ),
                       child: Icon(
-                        _isAmountsVisible
-                            ? LucideIcons.eye
-                            : LucideIcons.eyeOff,
+                        isAmountsVisible ? LucideIcons.eye : LucideIcons.eyeOff,
                         size: NeoIconSizes.md,
                         color: _neoTextSecondary,
                       ),
@@ -410,7 +427,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       title: 'Monthly Net',
                       cornerLabel: monthScopeText,
                       amount: monthlyCashflow,
-                      isAmountVisible: _isAmountsVisible,
+                      isAmountVisible: isAmountsVisible,
                       currencySymbol: currencySymbol,
                       icon: LucideIcons.arrowLeftRight,
                       lightAccent: cashflowLightAccent,
@@ -436,7 +453,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     child: _buildKpiCard(
                       title: 'Net worth',
                       amount: netWorth,
-                      isAmountVisible: _isAmountsVisible,
+                      isAmountVisible: isAmountsVisible,
                       currencySymbol: currencySymbol,
                       icon: LucideIcons.pieChart,
                       lightAccent: netWorthLightAccent,
@@ -463,7 +480,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       title: 'Income',
                       cornerLabel: monthScopeText,
                       amount: actualIncome,
-                      isAmountVisible: _isAmountsVisible,
+                      isAmountVisible: isAmountsVisible,
                       currencySymbol: currencySymbol,
                       icon: LucideIcons.trendingUp,
                       lightAccent: _hsl(154.4, 0.794, 0.267),
@@ -487,7 +504,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       title: 'Expenses',
                       cornerLabel: monthScopeText,
                       amount: actualExpenses,
-                      isAmountVisible: _isAmountsVisible,
+                      isAmountVisible: isAmountsVisible,
                       currencySymbol: currencySymbol,
                       icon: LucideIcons.trendingDown,
                       lightAccent: _hsl(350.5, 0.504, 0.443),
@@ -519,6 +536,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     List<Account> accounts,
     Map<String, double> accountBalances,
     String currencySymbol,
+    bool isExpanded,
   ) {
     if (accounts.isEmpty) return const SizedBox.shrink();
 
@@ -549,14 +567,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const SizedBox(width: 8),
                 _buildSectionChevronButton(
-                  expanded: _isAccountsExpanded,
+                  expanded: isExpanded,
                   onPressed: () {
-                    setState(() => _isAccountsExpanded = !_isAccountsExpanded);
+                    ref.read(uiPreferencesProvider.notifier).setSectionExpanded(
+                          UiSectionKeys.homeAccounts,
+                          !isExpanded,
+                        );
                   },
                 ),
               ],
             ),
-            if (_isAccountsExpanded) ...[
+            if (isExpanded) ...[
               const SizedBox(height: AppSpacing.sm),
               for (var i = 0; i < visible.length; i++) ...[
                 _buildAccountPreviewRow(
@@ -857,6 +878,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildUpcomingPayments(
     String currencySymbol,
     AsyncValue<List<Subscription>> upcoming,
+    bool isExpanded,
   ) {
     return upcoming.when(
       data: (upcomingList) {
@@ -889,15 +911,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     const SizedBox(width: 8),
                     _buildSectionChevronButton(
-                      expanded: _isUpcomingExpanded,
+                      expanded: isExpanded,
                       onPressed: () {
-                        setState(
-                            () => _isUpcomingExpanded = !_isUpcomingExpanded);
+                        ref
+                            .read(uiPreferencesProvider.notifier)
+                            .setSectionExpanded(
+                              UiSectionKeys.homeUpcoming,
+                              !isExpanded,
+                            );
                       },
                     ),
                   ],
                 ),
-                if (_isUpcomingExpanded) ...[
+                if (isExpanded) ...[
                   const SizedBox(height: AppSpacing.sm),
                   if (sorted.isEmpty)
                     _buildNoUpcomingPaymentsState()
@@ -1413,6 +1439,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildRecentTransactions(
     AsyncValue<List<Transaction>> transactions,
     String currencySymbol,
+    bool isExpanded,
   ) {
     return transactions.when(
       data: (list) {
@@ -1444,15 +1471,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     const SizedBox(width: 8),
                     _buildSectionChevronButton(
-                      expanded: _isRecentTransactionsExpanded,
+                      expanded: isExpanded,
                       onPressed: () {
-                        setState(() => _isRecentTransactionsExpanded =
-                            !_isRecentTransactionsExpanded);
+                        ref
+                            .read(uiPreferencesProvider.notifier)
+                            .setSectionExpanded(
+                              UiSectionKeys.homeRecentTransactions,
+                              !isExpanded,
+                            );
                       },
                     ),
                   ],
                 ),
-                if (_isRecentTransactionsExpanded) ...[
+                if (isExpanded) ...[
                   const SizedBox(height: AppSpacing.sm),
                   if (visible.isEmpty)
                     _buildEmptyRecentTransactions()

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../../providers/providers.dart';
 import '../../widgets/common/neo_page_components.dart';
@@ -66,28 +67,6 @@ class SettingsScreen extends ConsumerWidget {
               context,
               children: [
                 _SettingsTile(
-                  icon: LucideIcons.wallet,
-                  title: 'Accounts',
-                  subtitle: 'Manage cash, debit, credit, and savings accounts',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    context.push('/settings/accounts');
-                  },
-                ),
-                _divider(context),
-                _SettingsTile(
-                  icon: LucideIcons.calendar,
-                  title: 'Month History',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Month history coming soon')),
-                    );
-                  },
-                ),
-                _divider(context),
-                _SettingsTile(
                   icon: LucideIcons.poundSterling,
                   title: 'Currency',
                   trailing: Text(
@@ -140,18 +119,6 @@ class SettingsScreen extends ConsumerWidget {
                     _showAboutDialog(context);
                   },
                 ),
-                _divider(context),
-                _SettingsTile(
-                  icon: LucideIcons.download,
-                  title: 'Export Data',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Export feature coming soon')),
-                    );
-                  },
-                ),
               ],
             ),
             const SizedBox(height: NeoLayout.sectionGap),
@@ -170,7 +137,7 @@ class SettingsScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.md),
             Center(
               child: Text(
-                'Version 0.0.5',
+                'Version ${AppConstants.appVersion}',
                 style: NeoTypography.rowSecondary(context),
               ),
             ),
@@ -194,13 +161,6 @@ class SettingsScreen extends ConsumerWidget {
     return NeoGlassCard(
       padding: EdgeInsets.zero,
       child: Column(children: children),
-    );
-  }
-
-  Widget _divider(BuildContext context) {
-    return Divider(
-      height: 1,
-      color: NeoTheme.of(context).stroke.withValues(alpha: 0.85),
     );
   }
 
@@ -235,7 +195,7 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.md),
             Text(
-              'Version 1.0.0',
+              'Version ${AppConstants.appVersion}',
               style: AppTypography.bodySmall.copyWith(color: palette.textMuted),
             ),
           ],
@@ -262,7 +222,7 @@ class SettingsScreen extends ConsumerWidget {
         final palette = NeoTheme.of(sheetContext);
 
         Future<void> setMode(ThemeMode mode) async {
-          await ref.read(themeModeProvider.notifier).setThemeMode(mode);
+          await setThemeModePreference(ref, mode);
           if (sheetContext.mounted) {
             Navigator.of(sheetContext).pop();
           }

@@ -28,7 +28,6 @@ class ExpensesOverviewScreen extends ConsumerStatefulWidget {
 class _ExpensesOverviewScreenState
     extends ConsumerState<ExpensesOverviewScreen> {
   int? _selectedCategoryIndex;
-  bool _isYearView = false;
   int? _selectedBarMonthIndex; // Tapped bar in year view → filter categories
 
   @override
@@ -53,6 +52,7 @@ class _ExpensesOverviewScreenState
   @override
   Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
+    final isYearView = ref.watch(budgetYearViewEnabledProvider);
     // Budget screen's own month (independent from home / transactions)
     final selectedMonthId = ref.watch(budgetSelectedMonthIdProvider);
     if (selectedMonthId == null) {
@@ -96,7 +96,7 @@ class _ExpensesOverviewScreenState
           onRefresh: () async {
             ref.invalidate(categoriesForMonthProvider(selectedMonthId));
             ref.invalidate(transactionsForMonthProvider(selectedMonthId));
-            if (_isYearView) {
+            if (isYearView) {
               ref.invalidate(yearlyMonthlyExpensesProvider);
               ref.invalidate(yearlyCategorySummariesProvider);
             }
@@ -118,11 +118,11 @@ class _ExpensesOverviewScreenState
 
                   // ── Month/Year Toggle (NEW) ──
                   SliverToBoxAdapter(
-                    child: _buildViewToggle(),
+                    child: _buildViewToggle(isYearView: isYearView),
                   ),
 
                   // ── MONTH VIEW (unchanged, conditionally shown) ──
-                  if (!_isYearView) ...[
+                  if (!isYearView) ...[
                     // Month Selector
                     SliverToBoxAdapter(
                       child: _buildMonthSelector(userMonths, selectedMonthId),
@@ -142,7 +142,7 @@ class _ExpensesOverviewScreenState
                   ],
 
                   // ── YEAR VIEW (conditionally shown) ──
-                  if (_isYearView) ...[
+                  if (isYearView) ...[
                     // Year Selector
                     SliverToBoxAdapter(
                       child: _buildYearSelector(),
@@ -172,7 +172,7 @@ class _ExpensesOverviewScreenState
                         AppSpacing.md,
                         AppSpacing.sm,
                       ),
-                      child: _isYearView && _selectedBarMonthIndex != null
+                      child: isYearView && _selectedBarMonthIndex != null
                           ? _buildSelectedBarHeader(yearlyMonthlyExpenses)
                           : const Text(
                               'Categories',
@@ -182,7 +182,7 @@ class _ExpensesOverviewScreenState
                   ),
 
                   // ── MONTH VIEW: Category List (unchanged, conditionally shown) ──
-                  if (!_isYearView) ...[
+                  if (!isYearView) ...[
                     if (categoryList.isEmpty)
                       SliverToBoxAdapter(child: _buildEmptyState())
                     else
@@ -197,7 +197,7 @@ class _ExpensesOverviewScreenState
                   ],
 
                   // ── YEAR VIEW: Category list ──
-                  if (_isYearView) ...[
+                  if (isYearView) ...[
                     // When a bar is selected → show that month's categories
                     if (_selectedBarMonthIndex != null)
                       SliverToBoxAdapter(
@@ -784,7 +784,7 @@ class _ExpensesOverviewScreenState
   // MONTH/YEAR TOGGLE
   // ──────────────────────────────────────────────
 
-  Widget _buildViewToggle() {
+  Widget _buildViewToggle({required bool isYearView}) {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSpacing.md,
@@ -805,8 +805,10 @@ class _ExpensesOverviewScreenState
                 onTap: () {
                   // Clear explicit year selection when switching back to month
                   ref.read(budgetSelectedYearProvider.notifier).state = null;
+                  ref
+                      .read(uiPreferencesProvider.notifier)
+                      .setBudgetViewMode(BudgetViewMode.month);
                   setState(() {
-                    _isYearView = false;
                     _selectedCategoryIndex = null;
                     _selectedBarMonthIndex = null;
                   });
@@ -815,7 +817,7 @@ class _ExpensesOverviewScreenState
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
-                    color: !_isYearView ? Colors.white : Colors.transparent,
+                    color: !isYearView ? Colors.white : Colors.transparent,
                     borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                   ),
                   child: Row(
@@ -824,7 +826,7 @@ class _ExpensesOverviewScreenState
                       Icon(
                         LucideIcons.calendar,
                         size: 16,
-                        color: !_isYearView
+                        color: !isYearView
                             ? NeoTheme.of(context).appBg
                             : NeoTheme.of(context).textMuted,
                       ),
@@ -832,11 +834,11 @@ class _ExpensesOverviewScreenState
                       Text(
                         'Month',
                         style: TextStyle(
-                          color: !_isYearView
+                          color: !isYearView
                               ? NeoTheme.of(context).appBg
                               : NeoTheme.of(context).textMuted,
                           fontWeight:
-                              !_isYearView ? FontWeight.w600 : FontWeight.w400,
+                              !isYearView ? FontWeight.w600 : FontWeight.w400,
                           fontSize: 14,
                         ),
                       ),
@@ -850,7 +852,7 @@ class _ExpensesOverviewScreenState
               child: GestureDetector(
                 onTap: () {
                   // Initialize year from current selected month when switching
-                  if (!_isYearView) {
+                  if (!isYearView) {
                     final selectedMonthId =
                         ref.read(budgetSelectedMonthIdProvider);
                     final months = ref.read(userMonthsProvider).value ?? [];
@@ -860,8 +862,10 @@ class _ExpensesOverviewScreenState
                     ref.read(budgetSelectedYearProvider.notifier).state =
                         selectedMonth?.startDate.year ?? DateTime.now().year;
                   }
+                  ref
+                      .read(uiPreferencesProvider.notifier)
+                      .setBudgetViewMode(BudgetViewMode.year);
                   setState(() {
-                    _isYearView = true;
                     _selectedCategoryIndex = null;
                     _selectedBarMonthIndex = null;
                   });
@@ -870,7 +874,7 @@ class _ExpensesOverviewScreenState
                   duration: const Duration(milliseconds: 200),
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
-                    color: _isYearView ? Colors.white : Colors.transparent,
+                    color: isYearView ? Colors.white : Colors.transparent,
                     borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                   ),
                   child: Row(
@@ -879,7 +883,7 @@ class _ExpensesOverviewScreenState
                       Icon(
                         LucideIcons.barChart3,
                         size: 16,
-                        color: _isYearView
+                        color: isYearView
                             ? NeoTheme.of(context).appBg
                             : NeoTheme.of(context).textMuted,
                       ),
@@ -887,11 +891,11 @@ class _ExpensesOverviewScreenState
                       Text(
                         'Year',
                         style: TextStyle(
-                          color: _isYearView
+                          color: isYearView
                               ? NeoTheme.of(context).appBg
                               : NeoTheme.of(context).textMuted,
                           fontWeight:
-                              _isYearView ? FontWeight.w600 : FontWeight.w400,
+                              isYearView ? FontWeight.w600 : FontWeight.w400,
                           fontSize: 14,
                         ),
                       ),

@@ -21,9 +21,6 @@ class ManageScreen extends ConsumerStatefulWidget {
 }
 
 class _ManageScreenState extends ConsumerState<ManageScreen> {
-  bool _isSubscriptionsExpanded = true;
-  bool _isBudgetsExpanded = true;
-
   NeoPalette get _palette => NeoTheme.of(context);
 
   @override
@@ -37,6 +34,10 @@ class _ManageScreenState extends ConsumerState<ManageScreen> {
     final totalActual = ref.watch(totalActualExpensesProvider);
     final overBudgetCount = ref.watch(overBudgetCountProvider);
     final budgetHealth = ref.watch(budgetHealthProvider);
+    final isSubscriptionsExpanded =
+        ref.watch(uiSectionExpandedProvider(UiSectionKeys.manageSubscriptions));
+    final isBudgetsExpanded =
+        ref.watch(uiSectionExpandedProvider(UiSectionKeys.manageBudgets));
 
     return Scaffold(
       backgroundColor: _palette.appBg,
@@ -69,10 +70,12 @@ class _ManageScreenState extends ConsumerState<ManageScreen> {
               const SizedBox(height: NeoLayout.sectionGap),
               _buildSectionCard(
                 title: 'Subscriptions',
-                expanded: _isSubscriptionsExpanded,
-                onToggle: () => setState(
-                  () => _isSubscriptionsExpanded = !_isSubscriptionsExpanded,
-                ),
+                expanded: isSubscriptionsExpanded,
+                onToggle: () =>
+                    ref.read(uiPreferencesProvider.notifier).setSectionExpanded(
+                          UiSectionKeys.manageSubscriptions,
+                          !isSubscriptionsExpanded,
+                        ),
                 onViewAll: () => context.push('/subscriptions'),
                 onAdd: _showAddSubscriptionSheet,
                 child: _buildSubscriptionsContent(
@@ -85,9 +88,12 @@ class _ManageScreenState extends ConsumerState<ManageScreen> {
               const SizedBox(height: NeoLayout.sectionGap),
               _buildSectionCard(
                 title: 'Budgets',
-                expanded: _isBudgetsExpanded,
+                expanded: isBudgetsExpanded,
                 onToggle: () =>
-                    setState(() => _isBudgetsExpanded = !_isBudgetsExpanded),
+                    ref.read(uiPreferencesProvider.notifier).setSectionExpanded(
+                          UiSectionKeys.manageBudgets,
+                          !isBudgetsExpanded,
+                        ),
                 onViewAll: () => context.push('/budget'),
                 onAdd: _showAddBudgetCategorySheet,
                 child: _buildBudgetsContent(

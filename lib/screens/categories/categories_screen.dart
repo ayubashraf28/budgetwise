@@ -23,10 +23,6 @@ class CategoriesScreen extends ConsumerStatefulWidget {
 }
 
 class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
-  bool _isAccountsExpanded = true;
-  bool _isExpenseExpanded = true;
-  bool _isIncomeExpanded = true;
-
   NeoPalette get _palette => NeoTheme.of(context);
 
   Color get _neoAppBg => _palette.appBg;
@@ -41,6 +37,12 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     final expenseCategoriesAsync = ref.watch(categoriesProvider);
     final incomeSourcesAsync = ref.watch(incomeSourcesProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
+    final isAccountsExpanded =
+        ref.watch(uiSectionExpandedProvider(UiSectionKeys.categoriesAccounts));
+    final isExpenseExpanded =
+        ref.watch(uiSectionExpandedProvider(UiSectionKeys.categoriesExpense));
+    final isIncomeExpanded =
+        ref.watch(uiSectionExpandedProvider(UiSectionKeys.categoriesIncome));
 
     return Scaffold(
       backgroundColor: _neoAppBg,
@@ -71,16 +73,19 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                 accountsAsync: accountsAsync,
                 balancesAsync: balancesAsync,
                 currencySymbol: currencySymbol,
+                isExpanded: isAccountsExpanded,
               ),
               const SizedBox(height: NeoLayout.sectionGap),
               _buildExpenseCategoriesCard(
                 categoriesAsync: expenseCategoriesAsync,
                 currencySymbol: currencySymbol,
+                isExpanded: isExpenseExpanded,
               ),
               const SizedBox(height: NeoLayout.sectionGap),
               _buildIncomeCategoriesCard(
                 incomeSourcesAsync: incomeSourcesAsync,
                 currencySymbol: currencySymbol,
+                isExpanded: isIncomeExpanded,
               ),
             ],
           ),
@@ -100,12 +105,16 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     required AsyncValue<List<Account>> accountsAsync,
     required AsyncValue<Map<String, double>> balancesAsync,
     required String currencySymbol,
+    required bool isExpanded,
   }) {
     return _buildSectionCard(
       title: 'Accounts',
-      expanded: _isAccountsExpanded,
+      expanded: isExpanded,
       onToggle: () =>
-          setState(() => _isAccountsExpanded = !_isAccountsExpanded),
+          ref.read(uiPreferencesProvider.notifier).setSectionExpanded(
+                UiSectionKeys.categoriesAccounts,
+                !isExpanded,
+              ),
       onViewAll: () => context.push('/settings/accounts'),
       onAdd: _showAddAccountSheet,
       child: accountsAsync.when(
@@ -159,11 +168,16 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   Widget _buildExpenseCategoriesCard({
     required AsyncValue<List<Category>> categoriesAsync,
     required String currencySymbol,
+    required bool isExpanded,
   }) {
     return _buildSectionCard(
       title: 'Expense Categories',
-      expanded: _isExpenseExpanded,
-      onToggle: () => setState(() => _isExpenseExpanded = !_isExpenseExpanded),
+      expanded: isExpanded,
+      onToggle: () =>
+          ref.read(uiPreferencesProvider.notifier).setSectionExpanded(
+                UiSectionKeys.categoriesExpense,
+                !isExpanded,
+              ),
       onViewAll: () => context.push('/budget'),
       onAdd: _showAddExpenseCategorySheet,
       child: categoriesAsync.when(
@@ -220,11 +234,16 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   Widget _buildIncomeCategoriesCard({
     required AsyncValue<List<IncomeSource>> incomeSourcesAsync,
     required String currencySymbol,
+    required bool isExpanded,
   }) {
     return _buildSectionCard(
       title: 'Income Categories',
-      expanded: _isIncomeExpanded,
-      onToggle: () => setState(() => _isIncomeExpanded = !_isIncomeExpanded),
+      expanded: isExpanded,
+      onToggle: () =>
+          ref.read(uiPreferencesProvider.notifier).setSectionExpanded(
+                UiSectionKeys.categoriesIncome,
+                !isExpanded,
+              ),
       onViewAll: () => context.push('/income'),
       onAdd: _showAddIncomeCategorySheet,
       child: incomeSourcesAsync.when(
