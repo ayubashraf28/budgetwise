@@ -104,7 +104,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
             ),
             children: [
               const SizedBox(height: AppSpacing.sm),
-              _header(userMonths, monthId, mode),
+              _header(),
               const SizedBox(height: _sectionGap),
               _modeTabs(mode),
               const SizedBox(height: _sectionGap),
@@ -157,17 +157,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
     );
   }
 
-  Widget _header(
-      AsyncValue<List<Month>> months, String monthId, AnalysisMode mode) {
-    final month = months.valueOrNull?.where((m) => m.id == monthId).firstOrNull;
-    final year = ref.watch(analysisSelectedYearProvider);
-    final range = ref.watch(analysisTrendRangeProvider);
-    final contextLabel =
-        mode == AnalysisMode.trends && range == AnalysisTrendRange.year
-            ? '${year ?? month?.startDate.year ?? DateTime.now().year}'
-            : month == null
-                ? 'Current month'
-                : '${month.name} ${month.startDate.year}';
+  Widget _header() {
     return SafeArea(
       bottom: false,
       child: Column(
@@ -179,7 +169,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            contextLabel,
+            'Spending, income, account movement, and trends in one place',
             style: NeoTypography.pageContext(context),
           ),
         ],
