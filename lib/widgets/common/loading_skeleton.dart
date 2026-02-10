@@ -18,14 +18,15 @@ class LoadingSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     return Shimmer.fromColors(
-      baseColor: AppColors.surfaceLight,
-      highlightColor: AppColors.surface,
+      baseColor: palette.surface2,
+      highlightColor: palette.surface1,
       child: Container(
         width: width,
         height: height,
         decoration: BoxDecoration(
-          color: AppColors.surfaceLight,
+          color: palette.surface2,
           borderRadius: BorderRadius.circular(borderRadius),
         ),
       ),
@@ -44,13 +45,14 @@ class CardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     return Shimmer.fromColors(
-      baseColor: AppColors.surfaceLight,
-      highlightColor: AppColors.surface,
+      baseColor: palette.surface2,
+      highlightColor: palette.surface1,
       child: Container(
         height: height,
         decoration: BoxDecoration(
-          color: AppColors.surfaceLight,
+          color: palette.surface2,
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         ),
       ),
@@ -64,13 +66,14 @@ class ListItemSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     return Shimmer.fromColors(
-      baseColor: AppColors.surfaceLight,
-      highlightColor: AppColors.surface,
+      baseColor: palette.surface2,
+      highlightColor: palette.surface1,
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: palette.surface1,
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         ),
         child: Row(
@@ -80,7 +83,7 @@ class ListItemSkeleton extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
+                color: palette.surface2,
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
               ),
             ),
@@ -94,7 +97,7 @@ class ListItemSkeleton extends StatelessWidget {
                     width: 120,
                     height: 16,
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
+                      color: palette.surface2,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -103,7 +106,7 @@ class ListItemSkeleton extends StatelessWidget {
                     width: 80,
                     height: 12,
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
+                      color: palette.surface2,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -115,7 +118,7 @@ class ListItemSkeleton extends StatelessWidget {
               width: 60,
               height: 16,
               decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
+                color: palette.surface2,
                 borderRadius: BorderRadius.circular(4),
               ),
             ),

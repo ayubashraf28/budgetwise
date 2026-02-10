@@ -32,10 +32,11 @@ class StackedBarChart extends StatelessWidget {
     if (monthlyData.isEmpty) {
       return SizedBox(height: height);
     }
+    final palette = NeoTheme.of(context);
+    final accent = NeoTheme.positiveValue(context);
 
-    final maxExpense = monthlyData
-        .map((d) => d.totalExpenses)
-        .reduce((a, b) => a > b ? a : b);
+    final maxExpense =
+        monthlyData.map((d) => d.totalExpenses).reduce((a, b) => a > b ? a : b);
 
     return SizedBox(
       height: height,
@@ -59,7 +60,7 @@ class StackedBarChart extends StatelessWidget {
                   }
                 : null,
             touchTooltipData: BarTouchTooltipData(
-              getTooltipColor: (_) => AppColors.surfaceLight,
+              getTooltipColor: (_) => palette.surface2,
               tooltipPadding: const EdgeInsets.symmetric(
                 horizontal: 12,
                 vertical: 8,
@@ -69,8 +70,8 @@ class StackedBarChart extends StatelessWidget {
                 final data = monthlyData[group.x.toInt()];
                 return BarTooltipItem(
                   '$currencySymbol${_formatAmount(data.totalExpenses)}',
-                  const TextStyle(
-                    color: AppColors.textPrimary,
+                  TextStyle(
+                    color: palette.textPrimary,
                     fontWeight: FontWeight.w600,
                     fontSize: 13,
                   ),
@@ -98,8 +99,7 @@ class StackedBarChart extends StatelessWidget {
                     return const SizedBox.shrink();
                   }
                   final name = monthlyData[index].monthName;
-                  final abbr =
-                      name.length >= 3 ? name.substring(0, 3) : name;
+                  final abbr = name.length >= 3 ? name.substring(0, 3) : name;
                   final isSelected = selectedBarIndex == index;
                   return Padding(
                     padding: const EdgeInsets.only(top: 8),
@@ -107,14 +107,13 @@ class StackedBarChart extends StatelessWidget {
                       abbr,
                       style: TextStyle(
                         color: isSelected
-                            ? AppColors.savings
+                            ? accent
                             : selectedBarIndex != null
-                                ? AppColors.textMuted.withValues(alpha: 0.4)
-                                : AppColors.textMuted,
+                                ? palette.textMuted.withValues(alpha: 0.4)
+                                : palette.textMuted,
                         fontSize: 11,
-                        fontWeight: isSelected
-                            ? FontWeight.w700
-                            : FontWeight.w500,
+                        fontWeight:
+                            isSelected ? FontWeight.w700 : FontWeight.w500,
                       ),
                     ),
                   );
@@ -128,14 +127,13 @@ class StackedBarChart extends StatelessWidget {
             final index = entry.key;
             final data = entry.value;
             final barWidth = monthlyData.length <= 6 ? 28.0 : 16.0;
-            final isDimmed = selectedBarIndex != null &&
-                selectedBarIndex != index;
+            final isDimmed =
+                selectedBarIndex != null && selectedBarIndex != index;
             final dimAlpha = 0.25;
 
             if (data.segments.isEmpty) {
-              final barColor = isDimmed
-                  ? AppColors.savings.withValues(alpha: dimAlpha)
-                  : AppColors.savings;
+              final barColor =
+                  isDimmed ? accent.withValues(alpha: dimAlpha) : accent;
               return BarChartGroupData(
                 x: index,
                 barRods: [

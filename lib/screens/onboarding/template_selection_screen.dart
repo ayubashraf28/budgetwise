@@ -22,43 +22,44 @@ class _TemplateSelectionScreenState
   String? _selectedTemplate;
   bool _isLoading = false;
 
-  final List<_TemplateOption> _templates = const [
-    _TemplateOption(
-      id: 'individual',
-      title: 'Individual',
-      description: 'Perfect for personal budgeting',
-      icon: LucideIcons.user,
-      color: AppColors.info,
-    ),
-    _TemplateOption(
-      id: 'student',
-      title: 'Student',
-      description: 'Optimized for student life',
-      icon: LucideIcons.graduationCap,
-      color: AppColors.warning,
-    ),
-    _TemplateOption(
-      id: 'family',
-      title: 'Family',
-      description: 'Manage household expenses',
-      icon: LucideIcons.users,
-      color: AppColors.success,
-    ),
-    _TemplateOption(
-      id: 'freelancer',
-      title: 'Freelancer',
-      description: 'Track business and personal',
-      icon: LucideIcons.briefcase,
-      color: AppColors.primary,
-    ),
-  ];
+  List<_TemplateOption> _templatesFor(BuildContext context) => [
+        _TemplateOption(
+          id: 'individual',
+          title: 'Individual',
+          description: 'Perfect for personal budgeting',
+          icon: LucideIcons.user,
+          color: NeoTheme.infoValue(context),
+        ),
+        _TemplateOption(
+          id: 'student',
+          title: 'Student',
+          description: 'Optimized for student life',
+          icon: LucideIcons.graduationCap,
+          color: NeoTheme.warningValue(context),
+        ),
+        _TemplateOption(
+          id: 'family',
+          title: 'Family',
+          description: 'Manage household expenses',
+          icon: LucideIcons.users,
+          color: NeoTheme.positiveValue(context),
+        ),
+        _TemplateOption(
+          id: 'freelancer',
+          title: 'Freelancer',
+          description: 'Track business and personal',
+          icon: LucideIcons.briefcase,
+          color: NeoTheme.of(context).accent,
+        ),
+      ];
 
   @override
   Widget build(BuildContext context) {
+    final templates = _templatesFor(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: NeoTheme.of(context).appBg,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: NeoTheme.of(context).appBg,
         leading: IconButton(
           icon: const Icon(LucideIcons.arrowLeft),
           onPressed: () => context.go('/onboarding'),
@@ -78,7 +79,7 @@ class _TemplateSelectionScreenState
               Text(
                 'Select the option that best describes your situation',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: AppColors.textSecondary,
+                  color: NeoTheme.of(context).textSecondary,
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
@@ -86,11 +87,11 @@ class _TemplateSelectionScreenState
               // Template Options
               Expanded(
                 child: ListView.separated(
-                  itemCount: _templates.length,
+                  itemCount: templates.length,
                   separatorBuilder: (_, __) =>
                       const SizedBox(height: AppSpacing.md),
                   itemBuilder: (context, index) {
-                    final template = _templates[index];
+                    final template = templates[index];
                     final isSelected = _selectedTemplate == template.id;
 
                     return _buildTemplateCard(template, isSelected);
@@ -140,10 +141,10 @@ class _TemplateSelectionScreenState
         decoration: BoxDecoration(
           color: isSelected
               ? template.color.withValues(alpha: 0.1)
-              : AppColors.surface,
+              : NeoTheme.of(context).surface1,
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
           border: Border.all(
-            color: isSelected ? template.color : AppColors.border,
+            color: isSelected ? template.color : NeoTheme.of(context).stroke,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -170,8 +171,9 @@ class _TemplateSelectionScreenState
                   Text(
                     template.title,
                     style: AppTypography.labelLarge.copyWith(
-                      color:
-                          isSelected ? template.color : AppColors.textPrimary,
+                      color: isSelected
+                          ? template.color
+                          : NeoTheme.of(context).textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -263,7 +265,7 @@ class _TemplateSelectionScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
-            backgroundColor: AppColors.error,
+            backgroundColor: NeoTheme.negativeValue(context),
           ),
         );
         setState(() => _isLoading = false);

@@ -19,12 +19,14 @@ class CurrencyPickerSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = NeoTheme.of(context);
     final currentCurrency = ref.watch(currencyProvider);
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
+      decoration: BoxDecoration(
+        color: palette.surface1,
+        borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppSizing.radiusXl)),
       ),
       child: SafeArea(
         child: Column(
@@ -37,7 +39,7 @@ class CurrencyPickerSheet extends ConsumerWidget {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: AppColors.border,
+                  color: palette.stroke,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -52,7 +54,7 @@ class CurrencyPickerSheet extends ConsumerWidget {
                 children: [
                   Text(
                     'Select Currency',
-                    style: AppTypography.h3,
+                    style: NeoTypography.sectionTitle(context),
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
@@ -69,7 +71,8 @@ class CurrencyPickerSheet extends ConsumerWidget {
                 shrinkWrap: true,
                 itemCount: AppConstants.currencySymbols.length,
                 itemBuilder: (context, index) {
-                  final code = AppConstants.currencySymbols.keys.elementAt(index);
+                  final code =
+                      AppConstants.currencySymbols.keys.elementAt(index);
                   final symbol = AppConstants.currencySymbols[code]!;
                   final name = _currencyNames[code]!;
                   final isSelected = code == currentCurrency;
@@ -82,7 +85,9 @@ class CurrencyPickerSheet extends ConsumerWidget {
                     onTap: () async {
                       if (code != currentCurrency) {
                         // Update profile with new currency
-                        await ref.read(profileNotifierProvider.notifier).updateProfile(
+                        await ref
+                            .read(profileNotifierProvider.notifier)
+                            .updateProfile(
                               currency: code,
                             );
 
@@ -123,6 +128,7 @@ class _CurrencyTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -139,7 +145,7 @@ class _CurrencyTile extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: isSelected ? AppColors.primary : AppColors.surfaceLight,
+                  color: isSelected ? palette.accent : palette.surface2,
                   borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                 ),
                 child: Center(
@@ -148,7 +154,9 @@ class _CurrencyTile extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w600,
-                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                      color: isSelected
+                          ? palette.textPrimary
+                          : palette.textSecondary,
                     ),
                   ),
                 ),
@@ -160,6 +168,7 @@ class _CurrencyTile extends StatelessWidget {
                 child: Text(
                   name,
                   style: AppTypography.bodyLarge.copyWith(
+                    color: palette.textPrimary,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
@@ -167,9 +176,9 @@ class _CurrencyTile extends StatelessWidget {
 
               // Check icon if selected
               if (isSelected)
-                const Icon(
+                Icon(
                   LucideIcons.check,
-                  color: AppColors.primary,
+                  color: palette.accent,
                   size: 24,
                 ),
             ],

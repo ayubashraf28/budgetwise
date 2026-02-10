@@ -318,20 +318,21 @@ class _ManageScreenState extends ConsumerState<ManageScreen> {
   }
 
   Widget _buildErrorSection(String error) {
+    final danger = NeoTheme.negativeValue(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.12),
+        color: danger.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.error.withValues(alpha: 0.35),
+          color: danger.withValues(alpha: 0.35),
         ),
       ),
       child: Text(
         'Failed to load: $error',
         style: AppTypography.bodySmall.copyWith(
-          color: AppColors.error,
+          color: danger,
         ),
       ),
     );

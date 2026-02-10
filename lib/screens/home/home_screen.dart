@@ -1106,7 +1106,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: AppSpacing.sm),
               _buildGlassCard(
                 padding: const EdgeInsets.all(AppSpacing.sm),
-                borderColor: AppColors.border.withValues(alpha: 0.85),
+                borderColor: _neoStroke.withValues(alpha: 0.85),
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final availableWidth = constraints.maxWidth;
@@ -1124,7 +1124,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       height: 1.0,
                     );
                     final centerLabelStyle = TextStyle(
-                      color: AppColors.textMuted,
+                      color: _neoTextSecondary,
                       fontSize: chartSize >= 320 ? 13 : 12,
                       fontWeight: FontWeight.w600,
                       letterSpacing: 1.1,
@@ -1144,9 +1144,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             return Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
+                                Icon(
                                   LucideIcons.trendingUp,
-                                  color: AppColors.savings,
+                                  color: NeoTheme.positiveValue(context),
                                   size: 28,
                                 ),
                                 const SizedBox(height: 10),
@@ -1255,8 +1255,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             totalActual,
             currencySymbol,
           ),
-          if (i < visible.length - 1)
-            const Divider(height: 1, color: AppColors.border),
+          if (i < visible.length - 1) Divider(height: 1, color: _neoStroke),
         ],
       ],
     );
@@ -1289,7 +1288,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTypography.bodyMedium.copyWith(
-                color: AppColors.textPrimary,
+                color: _neoTextPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -1307,7 +1306,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           Text(
             '$currencySymbol${_formatAmount(category.totalActual)}',
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textPrimary,
+              color: _neoTextPrimary,
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -1346,8 +1345,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const Text('Yearly Overview', style: AppTypography.h3),
                   Text(
                     '$year',
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
+                    style: TextStyle(
+                      color: _neoTextSecondary,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -1357,7 +1356,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: AppSpacing.sm),
               _buildGlassCard(
                 padding: const EdgeInsets.all(AppSpacing.md),
-                borderColor: AppColors.border.withValues(alpha: 0.85),
+                borderColor: _neoStroke.withValues(alpha: 0.85),
                 child: StackedBarChart(
                   monthlyData: monthlyData,
                   currencySymbol: currencySymbol,
@@ -1395,16 +1394,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         Text(
           '${selectedMonth.monthName}: $currencySymbol${_formatAmount(selectedMonth.totalExpenses)}',
           style: AppTypography.bodyMedium.copyWith(
-            color: AppColors.textSecondary,
+            color: _neoTextSecondary,
             fontWeight: FontWeight.w600,
           ),
         ),
         const Spacer(),
         TextButton(
           onPressed: () => setState(() => _selectedYearlyBarIndex = null),
-          child: const Text(
+          child: Text(
             'Clear',
-            style: TextStyle(color: AppColors.savings),
+            style: TextStyle(color: NeoTheme.positiveValue(context)),
           ),
         ),
       ],
@@ -1510,11 +1509,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     required Widget child,
     EdgeInsetsGeometry padding = const EdgeInsets.all(AppSpacing.md),
     BorderRadius? borderRadius,
-    Color borderColor = AppColors.border,
-    Color tintColor = AppColors.surface,
+    Color? borderColor,
+    Color? tintColor,
     List<Color>? gradientColors,
   }) {
     final radius = borderRadius ?? BorderRadius.circular(_homeCardRadius);
+    final resolvedBorderColor = borderColor ?? _neoStroke;
+    final resolvedTintColor = tintColor ?? _neoSurface1;
     final shadowColor = _isLightMode(context)
         ? Colors.black.withValues(alpha: 0.16)
         : _neoAppBg.withValues(alpha: 0.9);
@@ -1522,7 +1523,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        color: tintColor,
+        color: resolvedTintColor,
         gradient: gradientColors == null
             ? null
             : LinearGradient(
@@ -1531,7 +1532,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 colors: gradientColors,
               ),
         borderRadius: radius,
-        border: Border.all(color: borderColor),
+        border: Border.all(color: resolvedBorderColor),
         boxShadow: [
           BoxShadow(
             color: shadowColor,

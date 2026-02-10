@@ -76,6 +76,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     final categories = ref.watch(categoriesProvider).value ?? [];
     final incomeSources = ref.watch(incomeSourcesProvider).value ?? [];
     final allAccounts = ref.watch(allAccountsProvider).value ?? [];
@@ -154,10 +155,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     }
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
+      decoration: BoxDecoration(
+        color: palette.surface1,
+        borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppSizing.radiusXl)),
       ),
       child: Padding(
         padding: EdgeInsets.only(
@@ -178,7 +179,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: AppColors.border,
+                        color: palette.stroke,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -191,7 +192,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     children: [
                       Text(
                         isEditing ? 'Edit Transaction' : 'Add Transaction',
-                        style: AppTypography.h3,
+                        style: NeoTypography.sectionTitle(context),
                       ),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
@@ -242,7 +243,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     Text(
                       'No active accounts found. Add one in Settings > Accounts.',
                       style: AppTypography.bodySmall.copyWith(
-                        color: AppColors.error,
+                        color: NeoTheme.negativeValue(context),
                       ),
                     ),
                   ],
@@ -320,15 +321,18 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   Widget _buildLabel(String text) {
     return Text(
       text,
-      style: AppTypography.labelMedium,
+      style: AppTypography.labelMedium.copyWith(
+        color: NeoTheme.of(context).textSecondary,
+      ),
     );
   }
 
   Widget _buildTypeToggle() {
+    final palette = NeoTheme.of(context);
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
+        color: palette.surface2,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
       ),
       child: Row(
@@ -338,7 +342,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               label: 'Expense',
               icon: LucideIcons.trendingDown,
               isSelected: _transactionType == TransactionType.expense,
-              color: AppColors.error,
+              color: NeoTheme.negativeValue(context),
               onTap: () {
                 setState(() {
                   _transactionType = TransactionType.expense;
@@ -353,7 +357,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               label: 'Income',
               icon: LucideIcons.trendingUp,
               isSelected: _transactionType == TransactionType.income,
-              color: AppColors.success,
+              color: NeoTheme.positiveValue(context),
               onTap: () {
                 setState(() {
                   _transactionType = TransactionType.income;
@@ -375,6 +379,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     required Color color,
     required VoidCallback onTap,
   }) {
+    final palette = NeoTheme.of(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -393,13 +398,13 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
             Icon(
               icon,
               size: 18,
-              color: isSelected ? color : AppColors.textSecondary,
+              color: isSelected ? color : palette.textSecondary,
             ),
             const SizedBox(width: AppSpacing.xs),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? color : AppColors.textSecondary,
+                color: isSelected ? color : palette.textSecondary,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
@@ -410,13 +415,14 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   }
 
   Widget _buildCategoryDropdown(List<Category> categories, String? safeValue) {
+    final palette = NeoTheme.of(context);
     return DropdownButtonFormField<String>(
       key: ValueKey('category_dropdown_$_dropdownResetCounter'),
       value: safeValue,
       decoration: const InputDecoration(
         hintText: 'Select category',
       ),
-      dropdownColor: AppColors.surface,
+      dropdownColor: palette.surface1,
       items: [
         ...categories.map((category) {
           return DropdownMenuItem<String>(
@@ -450,12 +456,12 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.15),
+                  color: palette.accent.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Icon(
+                child: Icon(
                   LucideIcons.plus,
-                  color: AppColors.primary,
+                  color: palette.accent,
                   size: 14,
                 ),
               ),
@@ -463,7 +469,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               Text(
                 'Add New Category',
                 style: TextStyle(
-                  color: AppColors.primary,
+                  color: palette.accent,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -492,13 +498,14 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   }
 
   Widget _buildItemDropdown(List<Item> items, String? safeValue) {
+    final palette = NeoTheme.of(context);
     return DropdownButtonFormField<String>(
       key: ValueKey('item_dropdown_$_dropdownResetCounter'),
       value: safeValue,
       decoration: const InputDecoration(
         hintText: 'Select item',
       ),
-      dropdownColor: AppColors.surface,
+      dropdownColor: palette.surface1,
       items: [
         ...items.map((item) {
           return DropdownMenuItem<String>(
@@ -515,12 +522,12 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.15),
+                    color: palette.accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     LucideIcons.plus,
-                    color: AppColors.primary,
+                    color: palette.accent,
                     size: 14,
                   ),
                 ),
@@ -528,7 +535,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 Text(
                   'Add New Item',
                   style: TextStyle(
-                    color: AppColors.primary,
+                    color: palette.accent,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -557,13 +564,15 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
 
   Widget _buildIncomeSourceDropdown(
       List<IncomeSource> incomeSources, String? safeValue) {
+    final palette = NeoTheme.of(context);
+    final positive = NeoTheme.positiveValue(context);
     return DropdownButtonFormField<String>(
       key: ValueKey('income_dropdown_$_dropdownResetCounter'),
       value: safeValue,
       decoration: const InputDecoration(
         hintText: 'Select income source',
       ),
-      dropdownColor: AppColors.surface,
+      dropdownColor: palette.surface1,
       items: [
         ...incomeSources.map((source) {
           return DropdownMenuItem<String>(
@@ -574,12 +583,12 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   width: 24,
                   height: 24,
                   decoration: BoxDecoration(
-                    color: AppColors.success.withValues(alpha: 0.15),
+                    color: positive.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     LucideIcons.wallet,
-                    color: AppColors.success,
+                    color: positive,
                     size: 14,
                   ),
                 ),
@@ -597,12 +606,12 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.15),
+                  color: palette.accent.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Icon(
+                child: Icon(
                   LucideIcons.plus,
-                  color: AppColors.primary,
+                  color: palette.accent,
                   size: 14,
                 ),
               ),
@@ -610,7 +619,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               Text(
                 'Add New Source',
                 style: TextStyle(
-                  color: AppColors.primary,
+                  color: palette.accent,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -638,6 +647,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   }
 
   Widget _buildDatePicker(BuildContext context) {
+    final palette = NeoTheme.of(context);
     return GestureDetector(
       onTap: () => _selectDate(context),
       child: Container(
@@ -646,16 +656,16 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
           vertical: AppSpacing.md,
         ),
         decoration: BoxDecoration(
-          color: AppColors.surfaceLight,
+          color: palette.surface2,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: palette.stroke),
         ),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               LucideIcons.calendar,
               size: 20,
-              color: AppColors.textSecondary,
+              color: palette.textSecondary,
             ),
             const SizedBox(width: AppSpacing.sm),
             Text(
@@ -663,10 +673,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               style: AppTypography.bodyLarge,
             ),
             const Spacer(),
-            const Icon(
+            Icon(
               LucideIcons.chevronDown,
               size: 20,
-              color: AppColors.textSecondary,
+              color: palette.textSecondary,
             ),
           ],
         ),
@@ -675,13 +685,15 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   }
 
   Widget _buildAccountDropdown(List<Account> accounts, String? safeValue) {
+    final palette = NeoTheme.of(context);
+    final accent = NeoTheme.infoValue(context);
     return DropdownButtonFormField<String>(
       key: ValueKey('account_dropdown_$_dropdownResetCounter'),
       value: safeValue,
       decoration: const InputDecoration(
         hintText: 'Select account',
       ),
-      dropdownColor: AppColors.surface,
+      dropdownColor: palette.surface1,
       items: accounts.map((account) {
         final isArchived = account.isArchived;
         return DropdownMenuItem<String>(
@@ -692,13 +704,13 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 width: 24,
                 height: 24,
                 decoration: BoxDecoration(
-                  color: (isArchived ? AppColors.textMuted : AppColors.savings)
+                  color: (isArchived ? palette.textMuted : accent)
                       .withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Icon(
                   _getAccountTypeIcon(account.type),
-                  color: isArchived ? AppColors.textMuted : AppColors.savings,
+                  color: isArchived ? palette.textMuted : accent,
                   size: 14,
                 ),
               ),
@@ -730,6 +742,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    final palette = NeoTheme.of(context);
     final now = DateTime.now();
     final firstDate = DateTime(now.year - 1, 1, 1);
     final lastDate = DateTime(now.year + 1, 12, 31);
@@ -742,14 +755,14 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              surface: AppColors.surface,
-              onSurface: AppColors.textPrimary,
+            colorScheme: ColorScheme.dark(
+              primary: palette.accent,
+              onPrimary: palette.textPrimary,
+              surface: palette.surface1,
+              onSurface: palette.textPrimary,
             ),
-            dialogTheme: const DialogThemeData(
-              backgroundColor: AppColors.surface,
+            dialogTheme: DialogThemeData(
+              backgroundColor: palette.surface1,
             ),
           ),
           child: child!,
@@ -866,11 +879,11 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     if (!mounted) return;
     if (activeAccounts.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
             'Create an account first from Settings > Accounts',
           ),
-          backgroundColor: AppColors.error,
+          backgroundColor: NeoTheme.negativeValue(context),
         ),
       );
       return;
@@ -960,7 +973,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
-            backgroundColor: AppColors.error,
+            backgroundColor: NeoTheme.negativeValue(context),
           ),
         );
       }

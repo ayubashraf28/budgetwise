@@ -21,9 +21,11 @@ class BudgetProgressBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final percentage = projected > 0 ? (actual / projected).clamp(0.0, 1.0) : 0.0;
+    final percentage =
+        projected > 0 ? (actual / projected).clamp(0.0, 1.0) : 0.0;
     final isOver = actual > projected;
     final trackColor = backgroundColor ?? color.withOpacity(0.2);
+    final danger = NeoTheme.negativeValue(context);
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(height / 2),
@@ -38,7 +40,7 @@ class BudgetProgressBar extends StatelessWidget {
             widthFactor: percentage,
             child: Container(
               decoration: BoxDecoration(
-                color: isOver ? AppColors.error : color,
+                color: isOver ? danger : color,
               ),
             ),
           ),

@@ -297,8 +297,8 @@ class CategoryDetailScreen extends ConsumerWidget {
                                   style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     color: tx.isExpense
-                                        ? AppColors.error
-                                        : AppColors.success,
+                                        ? NeoTheme.negativeValue(context)
+                                        : NeoTheme.positiveValue(context),
                                   ),
                                 ),
                               ],
@@ -386,15 +386,18 @@ class CategoryDetailScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
                             Icon(LucideIcons.trash2,
-                                size: 18, color: AppColors.error),
+                                size: 18,
+                                color: NeoTheme.negativeValue(context)),
                             SizedBox(width: 8),
                             Text('Delete Category',
-                                style: TextStyle(color: AppColors.error)),
+                                style: TextStyle(
+                                  color: NeoTheme.negativeValue(context),
+                                )),
                           ],
                         ),
                       ),
@@ -577,7 +580,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 12,
                   color: isOverBudget
-                      ? AppColors.error
+                      ? NeoTheme.negativeValue(context)
                       : accentColor.withValues(alpha: 0.78),
                   fontWeight: FontWeight.w500,
                 ),
@@ -606,7 +609,7 @@ class CategoryDetailScreen extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: AppSpacing.md),
         decoration: BoxDecoration(
-          color: AppColors.error,
+          color: NeoTheme.negativeValue(context),
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         ),
         child: const Icon(LucideIcons.trash2, color: Colors.white),
@@ -631,12 +634,12 @@ class CategoryDetailScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
             color: (item.isOverBudget)
-                ? AppColors.error.withValues(alpha: 0.08)
+                ? NeoTheme.negativeValue(context).withValues(alpha: 0.08)
                 : palette.surface1,
             borderRadius: BorderRadius.circular(AppSizing.radiusLg),
             border: Border.all(
               color: (item.isOverBudget)
-                  ? AppColors.error.withValues(alpha: 0.2)
+                  ? NeoTheme.negativeValue(context).withValues(alpha: 0.2)
                   : palette.stroke.withValues(alpha: 0.7),
             ),
             boxShadow: [
@@ -763,16 +766,16 @@ class CategoryDetailScreen extends ConsumerWidget {
     } else if (item.isOverBudget) {
       label =
           '+$currencySymbol${(item.actual - item.projected).toStringAsFixed(0)}';
-      color = AppColors.error;
+      color = NeoTheme.negativeValue(context);
     } else if (item.actual == item.projected) {
       label = 'On budget';
-      color = AppColors.success;
+      color = NeoTheme.positiveValue(context);
     } else if (item.actual == 0) {
       label = 'Pending';
       color = palette.textMuted;
     } else {
       label = 'Under budget';
-      color = AppColors.success;
+      color = NeoTheme.positiveValue(context);
     }
 
     return Container(
@@ -1014,7 +1017,9 @@ class CategoryDetailScreen extends ConsumerWidget {
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                style: TextButton.styleFrom(
+                  foregroundColor: NeoTheme.negativeValue(context),
+                ),
                 child: const Text('Delete'),
               ),
             ],
@@ -1053,7 +1058,9 @@ class CategoryDetailScreen extends ConsumerWidget {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(
+              foregroundColor: NeoTheme.negativeValue(context),
+            ),
             child: const Text('Delete'),
           ),
         ],

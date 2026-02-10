@@ -504,7 +504,8 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
                 icon: selected != null
                     ? _categoryIcon(selected.icon)
                     : LucideIcons.pieChart,
-                iconColor: selected?.colorValue ?? AppColors.savings,
+                iconColor:
+                    selected?.colorValue ?? NeoTheme.positiveValue(context),
                 amount: '$currency${_money(amount)}',
                 label: label,
                 meta: selected == null
@@ -539,6 +540,8 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
 
   Widget _incomeMode(
       List<IncomeSource> sources, List<Transaction> txs, String currency) {
+    final categoryPalette = NeoTheme.categoryChartPalette(context);
+    final paletteLength = categoryPalette.length;
     final list = sources.where((s) => s.actual > 0).toList()
       ..sort((a, b) => b.actual.compareTo(a.actual));
     final total = list.fold<double>(0, (sum, s) => sum + s.actual);
@@ -566,8 +569,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
                 .asMap()
                 .entries
                 .map((e) => DonutSegment(
-                    color: AppColors.categoryColors[
-                        e.key % AppColors.categoryColors.length],
+                    color: categoryPalette[e.key % paletteLength],
                     value: e.value.actual,
                     name: e.value.name))
                 .toList(),
@@ -581,9 +583,8 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
               return _ChartCenter(
                 icon: LucideIcons.banknote,
                 iconColor: selected == null
-                    ? AppColors.savings
-                    : AppColors
-                        .categoryColors[i! % AppColors.categoryColors.length],
+                    ? NeoTheme.positiveValue(context)
+                    : categoryPalette[i! % paletteLength],
                 amount: '$currency${_money(amount)}',
                 label: selected?.name ?? 'Total income',
                 meta: selected == null
@@ -605,8 +606,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
           return _RowCard(
             title: s.name,
             subtitle: '${counts[s.id] ?? 0} transactions',
-            leadingColor: AppColors
-                .categoryColors[e.key % AppColors.categoryColors.length],
+            leadingColor: categoryPalette[e.key % paletteLength],
             leadingIcon: LucideIcons.banknote,
             amount: '$currency${_money(s.actual)}',
             meta: '${pct.toStringAsFixed(0)}%',
@@ -634,12 +634,18 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
             children: [
               _AccountsChart(rows: rows, currency: currency),
               const SizedBox(height: 6),
-              const Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _LegendDot(color: AppColors.income, label: 'Income'),
+                  _LegendDot(
+                    color: NeoTheme.positiveValue(context),
+                    label: 'Income',
+                  ),
                   SizedBox(width: 12),
-                  _LegendDot(color: AppColors.expense, label: 'Expense'),
+                  _LegendDot(
+                    color: NeoTheme.negativeValue(context),
+                    label: 'Expense',
+                  ),
                 ],
               ),
             ],
@@ -656,7 +662,9 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
           return _RowCard(
             title: r.accountName,
             subtitle: '${r.transactionCount} transactions',
-            leadingColor: netPositive ? AppColors.income : AppColors.expense,
+            leadingColor: netPositive
+                ? NeoTheme.positiveValue(context)
+                : NeoTheme.negativeValue(context),
             amount: '${r.net >= 0 ? '+' : '-'}$currency${_money(r.net.abs())}',
             meta:
                 '+$currency${_money(r.income)}  /  -$currency${_money(r.expense)}',
@@ -754,15 +762,17 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
 
   Widget _glassCard({required Widget child}) {
     final shadowColor = _isLight(context)
-        ? Colors.black.withValues(alpha: 0.14)
+        ? Colors.black.withValues(alpha: 0.08)
         : _neoAppBg.withValues(alpha: 0.86);
+    final strokeColor =
+        _isLight(context) ? _neoStroke.withValues(alpha: 0.75) : _neoStroke;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: _neoSurface1,
         borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _neoStroke),
+        border: Border.all(color: strokeColor),
         boxShadow: [
           BoxShadow(
             color: shadowColor,
@@ -809,15 +819,20 @@ class _RowCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
-    final surface = palette.surface2;
-    final stroke = palette.stroke;
+    final isLight = NeoTheme.isLight(context);
+    final surface = isLight ? palette.surface1 : palette.surface2;
+    final stroke = isLight
+        ? palette.stroke.withValues(alpha: 0.75)
+        : palette.stroke.withValues(alpha: 0.9);
+    final cardShadow =
+        isLight ? Colors.black.withValues(alpha: 0.06) : Colors.transparent;
     final textPrimary = palette.textPrimary;
     final textSecondary = palette.textSecondary;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: surface,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           onTap: onTap,
@@ -825,8 +840,16 @@ class _RowCard extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
+              color: surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: stroke),
+              boxShadow: [
+                BoxShadow(
+                  color: cardShadow,
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: [
@@ -834,7 +857,8 @@ class _RowCard extends StatelessWidget {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color: leadingColor.withValues(alpha: 0.18),
+                    color:
+                        leadingColor.withValues(alpha: isLight ? 0.14 : 0.18),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
@@ -995,8 +1019,10 @@ class _Insight extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
-    final surface = palette.surface2;
-    final stroke = palette.stroke;
+    final isLight = NeoTheme.isLight(context);
+    final surface = isLight ? palette.surface1 : palette.surface2;
+    final stroke =
+        isLight ? palette.stroke.withValues(alpha: 0.75) : palette.stroke;
     final textPrimary = palette.textPrimary;
     final textSecondary = palette.textSecondary;
 
@@ -1047,6 +1073,8 @@ class _AccountsChart extends StatelessWidget {
   Widget build(BuildContext context) {
     if (rows.isEmpty) return const SizedBox(height: 220);
     final palette = NeoTheme.of(context);
+    final positive = NeoTheme.positiveValue(context);
+    final negative = NeoTheme.negativeValue(context);
     final muted = palette.textSecondary;
     final stroke = palette.stroke;
     final maxValue = rows.fold<double>(
@@ -1095,13 +1123,13 @@ class _AccountsChart extends StatelessWidget {
           barTouchData: BarTouchData(
             enabled: true,
             touchTooltipData: BarTouchTooltipData(
-              getTooltipColor: (_) => AppColors.surfaceLight,
+              getTooltipColor: (_) => palette.surface2,
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 if (rodIndex == 1) return null;
                 final row = rows[group.x.toInt()];
                 return BarTooltipItem(
                   '${row.accountName}\n+$currency${_fmt(row.income)}  /  -$currency${_fmt(row.expense)}',
-                  const TextStyle(color: AppColors.textPrimary, fontSize: 11),
+                  TextStyle(color: palette.textPrimary, fontSize: 11),
                 );
               },
             ),
@@ -1112,10 +1140,8 @@ class _AccountsChart extends StatelessWidget {
               x: e.key,
               barsSpace: 4,
               barRods: [
-                BarChartRodData(
-                    toY: row.income, width: 10, color: AppColors.income),
-                BarChartRodData(
-                    toY: row.expense, width: 10, color: AppColors.expense),
+                BarChartRodData(toY: row.income, width: 10, color: positive),
+                BarChartRodData(toY: row.expense, width: 10, color: negative),
               ],
             );
           }).toList(),
@@ -1162,10 +1188,10 @@ class _TrendChart extends StatelessWidget {
       if (metric == AnalysisTrendMetric.net) minY -= 50;
     }
     final color = metric == AnalysisTrendMetric.expense
-        ? AppColors.expense
+        ? NeoTheme.negativeValue(context)
         : metric == AnalysisTrendMetric.income
-            ? AppColors.income
-            : AppColors.info;
+            ? NeoTheme.positiveValue(context)
+            : NeoTheme.infoValue(context);
 
     final includeZeroLine = metric == AnalysisTrendMetric.net;
     return SizedBox(
@@ -1208,14 +1234,14 @@ class _TrendChart extends StatelessWidget {
           ),
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
-              getTooltipColor: (_) => AppColors.surfaceLight,
+              getTooltipColor: (_) => palette.surface2,
               getTooltipItems: (spots) => spots.map((s) {
                 final p = points[s.x.toInt()];
                 final sign =
                     metric == AnalysisTrendMetric.net && s.y < 0 ? '-' : '';
                 return LineTooltipItem(
                   '${p.monthLabel} ${p.year}\n$sign$currency${_fmt(s.y.abs())}',
-                  const TextStyle(color: AppColors.textPrimary, fontSize: 11),
+                  TextStyle(color: palette.textPrimary, fontSize: 11),
                 );
               }).toList(),
             ),
@@ -1330,13 +1356,14 @@ class _ModeError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final danger = NeoTheme.negativeValue(context);
     final isLight = Theme.of(context).brightness == Brightness.light;
     final errorBg = isLight
         ? const HSLColor.fromAHSL(1, 355.7, 0.700, 0.961).toColor()
-        : AppColors.error.withValues(alpha: 0.12);
+        : danger.withValues(alpha: 0.12);
     final errorStroke = isLight
         ? const HSLColor.fromAHSL(1, 352.0, 0.634, 0.861).toColor()
-        : AppColors.error.withValues(alpha: 0.35);
+        : danger.withValues(alpha: 0.35);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -1346,7 +1373,7 @@ class _ModeError extends StatelessWidget {
       ),
       child: Text(
         'Failed to load analysis data: $error',
-        style: AppTypography.bodyMedium.copyWith(color: AppColors.error),
+        style: AppTypography.bodyMedium.copyWith(color: danger),
       ),
     );
   }

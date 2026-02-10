@@ -57,14 +57,15 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     final currencySymbol = ref.watch(currencySymbolProvider);
     final currencyCode = ref.watch(currencyProvider);
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
+      decoration: BoxDecoration(
+        color: palette.surface1,
+        borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppSizing.radiusXl)),
       ),
       child: Padding(
         padding: EdgeInsets.only(
@@ -84,7 +85,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: AppColors.border,
+                        color: palette.stroke,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -95,7 +96,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                     children: [
                       Text(
                         isEditing ? 'Edit Account' : 'Add Account',
-                        style: AppTypography.h3,
+                        style: NeoTypography.sectionTitle(context),
                       ),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
@@ -123,7 +124,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                   const SizedBox(height: AppSpacing.sm),
                   DropdownButtonFormField<AccountType>(
                     initialValue: _type,
-                    dropdownColor: AppColors.surface,
+                    dropdownColor: palette.surface1,
                     items: AccountType.values
                         .map(
                           (type) => DropdownMenuItem<AccountType>(
@@ -193,16 +194,16 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                   Container(
                     padding: const EdgeInsets.all(AppSpacing.md),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
+                      color: palette.surface2,
                       borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: palette.stroke),
                     ),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           LucideIcons.pieChart,
                           size: 18,
-                          color: AppColors.savings,
+                          color: NeoTheme.positiveValue(context),
                         ),
                         const SizedBox(width: AppSpacing.sm),
                         Expanded(
@@ -212,7 +213,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                               Text(
                                 'Include in net worth',
                                 style: AppTypography.labelLarge.copyWith(
-                                  color: AppColors.textPrimary,
+                                  color: palette.textPrimary,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -268,7 +269,9 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
   Widget _buildLabel(String label) {
     return Text(
       label,
-      style: AppTypography.labelMedium,
+      style: AppTypography.labelMedium.copyWith(
+        color: NeoTheme.of(context).textSecondary,
+      ),
     );
   }
 
@@ -334,7 +337,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),
-          backgroundColor: AppColors.error,
+          backgroundColor: NeoTheme.negativeValue(context),
         ),
       );
     } finally {

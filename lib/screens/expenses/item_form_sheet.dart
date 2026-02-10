@@ -62,13 +62,14 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     final currencySymbol = ref.watch(currencySymbolProvider);
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
+      decoration: BoxDecoration(
+        color: palette.surface1,
+        borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppSizing.radiusXl)),
       ),
       child: Padding(
         padding: EdgeInsets.only(
@@ -89,7 +90,7 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: AppColors.border,
+                        color: palette.stroke,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -102,7 +103,7 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                     children: [
                       Text(
                         isEditing ? 'Edit Item' : 'Add Item',
-                        style: AppTypography.h3,
+                        style: NeoTypography.sectionTitle(context),
                       ),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
@@ -139,9 +140,8 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                         vertical: AppSpacing.sm,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceLight,
-                        borderRadius:
-                            BorderRadius.circular(AppSizing.radiusMd),
+                        color: palette.surface2,
+                        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,14 +149,17 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              const Row(
+                              Row(
                                 children: [
                                   Icon(LucideIcons.target,
-                                      size: 20,
-                                      color: AppColors.textSecondary),
+                                      size: 20, color: palette.textSecondary),
                                   SizedBox(width: AppSpacing.sm),
-                                  Text('Enable budgeting',
-                                      style: AppTypography.bodyLarge),
+                                  Text(
+                                    'Enable budgeting',
+                                    style: AppTypography.bodyLarge.copyWith(
+                                      color: palette.textPrimary,
+                                    ),
+                                  ),
                                 ],
                               ),
                               Switch(
@@ -165,18 +168,18 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                                     ? (value) =>
                                         setState(() => _isBudgeted = value)
                                     : null,
-                                activeTrackColor: AppColors.primary,
+                                activeTrackColor: palette.accent,
                               ),
                             ],
                           ),
                           if (!widget.categoryIsBudgeted)
-                            const Padding(
+                            Padding(
                               padding: EdgeInsets.only(
                                   left: 28, bottom: AppSpacing.xs),
                               child: Text(
                                 'Category budgeting is off — enable it on the category first',
                                 style: TextStyle(
-                                  color: AppColors.textMuted,
+                                  color: palette.textMuted,
                                   fontSize: 12,
                                 ),
                               ),
@@ -201,13 +204,13 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                         helperText: !_effectiveBudgeted
                             ? 'Budgeting is disabled for this item'
                             : null,
-                        helperStyle: const TextStyle(
-                          color: AppColors.textMuted,
+                        helperStyle: TextStyle(
+                          color: palette.textMuted,
                           fontSize: 12,
                         ),
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
                             RegExp(r'^\d*\.?\d{0,2}')),
@@ -235,28 +238,30 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                       vertical: AppSpacing.sm,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
-                      borderRadius:
-                          BorderRadius.circular(AppSizing.radiusMd),
+                      color: palette.surface2,
+                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Row(
+                        Row(
                           children: [
                             Icon(LucideIcons.repeat,
-                                size: 20,
-                                color: AppColors.textSecondary),
+                                size: 20, color: palette.textSecondary),
                             SizedBox(width: AppSpacing.sm),
-                            Text('Recurring expense',
-                                style: AppTypography.bodyLarge),
+                            Text(
+                              'Recurring expense',
+                              style: AppTypography.bodyLarge.copyWith(
+                                color: palette.textPrimary,
+                              ),
+                            ),
                           ],
                         ),
                         Switch(
                           value: _isRecurring,
                           onChanged: (value) =>
                               setState(() => _isRecurring = value),
-                          activeTrackColor: AppColors.primary,
+                          activeTrackColor: palette.accent,
                         ),
                       ],
                     ),
@@ -306,7 +311,9 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
   Widget _buildLabel(String text) {
     return Text(
       text,
-      style: AppTypography.labelMedium,
+      style: AppTypography.labelMedium.copyWith(
+        color: NeoTheme.of(context).textSecondary,
+      ),
     );
   }
 
@@ -320,8 +327,7 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
           ref.read(itemNotifierProvider(widget.categoryId).notifier);
       final name = _nameController.text.trim();
       // Preserve the projected value even when budgeting is off (reversible)
-      final projected =
-          double.tryParse(_projectedController.text) ?? 0;
+      final projected = double.tryParse(_projectedController.text) ?? 0;
       final notes = _notesController.text.trim();
 
       if (isEditing) {
@@ -360,7 +366,7 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
-            backgroundColor: AppColors.error,
+            backgroundColor: NeoTheme.negativeValue(context),
           ),
         );
       }

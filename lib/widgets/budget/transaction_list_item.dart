@@ -166,12 +166,12 @@ class TransactionListItem extends StatelessWidget {
   }
 
   Color _parseColor(String? hex) {
-    if (hex == null) return AppColors.primary;
+    if (hex == null) return NeoTheme.dark.accent;
     try {
       final hexCode = hex.replaceFirst('#', '');
       return Color(int.parse('FF$hexCode', radix: 16));
     } catch (_) {
-      return AppColors.primary;
+      return NeoTheme.dark.accent;
     }
   }
 

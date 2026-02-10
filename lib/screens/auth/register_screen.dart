@@ -91,13 +91,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   void _showSuccessDialog() {
-    const color = AppColors.success;
+    final color = NeoTheme.positiveValue(context);
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: NeoTheme.of(context).surface1,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         ),
@@ -113,28 +113,28 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                 border: Border.all(color: color.withValues(alpha: 0.3)),
               ),
-              child: const Icon(
+              child: Icon(
                 LucideIcons.checkCircle2,
                 color: color,
                 size: 28,
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
-            const Text(
+            Text(
               'Account Created!',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: NeoTheme.of(context).textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
-            const Text(
+            Text(
               'Please check your email to verify your account before logging in.',
               style: TextStyle(
                 fontSize: 13,
-                color: AppColors.textSecondary,
+                color: NeoTheme.of(context).textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -174,7 +174,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const color = AppColors.savings;
+    final color = NeoTheme.of(context).accent;
 
     return Scaffold(
       body: SafeArea(
@@ -205,11 +205,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         'Already have an account? ',
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.textSecondary,
+                          color: NeoTheme.of(context).textSecondary,
                         ),
                       ),
                       TextButton(
@@ -290,9 +290,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.15),
+          color: NeoTheme.negativeValue(context).withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+          border: Border.all(
+              color: NeoTheme.negativeValue(context).withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -300,12 +301,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.2),
+                color: NeoTheme.negativeValue(context).withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
               ),
-              child: const Icon(
+              child: Icon(
                 LucideIcons.alertCircle,
-                color: AppColors.error,
+                color: NeoTheme.negativeValue(context),
                 size: 18,
               ),
             ),
@@ -314,10 +315,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Registration Failed',
                     style: TextStyle(
-                      color: AppColors.error,
+                      color: NeoTheme.negativeValue(context),
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -326,7 +327,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   Text(
                     _errorMessage!,
                     style: TextStyle(
-                      color: AppColors.error.withValues(alpha: 0.7),
+                      color: NeoTheme.negativeValue(context)
+                          .withValues(alpha: 0.7),
                       fontSize: 12,
                     ),
                   ),
@@ -334,8 +336,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
             ),
             IconButton(
-              icon:
-                  const Icon(LucideIcons.x, size: 16, color: AppColors.error),
+              icon: Icon(
+                LucideIcons.x,
+                size: 16,
+                color: NeoTheme.negativeValue(context),
+              ),
               onPressed: () {
                 setState(() {
                   _errorMessage = null;
@@ -352,27 +357,27 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.6),
+        color: NeoTheme.of(context).surface1.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: NeoTheme.of(context).stroke),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          Text(
             'Create your account',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: NeoTheme.of(context).textPrimary,
             ),
           ),
           const SizedBox(height: 2),
-          const Text(
+          Text(
             'Fill in the details below',
             style: TextStyle(
               fontSize: 12,
-              color: AppColors.textSecondary,
+              color: NeoTheme.of(context).textSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -434,9 +439,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             prefixIcon: Icon(LucideIcons.shieldCheck, size: 18, color: color),
             suffixIcon: IconButton(
               icon: Icon(
-                _obscureConfirmPassword
-                    ? LucideIcons.eye
-                    : LucideIcons.eyeOff,
+                _obscureConfirmPassword ? LucideIcons.eye : LucideIcons.eyeOff,
                 size: 18,
               ),
               onPressed: () {

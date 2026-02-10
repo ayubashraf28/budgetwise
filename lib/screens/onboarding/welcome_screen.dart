@@ -10,8 +10,9 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: palette.appBg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -24,11 +25,15 @@ class WelcomeScreen extends StatelessWidget {
                 width: 120,
                 height: 120,
                 decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [palette.accentBlue, palette.accentViolet],
+                  ),
                   borderRadius: BorderRadius.circular(32),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.3),
+                      color: palette.accent.withValues(alpha: 0.3),
                       blurRadius: 30,
                       offset: const Offset(0, 10),
                     ),
@@ -54,7 +59,7 @@ class WelcomeScreen extends StatelessWidget {
               Text(
                 'Take control of your finances with\nintentional budgeting',
                 style: AppTypography.bodyLarge.copyWith(
-                  color: AppColors.textSecondary,
+                  color: palette.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -62,18 +67,21 @@ class WelcomeScreen extends StatelessWidget {
 
               // Features
               _buildFeature(
+                context: context,
                 icon: LucideIcons.target,
                 title: 'Plan Your Budget',
                 description: 'Set spending goals before the month begins',
               ),
               const SizedBox(height: AppSpacing.lg),
               _buildFeature(
+                context: context,
                 icon: LucideIcons.trendingUp,
                 title: 'Track Progress',
                 description: 'See how your spending compares to your plan',
               ),
               const SizedBox(height: AppSpacing.lg),
               _buildFeature(
+                context: context,
                 icon: LucideIcons.piggyBank,
                 title: 'Build Better Habits',
                 description: 'Make informed financial decisions daily',
@@ -102,22 +110,24 @@ class WelcomeScreen extends StatelessWidget {
   }
 
   Widget _buildFeature({
+    required BuildContext context,
     required IconData icon,
     required String title,
     required String description,
   }) {
+    final palette = NeoTheme.of(context);
     return Row(
       children: [
         Container(
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.1),
+            color: palette.accent.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(
             icon,
-            color: AppColors.primary,
+            color: palette.accent,
             size: 24,
           ),
         ),

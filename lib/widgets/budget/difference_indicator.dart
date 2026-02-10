@@ -20,20 +20,23 @@ class DifferenceIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     final difference = projected - actual;
 
     if (difference.abs() < 0.01) {
-      return const Text(
+      return Text(
         'On track',
         style: TextStyle(
-          color: AppColors.textSecondary,
+          color: palette.textSecondary,
           fontSize: 14,
         ),
       );
     }
 
     final isUnder = difference > 0;
-    final color = isUnder ? AppColors.success : AppColors.error;
+    final color = isUnder
+        ? NeoTheme.positiveValue(context)
+        : NeoTheme.negativeValue(context);
     final icon = isUnder ? LucideIcons.trendingDown : LucideIcons.trendingUp;
     final label = isUnder ? 'under' : 'over';
 

@@ -25,6 +25,7 @@ class QuickStatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     return Expanded(
       child: Material(
         color: Colors.transparent,
@@ -34,7 +35,7 @@ class QuickStatCard extends StatelessWidget {
           child: Container(
             padding: AppSpacing.cardPaddingCompact,
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: palette.surface1,
               borderRadius: BorderRadius.circular(AppSizing.radiusLg),
               border: Border(
                 left: BorderSide(color: color, width: 4),
@@ -56,19 +57,25 @@ class QuickStatCard extends StatelessWidget {
                     const SizedBox(width: AppSpacing.sm),
                     Text(
                       title,
-                      style: AppTypography.labelMedium,
+                      style: AppTypography.labelMedium.copyWith(
+                        color: palette.textSecondary,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   '$currencySymbol${actual.toStringAsFixed(0)}',
-                  style: AppTypography.amountSmall,
+                  style: AppTypography.amountSmall.copyWith(
+                    color: palette.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   'of $currencySymbol${projected.toStringAsFixed(0)}',
-                  style: AppTypography.bodySmall,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: palette.textMuted,
+                  ),
                 ),
               ],
             ),

@@ -24,6 +24,8 @@ class CategoryListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
+    final danger = NeoTheme.negativeValue(context);
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -34,11 +36,11 @@ class CategoryListItem extends StatelessWidget {
           padding: AppSpacing.cardPadding,
           decoration: BoxDecoration(
             color: (category.isBudgeted && category.isOverBudget)
-                ? AppColors.error.withValues(alpha: 0.1)
-                : AppColors.surface,
+                ? danger.withValues(alpha: 0.1)
+                : palette.surface1,
             borderRadius: BorderRadius.circular(AppSizing.radiusLg),
             border: (category.isBudgeted && category.isOverBudget)
-                ? Border.all(color: AppColors.error.withValues(alpha: 0.3))
+                ? Border.all(color: danger.withValues(alpha: 0.3))
                 : null,
             boxShadow: [
               BoxShadow(
@@ -82,8 +84,8 @@ class CategoryListItem extends StatelessWidget {
                       children: [
                         Text(
                           category.name,
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
+                          style: TextStyle(
+                            color: palette.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                           ),
@@ -92,8 +94,8 @@ class CategoryListItem extends StatelessWidget {
                           category.isBudgeted
                               ? '$currencySymbol${category.totalActual.toStringAsFixed(0)} / $currencySymbol${category.totalProjected.toStringAsFixed(0)}'
                               : '$currencySymbol${category.totalActual.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            color: AppColors.textPrimary,
+                          style: TextStyle(
+                            color: palette.textPrimary,
                             fontSize: 14,
                           ),
                         ),
@@ -117,7 +119,7 @@ class CategoryListItem extends StatelessWidget {
                       Text(
                         'Spending only',
                         style: TextStyle(
-                          color: AppColors.textMuted,
+                          color: palette.textMuted,
                           fontSize: 12,
                         ),
                       ),
@@ -126,9 +128,9 @@ class CategoryListItem extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              const Icon(
+              Icon(
                 LucideIcons.chevronRight,
-                color: AppColors.textMuted,
+                color: palette.textMuted,
                 size: AppSizing.iconMd,
               ),
             ],

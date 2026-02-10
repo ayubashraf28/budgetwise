@@ -316,6 +316,20 @@ class NeoTheme {
       ? const HSLColor.fromAHSL(1, 202.4, 0.593, 0.433).toColor()
       : const HSLColor.fromAHSL(1, 202.1, 1.0, 0.708).toColor();
 
+  static List<Color> categoryChartPalette(BuildContext context) {
+    final palette = of(context);
+    return [
+      palette.accentBlue,
+      palette.accentViolet,
+      positiveValue(context),
+      warningValue(context),
+      infoValue(context),
+      negativeValue(context),
+      palette.accent.withValues(alpha: isLight(context) ? 0.92 : 0.88),
+      palette.textSecondary.withValues(alpha: isLight(context) ? 0.92 : 0.82),
+    ];
+  }
+
   static Color controlIdleBackground(BuildContext context) =>
       of(context).surface2;
 

@@ -97,6 +97,7 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     final currencySymbol = ref.watch(currencySymbolProvider);
     final allAccounts = ref.watch(allAccountsProvider).value ?? <Account>[];
     final activeAccounts = allAccounts.where((a) => !a.isArchived).toList();
@@ -126,10 +127,10 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
     }
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
+      decoration: BoxDecoration(
+        color: palette.surface1,
+        borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppSizing.radiusXl)),
       ),
       child: Padding(
         padding: EdgeInsets.only(
@@ -150,7 +151,7 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: AppColors.border,
+                        color: palette.stroke,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -163,7 +164,7 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
                     children: [
                       Text(
                         isEditing ? 'Edit Subscription' : 'Add Subscription',
-                        style: AppTypography.h3,
+                        style: NeoTypography.sectionTitle(context),
                       ),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
@@ -227,7 +228,7 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
                     decoration: const InputDecoration(
                       hintText: 'Select billing cycle',
                     ),
-                    dropdownColor: AppColors.surface,
+                    dropdownColor: palette.surface1,
                     items: BillingCycle.values.map((cycle) {
                       String label;
                       switch (cycle) {
@@ -295,25 +296,30 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
                       vertical: AppSpacing.sm,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
+                      color: palette.surface2,
                       borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Row(
+                        Row(
                           children: [
                             Icon(LucideIcons.repeat,
-                                size: 20, color: AppColors.textSecondary),
+                                size: 20, color: palette.textSecondary),
                             SizedBox(width: AppSpacing.sm),
-                            Text('Auto-renew', style: AppTypography.bodyLarge),
+                            Text(
+                              'Auto-renew',
+                              style: AppTypography.bodyLarge.copyWith(
+                                color: palette.textPrimary,
+                              ),
+                            ),
                           ],
                         ),
                         Switch(
                           value: _isAutoRenew,
                           onChanged: (value) =>
                               setState(() => _isAutoRenew = value),
-                          activeTrackColor: AppColors.primary,
+                          activeTrackColor: palette.accent,
                         ),
                       ],
                     ),
@@ -416,10 +422,16 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
   }
 
   Widget _buildLabel(String text) {
-    return Text(text, style: AppTypography.labelMedium);
+    return Text(
+      text,
+      style: AppTypography.labelMedium.copyWith(
+        color: NeoTheme.of(context).textSecondary,
+      ),
+    );
   }
 
   Widget _buildDatePicker(BuildContext context) {
+    final palette = NeoTheme.of(context);
     return GestureDetector(
       onTap: () => _selectDate(context),
       child: Container(
@@ -428,16 +440,16 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
           vertical: AppSpacing.md,
         ),
         decoration: BoxDecoration(
-          color: AppColors.surfaceLight,
+          color: palette.surface2,
           borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: palette.stroke),
         ),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               LucideIcons.calendar,
               size: 20,
-              color: AppColors.textSecondary,
+              color: palette.textSecondary,
             ),
             const SizedBox(width: AppSpacing.sm),
             Text(
@@ -445,10 +457,10 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
               style: AppTypography.bodyLarge,
             ),
             const Spacer(),
-            const Icon(
+            Icon(
               LucideIcons.chevronDown,
               size: 20,
-              color: AppColors.textSecondary,
+              color: palette.textSecondary,
             ),
           ],
         ),
@@ -457,6 +469,7 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    final palette = NeoTheme.of(context);
     final now = DateTime.now();
     final firstDate = DateTime(now.year - 1, 1, 1);
     final lastDate = DateTime(now.year + 1, 12, 31);
@@ -469,14 +482,14 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppColors.primary,
-              onPrimary: Colors.white,
-              surface: AppColors.surface,
-              onSurface: AppColors.textPrimary,
+            colorScheme: ColorScheme.dark(
+              primary: palette.accent,
+              onPrimary: palette.textPrimary,
+              surface: palette.surface1,
+              onSurface: palette.textPrimary,
             ),
-            dialogTheme: const DialogThemeData(
-              backgroundColor: AppColors.surface,
+            dialogTheme: DialogThemeData(
+              backgroundColor: palette.surface1,
             ),
           ),
           child: child!,
@@ -490,10 +503,11 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
   }
 
   Widget _buildIconSelector() {
+    final palette = NeoTheme.of(context);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
+        color: palette.surface2,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
       ),
       child: Wrap(
@@ -511,11 +525,11 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
                     ? _parseColor(_selectedColor)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-                border: isSelected ? null : Border.all(color: AppColors.border),
+                border: isSelected ? null : Border.all(color: palette.stroke),
               ),
               child: Icon(
                 _getIconData(icon),
-                color: isSelected ? Colors.white : AppColors.textSecondary,
+                color: isSelected ? Colors.white : palette.textSecondary,
                 size: 22,
               ),
             ),
@@ -526,10 +540,11 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
   }
 
   Widget _buildColorSelector() {
+    final palette = NeoTheme.of(context);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
+        color: palette.surface2,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
       ),
       child: Wrap(
@@ -547,7 +562,7 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
                 borderRadius: BorderRadius.circular(AppSizing.radiusSm),
                 border: isSelected
                     ? Border.all(color: Colors.white, width: 3)
-                    : Border.all(color: AppColors.border),
+                    : Border.all(color: palette.stroke),
               ),
               child: isSelected
                   ? const Icon(LucideIcons.check, color: Colors.white, size: 20)
@@ -563,12 +578,13 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
     List<Account> accounts,
     String? safeValue,
   ) {
+    final palette = NeoTheme.of(context);
     return DropdownButtonFormField<String?>(
       value: safeValue,
       decoration: const InputDecoration(
         hintText: 'Choose default account',
       ),
-      dropdownColor: AppColors.surface,
+      dropdownColor: palette.surface1,
       items: [
         const DropdownMenuItem<String?>(
           value: null,
@@ -583,7 +599,9 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
                 Icon(
                   _accountTypeIcon(account.type),
                   size: 16,
-                  color: isArchived ? AppColors.textMuted : AppColors.savings,
+                  color: isArchived
+                      ? palette.textMuted
+                      : NeoTheme.positiveValue(context),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
@@ -608,7 +626,7 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
       final hexCode = hex.replaceFirst('#', '');
       return Color(int.parse('FF$hexCode', radix: 16));
     } catch (e) {
-      return const Color(0xFF6366F1);
+      return NeoTheme.dark.accent;
     }
   }
 
@@ -699,7 +717,7 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
-            backgroundColor: AppColors.error,
+            backgroundColor: NeoTheme.negativeValue(context),
           ),
         );
       }

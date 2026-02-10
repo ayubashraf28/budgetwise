@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../config/theme.dart';
+
 /// Main app shell with bottom navigation bar.
 class AppShell extends StatelessWidget {
   final Widget child;
@@ -24,7 +26,8 @@ class _BottomNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
-    final isLight = Theme.of(context).brightness == Brightness.light;
+    final palette = NeoTheme.of(context);
+    final isLight = NeoTheme.isLight(context);
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final width = MediaQuery.sizeOf(context).width;
     final textScale =
@@ -35,9 +38,8 @@ class _BottomNavBar extends StatelessWidget {
     final labelSize = (width < 360 ? 11.0 : 12.0) * textScale;
     final barCoreHeight = (60.0 + (textScale - 1.0) * 10.0).clamp(60.0, 66.0);
     final totalHeight = barCoreHeight + bottomInset;
-    final navBg = isLight ? const Color(0xFFF8FAFD) : const Color(0xFF2B2F36);
-    final navStroke =
-        isLight ? const Color(0xFFD5DCE8) : const Color(0xFF3A3F4B);
+    final navBg = palette.surface1;
+    final navStroke = palette.stroke;
 
     return SizedBox(
       height: totalHeight,
@@ -168,13 +170,11 @@ class _AddButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = Theme.of(context).brightness == Brightness.light;
-    final buttonBg =
-        isLight ? const Color(0xFFFFFFFF) : const Color(0xFFF5F7FC);
-    final buttonStroke =
-        isLight ? const Color(0xFFD0D8E5) : const Color(0xFF3A3F4B);
-    final iconColor =
-        isLight ? const Color(0xFF1A202A) : const Color(0xFF202631);
+    final palette = NeoTheme.of(context);
+    final isLight = NeoTheme.isLight(context);
+    final buttonBg = palette.surface2;
+    final buttonStroke = palette.stroke;
+    final iconColor = palette.textPrimary;
 
     return Material(
       color: Colors.transparent,
@@ -226,10 +226,11 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLight = Theme.of(context).brightness == Brightness.light;
+    final palette = NeoTheme.of(context);
+    final isLight = NeoTheme.isLight(context);
     final color = isSelected
-        ? (isLight ? const Color(0xFF708225) : const Color(0xFFD8E37A))
-        : (isLight ? const Color(0xFF7C8698) : const Color(0xFFA3AAB8));
+        ? palette.accent.withValues(alpha: isLight ? 0.92 : 0.88)
+        : palette.textMuted.withValues(alpha: isLight ? 0.82 : 0.9);
 
     return Material(
       color: Colors.transparent,

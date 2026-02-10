@@ -33,14 +33,16 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.incomeSource?.name ?? '');
+    _nameController =
+        TextEditingController(text: widget.incomeSource?.name ?? '');
     _projectedController = TextEditingController(
       text: widget.incomeSource?.projected.toStringAsFixed(2) ?? '',
     );
     _actualController = TextEditingController(
       text: widget.incomeSource?.actual.toStringAsFixed(2) ?? '',
     );
-    _notesController = TextEditingController(text: widget.incomeSource?.notes ?? '');
+    _notesController =
+        TextEditingController(text: widget.incomeSource?.notes ?? '');
     _isRecurring = widget.incomeSource?.isRecurring ?? false;
   }
 
@@ -55,12 +57,14 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     final currencySymbol = ref.watch(currencySymbolProvider);
 
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
+      decoration: BoxDecoration(
+        color: palette.surface1,
+        borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppSizing.radiusXl)),
       ),
       child: Padding(
         padding: EdgeInsets.only(
@@ -81,7 +85,7 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: AppColors.border,
+                        color: palette.stroke,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -94,7 +98,7 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                     children: [
                       Text(
                         isEditing ? 'Edit Income Source' : 'Add Income Source',
-                        style: AppTypography.h3,
+                        style: NeoTypography.sectionTitle(context),
                       ),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
@@ -136,14 +140,16 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                         helperText: !_isRecurring
                             ? 'Not required for non-recurring income'
                             : null,
-                        helperStyle: const TextStyle(
-                          color: AppColors.textMuted,
+                        helperStyle: TextStyle(
+                          color: palette.textMuted,
                           fontSize: 12,
                         ),
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*\.?\d{0,2}')),
                       ],
                       validator: _isRecurring
                           ? (value) {
@@ -171,9 +177,11 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                         hintText: '0.00',
                         prefixText: '\u00A3 ',
                       ),
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                        FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*\.?\d{0,2}')),
                       ],
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -186,17 +194,23 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                       vertical: AppSpacing.sm,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
+                      color: palette.surface2,
                       borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Row(
+                        Row(
                           children: [
-                            Icon(LucideIcons.repeat, size: 20, color: AppColors.textSecondary),
+                            Icon(LucideIcons.repeat,
+                                size: 20, color: palette.textSecondary),
                             SizedBox(width: AppSpacing.sm),
-                            Text('Recurring income', style: AppTypography.bodyLarge),
+                            Text(
+                              'Recurring income',
+                              style: AppTypography.bodyLarge.copyWith(
+                                color: palette.textPrimary,
+                              ),
+                            ),
                           ],
                         ),
                         Switch(
@@ -207,7 +221,7 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                               _projectedController.text = '0.00';
                             }
                           }),
-                          activeTrackColor: AppColors.primary,
+                          activeTrackColor: palette.accent,
                         ),
                       ],
                     ),
@@ -241,7 +255,8 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                                 color: Colors.white,
                               ),
                             )
-                          : Text(isEditing ? 'Save Changes' : 'Add Income Source'),
+                          : Text(
+                              isEditing ? 'Save Changes' : 'Add Income Source'),
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
@@ -257,7 +272,9 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
   Widget _buildLabel(String text) {
     return Text(
       text,
-      style: AppTypography.labelMedium,
+      style: AppTypography.labelMedium.copyWith(
+        color: NeoTheme.of(context).textSecondary,
+      ),
     );
   }
 
@@ -269,7 +286,9 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
     try {
       final notifier = ref.read(incomeNotifierProvider.notifier);
       final name = _nameController.text.trim();
-      final projected = _isRecurring ? (double.tryParse(_projectedController.text) ?? 0) : 0.0;
+      final projected = _isRecurring
+          ? (double.tryParse(_projectedController.text) ?? 0)
+          : 0.0;
       final actual = double.tryParse(_actualController.text) ?? 0;
       final notes = _notesController.text.trim();
 
@@ -296,7 +315,8 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
           notes: notes.isEmpty ? null : notes,
         );
         if (mounted) {
-          Navigator.of(context).pop(newSource.id); // Return ID for transaction form
+          Navigator.of(context)
+              .pop(newSource.id); // Return ID for transaction form
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Income source added')),
           );
@@ -307,7 +327,7 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
-            backgroundColor: AppColors.error,
+            backgroundColor: NeoTheme.negativeValue(context),
           ),
         );
       }

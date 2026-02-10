@@ -347,23 +347,26 @@ class _ExpensesOverviewScreenState
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                color:
-                                    isActive ? Colors.white : AppColors.surface,
+                                color: isActive
+                                    ? Colors.white
+                                    : NeoTheme.of(context).surface1,
                                 borderRadius:
                                     BorderRadius.circular(AppSizing.radiusMd),
                                 border: isActive
                                     ? null
-                                    : Border.all(color: AppColors.border),
+                                    : Border.all(
+                                        color: NeoTheme.of(context).stroke),
                               ),
                               child: Text(
                                 abbr,
                                 style: TextStyle(
                                   color: isActive
-                                      ? AppColors.background
+                                      ? NeoTheme.of(context).appBg
                                       : isFuture
-                                          ? AppColors.textMuted
+                                          ? NeoTheme.of(context)
+                                              .textMuted
                                               .withValues(alpha: 0.5)
-                                          : AppColors.textSecondary,
+                                          : NeoTheme.of(context).textSecondary,
                                   fontSize: 13,
                                   fontWeight: isActive
                                       ? FontWeight.w600
@@ -377,8 +380,8 @@ class _ExpensesOverviewScreenState
                                 margin: const EdgeInsets.only(top: 4),
                                 width: 4,
                                 height: 4,
-                                decoration: const BoxDecoration(
-                                  color: AppColors.savings,
+                                decoration: BoxDecoration(
+                                  color: NeoTheme.positiveValue(context),
                                   shape: BoxShape.circle,
                                 ),
                               ),
@@ -393,8 +396,8 @@ class _ExpensesOverviewScreenState
               // Year label
               Text(
                 '$currentYear',
-                style: const TextStyle(
-                  color: AppColors.textMuted,
+                style: TextStyle(
+                  color: NeoTheme.of(context).textMuted,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -483,23 +486,31 @@ class _ExpensesOverviewScreenState
                       vertical: 8,
                     ),
                     decoration: BoxDecoration(
-                      color: isActive ? Colors.white : AppColors.surface,
+                      color: isActive
+                          ? Colors.white
+                          : NeoTheme.of(context).surface1,
                       borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                      border:
-                          isActive ? null : Border.all(color: AppColors.border),
+                      border: isActive
+                          ? null
+                          : Border.all(color: NeoTheme.of(context).stroke),
                     ),
                     child: Text(
                       '$year',
                       style: TextStyle(
                         color: isActive
-                            ? AppColors.background
+                            ? NeoTheme.of(context).appBg
                             : isDisabled
-                                ? AppColors.textMuted.withValues(alpha: 0.3)
+                                ? NeoTheme.of(context)
+                                    .textMuted
+                                    .withValues(alpha: 0.3)
                                 : isFuture
-                                    ? AppColors.textMuted.withValues(alpha: 0.5)
+                                    ? NeoTheme.of(context)
+                                        .textMuted
+                                        .withValues(alpha: 0.5)
                                     : hasData
-                                        ? AppColors.textSecondary
-                                        : AppColors.textMuted
+                                        ? NeoTheme.of(context).textSecondary
+                                        : NeoTheme.of(context)
+                                            .textMuted
                                             .withValues(alpha: 0.5),
                         fontSize: 13,
                         fontWeight:
@@ -513,8 +524,8 @@ class _ExpensesOverviewScreenState
                       margin: const EdgeInsets.only(top: 4),
                       width: 4,
                       height: 4,
-                      decoration: const BoxDecoration(
-                        color: AppColors.savings,
+                      decoration: BoxDecoration(
+                        color: NeoTheme.positiveValue(context),
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -557,7 +568,7 @@ class _ExpensesOverviewScreenState
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.sm),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: NeoTheme.of(context).surface1,
           borderRadius: BorderRadius.circular(AppSizing.radiusXl),
         ),
         child: DonutChart(
@@ -591,9 +602,9 @@ class _ExpensesOverviewScreenState
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             LucideIcons.trendingUp,
-            color: AppColors.savings,
+            color: NeoTheme.positiveValue(context),
             size: 24,
           ),
           const SizedBox(height: 8),
@@ -602,10 +613,10 @@ class _ExpensesOverviewScreenState
             style: AppTypography.amountMedium,
           ),
           const SizedBox(height: 4),
-          const Text(
+          Text(
             'TOTAL',
             style: TextStyle(
-              color: AppColors.textMuted,
+              color: NeoTheme.of(context).textMuted,
               fontSize: 12,
               fontWeight: FontWeight.w500,
               letterSpacing: 1.0,
@@ -636,8 +647,8 @@ class _ExpensesOverviewScreenState
         const SizedBox(height: 4),
         Text(
           category.name.toUpperCase(),
-          style: const TextStyle(
-            color: AppColors.textMuted,
+          style: TextStyle(
+            color: NeoTheme.of(context).textMuted,
             fontSize: 12,
             fontWeight: FontWeight.w500,
             letterSpacing: 1.0,
@@ -705,9 +716,9 @@ class _ExpensesOverviewScreenState
         child: Container(
           padding: AppSpacing.cardPadding,
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: NeoTheme.of(context).surface1,
             borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: NeoTheme.of(context).stroke),
           ),
           child: Row(
             children: [
@@ -782,9 +793,9 @@ class _ExpensesOverviewScreenState
       child: Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: NeoTheme.of(context).surface1,
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: NeoTheme.of(context).stroke),
         ),
         child: Row(
           children: [
@@ -814,16 +825,16 @@ class _ExpensesOverviewScreenState
                         LucideIcons.calendar,
                         size: 16,
                         color: !_isYearView
-                            ? AppColors.background
-                            : AppColors.textMuted,
+                            ? NeoTheme.of(context).appBg
+                            : NeoTheme.of(context).textMuted,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         'Month',
                         style: TextStyle(
                           color: !_isYearView
-                              ? AppColors.background
-                              : AppColors.textMuted,
+                              ? NeoTheme.of(context).appBg
+                              : NeoTheme.of(context).textMuted,
                           fontWeight:
                               !_isYearView ? FontWeight.w600 : FontWeight.w400,
                           fontSize: 14,
@@ -869,16 +880,16 @@ class _ExpensesOverviewScreenState
                         LucideIcons.barChart3,
                         size: 16,
                         color: _isYearView
-                            ? AppColors.background
-                            : AppColors.textMuted,
+                            ? NeoTheme.of(context).appBg
+                            : NeoTheme.of(context).textMuted,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         'Year',
                         style: TextStyle(
                           color: _isYearView
-                              ? AppColors.background
-                              : AppColors.textMuted,
+                              ? NeoTheme.of(context).appBg
+                              : NeoTheme.of(context).textMuted,
                           fontWeight:
                               _isYearView ? FontWeight.w600 : FontWeight.w400,
                           fontSize: 14,
@@ -911,7 +922,7 @@ class _ExpensesOverviewScreenState
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: NeoTheme.of(context).surface1,
           borderRadius: BorderRadius.circular(AppSizing.radiusXl),
         ),
         child: StackedBarChart(
@@ -948,10 +959,10 @@ class _ExpensesOverviewScreenState
         ),
         GestureDetector(
           onTap: () => setState(() => _selectedBarMonthIndex = null),
-          child: const Text(
+          child: Text(
             'Show Year',
             style: TextStyle(
-              color: AppColors.savings,
+              color: NeoTheme.positiveValue(context),
               fontSize: 13,
               fontWeight: FontWeight.w600,
             ),
@@ -1019,9 +1030,9 @@ class _ExpensesOverviewScreenState
                       vertical: AppSpacing.md + 4,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: NeoTheme.of(context).surface1,
                       borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: NeoTheme.of(context).stroke),
                     ),
                     child: Row(
                       children: [
@@ -1134,9 +1145,9 @@ class _ExpensesOverviewScreenState
                   vertical: AppSpacing.md + 4,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: NeoTheme.of(context).surface1,
                   borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: NeoTheme.of(context).stroke),
                 ),
                 child: Row(
                   children: [
@@ -1218,17 +1229,18 @@ class _ExpensesOverviewScreenState
           decoration: BoxDecoration(
             color: Colors.transparent,
             borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: NeoTheme.of(context).stroke),
           ),
-          child: const Row(
+          child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(LucideIcons.plus, color: AppColors.savings, size: 20),
+              Icon(LucideIcons.plus,
+                  color: NeoTheme.positiveValue(context), size: 20),
               SizedBox(width: AppSpacing.sm),
               Text(
                 'Add Category',
                 style: TextStyle(
-                  color: AppColors.savings,
+                  color: NeoTheme.positiveValue(context),
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1248,16 +1260,16 @@ class _ExpensesOverviewScreenState
       margin: const EdgeInsets.all(AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: NeoTheme.of(context).surface1,
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
+          Icon(
             LucideIcons.folderOpen,
             size: 48,
-            color: AppColors.textMuted,
+            color: NeoTheme.of(context).textMuted,
           ),
           const SizedBox(height: AppSpacing.md),
           const Text(
@@ -1274,7 +1286,7 @@ class _ExpensesOverviewScreenState
           ElevatedButton.icon(
             onPressed: () => _showAddSheet(),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.savings,
+              backgroundColor: NeoTheme.positiveValue(context),
             ),
             icon: const Icon(LucideIcons.plus, size: 18),
             label: const Text('Add Category'),
@@ -1290,14 +1302,14 @@ class _ExpensesOverviewScreenState
         margin: const EdgeInsets.all(AppSpacing.md),
         padding: const EdgeInsets.all(AppSpacing.xl),
         decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.1),
+          color: NeoTheme.negativeValue(context).withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(LucideIcons.alertCircle,
-                size: 48, color: AppColors.error),
+            Icon(LucideIcons.alertCircle,
+                size: 48, color: NeoTheme.negativeValue(context)),
             const SizedBox(height: AppSpacing.md),
             const Text('Something went wrong', style: AppTypography.h3),
             const SizedBox(height: AppSpacing.sm),

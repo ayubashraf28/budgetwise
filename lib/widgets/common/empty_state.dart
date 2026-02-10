@@ -66,6 +66,7 @@ class EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xl),
@@ -76,19 +77,19 @@ class EmptyState extends StatelessWidget {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.surfaceLight,
+                color: palette.surface2,
                 borderRadius: BorderRadius.circular(AppSizing.radiusXl),
               ),
               child: Icon(
                 icon,
                 size: 40,
-                color: AppColors.textMuted,
+                color: palette.textMuted,
               ),
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
               title,
-              style: AppTypography.h3.copyWith(color: AppColors.textSecondary),
+              style: AppTypography.h3.copyWith(color: palette.textSecondary),
               textAlign: TextAlign.center,
             ),
             if (message != null) ...[

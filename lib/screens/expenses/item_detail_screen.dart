@@ -45,7 +45,7 @@ class ItemDetailScreen extends ConsumerWidget {
         }
 
         final categoryColor =
-            categoryAsync.value?.colorValue ?? AppColors.primary;
+            categoryAsync.value?.colorValue ?? NeoTheme.of(context).accent;
         final transactions = transactionsAsync.value ?? const <Transaction>[];
 
         final categoryIsBudgeted = categoryAsync.value?.isBudgeted ?? true;
@@ -161,19 +161,21 @@ class _ItemDetailScaffold extends ConsumerWidget {
                           ],
                         ),
                       ),
-                      const PopupMenuItem(
+                      PopupMenuItem(
                         value: 'delete',
                         child: Row(
                           children: [
                             Icon(
                               LucideIcons.trash2,
                               size: 18,
-                              color: AppColors.error,
+                              color: NeoTheme.negativeValue(context),
                             ),
                             SizedBox(width: 8),
                             Text(
                               'Delete Item',
-                              style: TextStyle(color: AppColors.error),
+                              style: TextStyle(
+                                color: NeoTheme.negativeValue(context),
+                              ),
                             ),
                           ],
                         ),
@@ -332,7 +334,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
                 style: TextStyle(
                   fontSize: 12,
                   color: item.isOverBudget
-                      ? AppColors.error
+                      ? NeoTheme.negativeValue(context)
                       : accentColor.withValues(alpha: 0.78),
                   fontWeight: FontWeight.w500,
                 ),
@@ -350,10 +352,10 @@ class _ItemDetailScaffold extends ConsumerWidget {
     final Color badgeColor;
     switch (label) {
       case 'Over budget':
-        badgeColor = AppColors.error;
+        badgeColor = NeoTheme.negativeValue(context);
       case 'On budget':
       case 'Under budget':
-        badgeColor = AppColors.success;
+        badgeColor = NeoTheme.positiveValue(context);
       case 'Not started':
       case 'No budget':
       default:
@@ -424,7 +426,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
                       alignment: Alignment.centerRight,
                       padding: const EdgeInsets.only(right: AppSpacing.md),
                       decoration: BoxDecoration(
-                        color: AppColors.error,
+                        color: NeoTheme.negativeValue(context),
                         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
                       ),
                       child:
@@ -573,7 +575,9 @@ class _ItemDetailScaffold extends ConsumerWidget {
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                style: TextButton.styleFrom(
+                  foregroundColor: NeoTheme.negativeValue(context),
+                ),
                 child: const Text('Delete'),
               ),
             ],
@@ -611,7 +615,9 @@ class _ItemDetailScaffold extends ConsumerWidget {
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                style: TextButton.styleFrom(
+                  foregroundColor: NeoTheme.negativeValue(context),
+                ),
                 child: const Text('Delete'),
               ),
             ],

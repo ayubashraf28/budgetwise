@@ -63,11 +63,12 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius:
-            BorderRadius.vertical(top: Radius.circular(AppSizing.radiusXl)),
+      decoration: BoxDecoration(
+        color: palette.surface1,
+        borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(AppSizing.radiusXl)),
       ),
       child: Padding(
         padding: EdgeInsets.only(
@@ -88,7 +89,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                       width: 40,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: AppColors.border,
+                        color: palette.stroke,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -101,7 +102,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                     children: [
                       Text(
                         isEditing ? 'Edit Category' : 'Add Category',
-                        style: AppTypography.h3,
+                        style: NeoTypography.sectionTitle(context),
                       ),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
@@ -152,26 +153,30 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                       vertical: AppSpacing.sm,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceLight,
+                      color: palette.surface2,
                       borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Row(
+                        Row(
                           children: [
                             Icon(LucideIcons.target,
-                                size: 20, color: AppColors.textSecondary),
+                                size: 20, color: palette.textSecondary),
                             SizedBox(width: AppSpacing.sm),
-                            Text('Enable budgeting',
-                                style: AppTypography.bodyLarge),
+                            Text(
+                              'Enable budgeting',
+                              style: AppTypography.bodyLarge.copyWith(
+                                color: palette.textPrimary,
+                              ),
+                            ),
                           ],
                         ),
                         Switch(
                           value: _isBudgeted,
                           onChanged: (value) =>
                               setState(() => _isBudgeted = value),
-                          activeTrackColor: AppColors.primary,
+                          activeTrackColor: palette.accent,
                         ),
                       ],
                     ),
@@ -184,8 +189,8 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                       _isBudgeted
                           ? 'Track spending against a budget for each item'
                           : 'Track spending only — no budget targets',
-                      style: const TextStyle(
-                        color: AppColors.textMuted,
+                      style: TextStyle(
+                        color: palette.textMuted,
                         fontSize: 12,
                       ),
                     ),
@@ -235,16 +240,19 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
   Widget _buildLabel(String text) {
     return Text(
       text,
-      style: AppTypography.labelMedium,
+      style: AppTypography.labelMedium.copyWith(
+        color: NeoTheme.of(context).textSecondary,
+      ),
     );
   }
 
   Widget _buildPreview() {
+    final palette = NeoTheme.of(context);
     final color = _parseColor(_selectedColor);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
+        color: palette.surface2,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
       ),
       child: Row(
@@ -268,7 +276,9 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
               _nameController.text.isEmpty
                   ? 'Category Name'
                   : _nameController.text,
-              style: AppTypography.labelLarge,
+              style: AppTypography.labelLarge.copyWith(
+                color: palette.textPrimary,
+              ),
             ),
           ),
         ],
@@ -277,10 +287,11 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
   }
 
   Widget _buildIconSelector() {
+    final palette = NeoTheme.of(context);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
+        color: palette.surface2,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
       ),
       child: Wrap(
@@ -298,11 +309,11 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                     ? _parseColor(_selectedColor)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-                border: isSelected ? null : Border.all(color: AppColors.border),
+                border: isSelected ? null : Border.all(color: palette.stroke),
               ),
               child: Icon(
                 _getIconData(icon),
-                color: isSelected ? Colors.white : AppColors.textSecondary,
+                color: isSelected ? Colors.white : palette.textSecondary,
                 size: 22,
               ),
             ),
@@ -313,10 +324,11 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
   }
 
   Widget _buildColorSelector() {
+    final palette = NeoTheme.of(context);
     return Container(
       padding: const EdgeInsets.all(AppSpacing.sm),
       decoration: BoxDecoration(
-        color: AppColors.surfaceLight,
+        color: palette.surface2,
         borderRadius: BorderRadius.circular(AppSizing.radiusMd),
       ),
       child: Wrap(
@@ -352,7 +364,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
       final hexCode = hex.replaceFirst('#', '');
       return Color(int.parse('FF$hexCode', radix: 16));
     } catch (e) {
-      return const Color(0xFF6366F1);
+      return NeoTheme.dark.accent;
     }
   }
 
@@ -403,7 +415,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
-            backgroundColor: AppColors.error,
+            backgroundColor: NeoTheme.negativeValue(context),
           ),
         );
       }

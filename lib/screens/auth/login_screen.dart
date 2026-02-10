@@ -53,12 +53,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } catch (e) {
       setState(() {
         _errorMessage = _getErrorMessage(e.toString());
-        _isCredentialError =
-            e.toString().toLowerCase().contains('invalid login credentials') ||
-                e
-                    .toString()
-                    .toLowerCase()
-                    .contains('invalid email or password');
+        _isCredentialError = e
+                .toString()
+                .toLowerCase()
+                .contains('invalid login credentials') ||
+            e.toString().toLowerCase().contains('invalid email or password');
       });
     } finally {
       if (mounted) {
@@ -93,7 +92,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    const color = AppColors.savings;
+    final color = NeoTheme.of(context).accent;
 
     return Scaffold(
       body: SafeArea(
@@ -124,11 +123,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         "Don't have an account? ",
                         style: TextStyle(
                           fontSize: 14,
-                          color: AppColors.textSecondary,
+                          color: NeoTheme.of(context).textSecondary,
                         ),
                       ),
                       TextButton(
@@ -212,9 +211,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: AppColors.error.withValues(alpha: 0.15),
+          color: NeoTheme.negativeValue(context).withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
+          border: Border.all(
+              color: NeoTheme.negativeValue(context).withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -222,12 +222,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppColors.error.withValues(alpha: 0.2),
+                color: NeoTheme.negativeValue(context).withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
               ),
-              child: const Icon(
+              child: Icon(
                 LucideIcons.alertCircle,
-                color: AppColors.error,
+                color: NeoTheme.negativeValue(context),
                 size: 18,
               ),
             ),
@@ -236,10 +236,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Login Failed',
                     style: TextStyle(
-                      color: AppColors.error,
+                      color: NeoTheme.negativeValue(context),
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -248,7 +248,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Text(
                     _errorMessage!,
                     style: TextStyle(
-                      color: AppColors.error.withValues(alpha: 0.7),
+                      color: NeoTheme.negativeValue(context)
+                          .withValues(alpha: 0.7),
                       fontSize: 12,
                     ),
                   ),
@@ -257,7 +258,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Text(
                       "If you don't have an account, sign up below.",
                       style: TextStyle(
-                        color: AppColors.error.withValues(alpha: 0.6),
+                        color: NeoTheme.negativeValue(context)
+                            .withValues(alpha: 0.6),
                         fontSize: 11,
                         fontStyle: FontStyle.italic,
                       ),
@@ -267,7 +269,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
             IconButton(
-              icon: const Icon(LucideIcons.x, size: 16, color: AppColors.error),
+              icon: Icon(
+                LucideIcons.x,
+                size: 16,
+                color: NeoTheme.negativeValue(context),
+              ),
               onPressed: () {
                 setState(() {
                   _errorMessage = null;
@@ -285,28 +291,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.6),
+        color: NeoTheme.of(context).surface1.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: NeoTheme.of(context).stroke),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Section title
-          const Text(
+          Text(
             'Welcome back',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: NeoTheme.of(context).textPrimary,
             ),
           ),
           const SizedBox(height: 2),
-          const Text(
+          Text(
             'Sign in to your account',
             style: TextStyle(
               fontSize: 12,
-              color: AppColors.textSecondary,
+              color: NeoTheme.of(context).textSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -315,10 +321,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           Container(
             decoration: _isCredentialError
                 ? BoxDecoration(
-                    border:
-                        Border.all(color: AppColors.error, width: 1.5),
-                    borderRadius:
-                        BorderRadius.circular(AppSizing.radiusMd),
+                    border: Border.all(
+                        color: NeoTheme.negativeValue(context), width: 1.5),
+                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                   )
                 : null,
             child: AppTextField(
@@ -330,7 +335,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               prefixIcon: Icon(
                 LucideIcons.mail,
                 size: 18,
-                color: _isCredentialError ? AppColors.error : color,
+                color: _isCredentialError
+                    ? NeoTheme.negativeValue(context)
+                    : color,
               ),
               validator: EmailValidator.validate,
             ),
@@ -341,10 +348,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           Container(
             decoration: _isCredentialError
                 ? BoxDecoration(
-                    border:
-                        Border.all(color: AppColors.error, width: 1.5),
-                    borderRadius:
-                        BorderRadius.circular(AppSizing.radiusMd),
+                    border: Border.all(
+                        color: NeoTheme.negativeValue(context), width: 1.5),
+                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                   )
                 : null,
             child: AppTextField(
@@ -356,13 +362,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               prefixIcon: Icon(
                 LucideIcons.lock,
                 size: 18,
-                color: _isCredentialError ? AppColors.error : color,
+                color: _isCredentialError
+                    ? NeoTheme.negativeValue(context)
+                    : color,
               ),
               suffixIcon: IconButton(
                 icon: Icon(
-                  _obscurePassword
-                      ? LucideIcons.eye
-                      : LucideIcons.eyeOff,
+                  _obscurePassword ? LucideIcons.eye : LucideIcons.eyeOff,
                   size: 18,
                 ),
                 onPressed: () {

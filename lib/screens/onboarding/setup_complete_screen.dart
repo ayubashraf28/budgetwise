@@ -51,8 +51,10 @@ class _SetupCompleteScreenState extends State<SetupCompleteScreen>
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
+    final success = NeoTheme.positiveValue(context);
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: palette.appBg,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -70,11 +72,18 @@ class _SetupCompleteScreenState extends State<SetupCompleteScreen>
                       width: 120,
                       height: 120,
                       decoration: BoxDecoration(
-                        gradient: AppColors.successGradient,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            success.withValues(alpha: 0.92),
+                            success.withValues(alpha: 0.75),
+                          ],
+                        ),
                         borderRadius: BorderRadius.circular(60),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.success.withValues(alpha: 0.3),
+                            color: success.withValues(alpha: 0.3),
                             blurRadius: 30,
                             offset: const Offset(0, 10),
                           ),
@@ -108,7 +117,7 @@ class _SetupCompleteScreenState extends State<SetupCompleteScreen>
                 child: Text(
                   'Your budget is ready. Start by adding your\nincome sources and adjusting your budget.',
                   style: AppTypography.bodyLarge.copyWith(
-                    color: AppColors.textSecondary,
+                    color: palette.textSecondary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -121,7 +130,7 @@ class _SetupCompleteScreenState extends State<SetupCompleteScreen>
                 child: Container(
                   padding: const EdgeInsets.all(AppSpacing.md),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
+                    color: palette.surface1,
                     borderRadius: BorderRadius.circular(AppSizing.radiusLg),
                   ),
                   child: Column(
@@ -130,12 +139,12 @@ class _SetupCompleteScreenState extends State<SetupCompleteScreen>
                         icon: LucideIcons.plus,
                         text: 'Add your income sources first',
                       ),
-                      const Divider(height: 24, color: AppColors.border),
+                      Divider(height: 24, color: palette.stroke),
                       _buildTip(
                         icon: LucideIcons.edit,
                         text: 'Set budget amounts for each category',
                       ),
-                      const Divider(height: 24, color: AppColors.border),
+                      Divider(height: 24, color: palette.stroke),
                       _buildTip(
                         icon: LucideIcons.zap,
                         text: 'Log transactions as you spend',
@@ -168,19 +177,20 @@ class _SetupCompleteScreenState extends State<SetupCompleteScreen>
   }
 
   Widget _buildTip({required IconData icon, required String text}) {
+    final palette = NeoTheme.of(context);
     return Row(
       children: [
         Icon(
           icon,
           size: 20,
-          color: AppColors.primary,
+          color: palette.accent,
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(
           child: Text(
             text,
             style: AppTypography.bodyMedium.copyWith(
-              color: AppColors.textPrimary,
+              color: palette.textPrimary,
             ),
           ),
         ),

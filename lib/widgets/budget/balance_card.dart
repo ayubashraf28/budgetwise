@@ -18,13 +18,14 @@ class BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     final difference = actualBalance - projectedBalance;
     final isAhead = difference > 0;
 
     return Container(
       padding: AppSpacing.cardPadding,
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: palette.surface1,
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         boxShadow: [
           BoxShadow(
@@ -46,7 +47,7 @@ class BalanceCard extends StatelessWidget {
           Text(
             '$currencySymbol${projectedBalance.toStringAsFixed(0)}',
             style: AppTypography.amountMedium.copyWith(
-              color: AppColors.textSecondary,
+              color: palette.textSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -66,7 +67,7 @@ class BalanceCard extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.md),
               if (difference.abs() >= 1)
-                _buildDifferenceChip(difference, isAhead),
+                _buildDifferenceChip(context, difference, isAhead),
             ],
           ),
         ],
@@ -74,8 +75,11 @@ class BalanceCard extends StatelessWidget {
     );
   }
 
-  Widget _buildDifferenceChip(double difference, bool isAhead) {
-    final color = isAhead ? AppColors.success : AppColors.error;
+  Widget _buildDifferenceChip(
+      BuildContext context, double difference, bool isAhead) {
+    final color = isAhead
+        ? NeoTheme.positiveValue(context)
+        : NeoTheme.negativeValue(context);
     final icon = isAhead ? LucideIcons.trendingUp : LucideIcons.trendingDown;
     final label = isAhead ? 'ahead' : 'behind';
 
