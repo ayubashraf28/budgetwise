@@ -15,6 +15,7 @@ import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
 import '../../widgets/charts/donut_chart.dart';
+import '../../widgets/common/neo_dropdown_form_field.dart';
 
 class AnalysisScreen extends ConsumerStatefulWidget {
   const AnalysisScreen({super.key});
@@ -289,52 +290,25 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
     required String Function(T value) labelBuilder,
     required Future<void> Function(T value) onSelected,
   }) {
-    final idleBg = NeoTheme.controlIdleBackground(context);
-    final idleBorder = NeoTheme.controlIdleBorder(context);
-    return Container(
-      height: NeoControlSizing.minHeight,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: idleBg,
-        borderRadius: BorderRadius.circular(NeoControlSizing.radius),
-        border: Border.all(color: idleBorder),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<T>(
-          value: value,
-          isExpanded: true,
-          menuMaxHeight: 320,
-          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          dropdownColor: idleBg,
-          icon: Icon(
-            Icons.expand_more_rounded,
-            color: _neoTextSecondary,
-            size: NeoIconSizes.lg,
-          ),
-          style: AppTypography.labelLarge.copyWith(
-            color: _palette.textPrimary,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            height: 1.0,
-          ),
-          onChanged: (next) async {
-            if (next == null || next == value) return;
-            await onSelected(next);
-          },
-          items: items
-              .map(
-                (item) => DropdownMenuItem<T>(
-                  value: item,
-                  child: Text(
-                    labelBuilder(item),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              )
-              .toList(),
-        ),
-      ),
+    return NeoDropdownFormField<T>(
+      value: value,
+      hintText: 'Select',
+      items: items
+          .map(
+            (item) => DropdownMenuItem<T>(
+              value: item,
+              child: Text(
+                labelBuilder(item),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          )
+          .toList(),
+      onChanged: (next) async {
+        if (next == null || next == value) return;
+        await onSelected(next);
+      },
     );
   }
 

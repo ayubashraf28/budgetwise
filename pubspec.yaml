@@ -36,6 +36,7 @@ dependencies:
   cached_network_image: ^3.3.0
   shimmer: ^3.0.0
   fl_chart: ^0.69.0
+  dropdown_button2: ^2.3.9
 
   # Icons
   lucide_icons: ^0.257.0

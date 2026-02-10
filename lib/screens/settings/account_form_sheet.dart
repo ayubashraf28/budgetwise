@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/theme.dart';
 import '../../models/account.dart';
 import '../../providers/providers.dart';
+import '../../widgets/common/neo_dropdown_form_field.dart';
 
 class AccountFormSheet extends ConsumerStatefulWidget {
   final Account? account;
@@ -122,9 +123,9 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                   const SizedBox(height: AppSpacing.lg),
                   _buildLabel('Account Type'),
                   const SizedBox(height: AppSpacing.sm),
-                  DropdownButtonFormField<AccountType>(
-                    initialValue: _type,
-                    dropdownColor: palette.surface1,
+                  NeoDropdownFormField<AccountType>(
+                    value: _type,
+                    hintText: 'Select account type',
                     items: AccountType.values
                         .map(
                           (type) => DropdownMenuItem<AccountType>(

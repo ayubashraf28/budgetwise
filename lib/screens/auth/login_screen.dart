@@ -8,6 +8,7 @@ import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/validators/email_validator.dart';
 import '../../widgets/common/app_text_field.dart';
+import '../../widgets/common/neo_page_components.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -92,55 +93,55 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final color = NeoTheme.of(context).accent;
+    final palette = NeoTheme.of(context);
+    final color = palette.accent;
 
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppSpacing.lg),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Logo card
-                  _buildLogoCard(color),
-                  const SizedBox(height: AppSpacing.xl),
-
-                  // Error Message
-                  if (_errorMessage != null) ...[
-                    _buildErrorCard(),
-                    const SizedBox(height: AppSpacing.md),
-                  ],
-
-                  // Form card
-                  _buildFormCard(color),
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Register Link
-                  Row(
+      backgroundColor: palette.appBg,
+      body: NeoPageBackground(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(NeoLayout.screenPadding),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        "Don't have an account? ",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: NeoTheme.of(context).textSecondary,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () => context.go('/register'),
-                        style: TextButton.styleFrom(foregroundColor: color),
-                        child: const Text(
-                          'Sign Up',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
+                      _buildLogoCard(),
+                      const SizedBox(height: AppSpacing.xl),
+                      if (_errorMessage != null) ...[
+                        _buildErrorCard(),
+                        const SizedBox(height: AppSpacing.md),
+                      ],
+                      _buildFormCard(color),
+                      const SizedBox(height: AppSpacing.lg),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "Don't have an account? ",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: palette.textSecondary,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () => context.go('/register'),
+                            style: TextButton.styleFrom(foregroundColor: color),
+                            child: const Text(
+                              'Sign Up',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
@@ -149,43 +150,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildLogoCard(Color color) {
-    return Container(
+  Widget _buildLogoCard() {
+    final palette = NeoTheme.of(context);
+
+    return NeoGlassCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
       child: Column(
         children: [
-          // Icon
           Container(
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.2),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [palette.accentBlue, palette.accentViolet],
+              ),
               borderRadius: BorderRadius.circular(AppSizing.radiusMd),
             ),
-            child: Icon(
+            child: const Icon(
               LucideIcons.wallet,
               size: 28,
-              color: color,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          // App Name
           Text(
             AppConstants.appName,
-            style: AppTypography.amountMedium.copyWith(color: color),
+            style: AppTypography.amountMedium.copyWith(
+              color: palette.textPrimary,
+            ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          // Tagline
           Text(
             'Plan your finances, track your spending',
             style: TextStyle(
               fontSize: 13,
-              color: color.withValues(alpha: 0.7),
+              color: palette.textSecondary,
             ),
             textAlign: TextAlign.center,
           ),
@@ -195,6 +196,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildErrorCard() {
+    final danger = NeoTheme.negativeValue(context);
+
     return TweenAnimationBuilder<double>(
       duration: const Duration(milliseconds: 300),
       tween: Tween(begin: 0.0, end: 1.0),
@@ -211,10 +214,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: NeoTheme.negativeValue(context).withValues(alpha: 0.15),
+          color: danger.withValues(alpha: 0.15),
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          border: Border.all(
-              color: NeoTheme.negativeValue(context).withValues(alpha: 0.3)),
+          border: Border.all(color: danger.withValues(alpha: 0.3)),
         ),
         child: Row(
           children: [
@@ -222,12 +224,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: NeoTheme.negativeValue(context).withValues(alpha: 0.2),
+                color: danger.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
               ),
               child: Icon(
                 LucideIcons.alertCircle,
-                color: NeoTheme.negativeValue(context),
+                color: danger,
                 size: 18,
               ),
             ),
@@ -239,7 +241,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Text(
                     'Login Failed',
                     style: TextStyle(
-                      color: NeoTheme.negativeValue(context),
+                      color: danger,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
@@ -248,8 +250,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   Text(
                     _errorMessage!,
                     style: TextStyle(
-                      color: NeoTheme.negativeValue(context)
-                          .withValues(alpha: 0.7),
+                      color: danger.withValues(alpha: 0.7),
                       fontSize: 12,
                     ),
                   ),
@@ -258,8 +259,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     Text(
                       "If you don't have an account, sign up below.",
                       style: TextStyle(
-                        color: NeoTheme.negativeValue(context)
-                            .withValues(alpha: 0.6),
+                        color: danger.withValues(alpha: 0.6),
                         fontSize: 11,
                         fontStyle: FontStyle.italic,
                       ),
@@ -272,7 +272,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               icon: Icon(
                 LucideIcons.x,
                 size: 16,
-                color: NeoTheme.negativeValue(context),
+                color: danger,
               ),
               onPressed: () {
                 setState(() {
@@ -288,23 +288,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Widget _buildFormCard(Color color) {
-    return Container(
+    final palette = NeoTheme.of(context);
+    final isLight = NeoTheme.isLight(context);
+
+    return NeoGlassCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: NeoTheme.of(context).surface1.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        border: Border.all(color: NeoTheme.of(context).stroke),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Section title
           Text(
             'Welcome back',
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: NeoTheme.of(context).textPrimary,
+              color: palette.textPrimary,
             ),
           ),
           const SizedBox(height: 2),
@@ -312,17 +309,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             'Sign in to your account',
             style: TextStyle(
               fontSize: 12,
-              color: NeoTheme.of(context).textSecondary,
+              color: palette.textSecondary,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
-
-          // Email Field
           Container(
             decoration: _isCredentialError
                 ? BoxDecoration(
                     border: Border.all(
-                        color: NeoTheme.negativeValue(context), width: 1.5),
+                      color: NeoTheme.negativeValue(context),
+                      width: 1.5,
+                    ),
                     borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                   )
                 : null,
@@ -343,13 +340,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-
-          // Password Field
           Container(
             decoration: _isCredentialError
                 ? BoxDecoration(
                     border: Border.all(
-                        color: NeoTheme.negativeValue(context), width: 1.5),
+                      color: NeoTheme.negativeValue(context),
+                      width: 1.5,
+                    ),
                     borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                   )
                 : null,
@@ -382,8 +379,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-
-          // Forgot Password
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
@@ -402,20 +397,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-
-          // Login Button — frosted glass style
           SizedBox(
             width: double.infinity,
             height: 48,
             child: ElevatedButton.icon(
               onPressed: _isLoading ? null : _handleLogin,
               style: ElevatedButton.styleFrom(
-                backgroundColor: color.withValues(alpha: 0.15),
-                foregroundColor: color,
+                backgroundColor: color,
+                foregroundColor:
+                    isLight ? palette.textPrimary : palette.surface1,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                  side: BorderSide(color: color.withValues(alpha: 0.3)),
                 ),
               ),
               icon: _isLoading
@@ -424,7 +417,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: color,
+                        color: isLight ? palette.textPrimary : palette.surface1,
                       ),
                     )
                   : const Icon(LucideIcons.logIn, size: 18),

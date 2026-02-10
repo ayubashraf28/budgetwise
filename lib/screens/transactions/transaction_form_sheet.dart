@@ -12,6 +12,8 @@ import '../../models/income_source.dart';
 import '../../models/account.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
+import '../../widgets/common/dropdown_menu_item_label.dart';
+import '../../widgets/common/neo_dropdown_form_field.dart';
 import '../expenses/category_form_sheet.dart';
 import '../expenses/item_form_sheet.dart';
 import '../income/income_form_sheet.dart';
@@ -416,13 +418,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
 
   Widget _buildCategoryDropdown(List<Category> categories, String? safeValue) {
     final palette = NeoTheme.of(context);
-    return DropdownButtonFormField<String>(
+    return NeoDropdownFormField<String>(
       key: ValueKey('category_dropdown_$_dropdownResetCounter'),
       value: safeValue,
-      decoration: const InputDecoration(
-        hintText: 'Select category',
-      ),
-      dropdownColor: palette.surface1,
+      hintText: 'Select category',
       items: [
         ...categories.map((category) {
           return DropdownMenuItem<String>(
@@ -499,13 +498,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
 
   Widget _buildItemDropdown(List<Item> items, String? safeValue) {
     final palette = NeoTheme.of(context);
-    return DropdownButtonFormField<String>(
+    return NeoDropdownFormField<String>(
       key: ValueKey('item_dropdown_$_dropdownResetCounter'),
       value: safeValue,
-      decoration: const InputDecoration(
-        hintText: 'Select item',
-      ),
-      dropdownColor: palette.surface1,
+      hintText: 'Select item',
       items: [
         ...items.map((item) {
           return DropdownMenuItem<String>(
@@ -566,13 +562,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       List<IncomeSource> incomeSources, String? safeValue) {
     final palette = NeoTheme.of(context);
     final positive = NeoTheme.positiveValue(context);
-    return DropdownButtonFormField<String>(
+    return NeoDropdownFormField<String>(
       key: ValueKey('income_dropdown_$_dropdownResetCounter'),
       value: safeValue,
-      decoration: const InputDecoration(
-        hintText: 'Select income source',
-      ),
-      dropdownColor: palette.surface1,
+      hintText: 'Select income source',
       items: [
         ...incomeSources.map((source) {
           return DropdownMenuItem<String>(
@@ -687,41 +680,33 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   Widget _buildAccountDropdown(List<Account> accounts, String? safeValue) {
     final palette = NeoTheme.of(context);
     final accent = NeoTheme.infoValue(context);
-    return DropdownButtonFormField<String>(
+    return NeoDropdownFormField<String>(
       key: ValueKey('account_dropdown_$_dropdownResetCounter'),
       value: safeValue,
-      decoration: const InputDecoration(
-        hintText: 'Select account',
-      ),
-      dropdownColor: palette.surface1,
+      hintText: 'Select account',
       items: accounts.map((account) {
         final isArchived = account.isArchived;
+        final optionColor = isArchived ? palette.textMuted : accent;
         return DropdownMenuItem<String>(
           value: account.id,
-          child: Row(
-            children: [
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  color: (isArchived ? palette.textMuted : accent)
-                      .withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Icon(
-                  _getAccountTypeIcon(account.type),
-                  color: isArchived ? palette.textMuted : accent,
-                  size: 14,
-                ),
+          child: DropdownMenuItemLabel(
+            leading: Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                color: optionColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(6),
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Text(
-                  isArchived ? '${account.name} (Archived)' : account.name,
-                  overflow: TextOverflow.ellipsis,
-                ),
+              child: Icon(
+                _getAccountTypeIcon(account.type),
+                color: optionColor,
+                size: 14,
               ),
-            ],
+            ),
+            text: isArchived ? '${account.name} (Archived)' : account.name,
+            textStyle: AppTypography.bodyLarge.copyWith(
+              color: isArchived ? palette.textMuted : palette.textPrimary,
+            ),
           ),
         );
       }).toList(),

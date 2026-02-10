@@ -10,6 +10,8 @@ import '../../models/account.dart';
 import '../../models/subscription.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
+import '../../widgets/common/dropdown_menu_item_label.dart';
+import '../../widgets/common/neo_dropdown_form_field.dart';
 
 class SubscriptionFormSheet extends ConsumerStatefulWidget {
   final Subscription? subscription;
@@ -223,12 +225,9 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
                   // Billing Cycle
                   _buildLabel('Billing Cycle'),
                   const SizedBox(height: AppSpacing.sm),
-                  DropdownButtonFormField<BillingCycle>(
+                  NeoDropdownFormField<BillingCycle>(
                     value: _selectedBillingCycle,
-                    decoration: const InputDecoration(
-                      hintText: 'Select billing cycle',
-                    ),
-                    dropdownColor: palette.surface1,
+                    hintText: 'Select billing cycle',
                     items: BillingCycle.values.map((cycle) {
                       String label;
                       switch (cycle) {
@@ -579,12 +578,9 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
     String? safeValue,
   ) {
     final palette = NeoTheme.of(context);
-    return DropdownButtonFormField<String?>(
+    return NeoDropdownFormField<String?>(
       value: safeValue,
-      decoration: const InputDecoration(
-        hintText: 'Choose default account',
-      ),
-      dropdownColor: palette.surface1,
+      hintText: 'Choose default account',
       items: [
         const DropdownMenuItem<String?>(
           value: null,
@@ -592,25 +588,28 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
         ),
         ...accounts.map((account) {
           final isArchived = account.isArchived;
+          final optionColor =
+              isArchived ? palette.textMuted : NeoTheme.positiveValue(context);
           return DropdownMenuItem<String?>(
             value: account.id,
-            child: Row(
-              children: [
-                Icon(
+            child: DropdownMenuItemLabel(
+              leading: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: optionColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
                   _accountTypeIcon(account.type),
-                  size: 16,
-                  color: isArchived
-                      ? palette.textMuted
-                      : NeoTheme.positiveValue(context),
+                  size: 14,
+                  color: optionColor,
                 ),
-                const SizedBox(width: AppSpacing.sm),
-                Expanded(
-                  child: Text(
-                    isArchived ? '${account.name} (Archived)' : account.name,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
+              ),
+              text: isArchived ? '${account.name} (Archived)' : account.name,
+              textStyle: AppTypography.bodyLarge.copyWith(
+                color: isArchived ? palette.textMuted : palette.textPrimary,
+              ),
             ),
           );
         }),
