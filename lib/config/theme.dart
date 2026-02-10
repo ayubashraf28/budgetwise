@@ -435,6 +435,17 @@ class NeoControlSizing {
   static const double radius = 20;
   static const double minHeight = 44;
   static const double minWidth = 64;
+  static const double compactActionSize = 34;
+  static const double compactActionIconSize = NeoIconSizes.md;
+}
+
+class NeoLayout {
+  NeoLayout._();
+
+  static const double screenPadding = AppSpacing.md;
+  static const double sectionGap = 12;
+  static const double cardRadius = AppSizing.radiusLg;
+  static const double bottomNavSafeBuffer = 92;
 }
 
 /// App theme configuration

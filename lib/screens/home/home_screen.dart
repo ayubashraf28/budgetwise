@@ -85,14 +85,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     final summary = ref.watch(monthlySummaryProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
+    final activeMonth = ref.watch(activeMonthProvider).value;
     final profile = ref.watch(userProfileProvider);
     final upcoming = ref.watch(upcomingSubscriptionsProvider);
     final totalActualIncome = ref.watch(totalActualIncomeProvider);
     final totalActualExpenses = ref.watch(totalActualExpensesProvider);
+    final netWorth = ref.watch(netWorthProvider).value ?? 0.0;
     final accounts = ref.watch(accountsProvider).value ?? const <Account>[];
     final accountBalances =
         ref.watch(allAccountBalancesProvider).value ?? const <String, double>{};
     final transactions = ref.watch(transactionsProvider);
+    final monthScopeLabel = activeMonth != null
+        ? DateFormat('MMM yyyy').format(activeMonth.startDate)
+        : DateFormat('MMM yyyy').format(DateTime.now());
 
     return Scaffold(
       backgroundColor: _neoAppBg,
@@ -122,6 +127,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   currencySymbol,
                   totalActualIncome,
                   totalActualExpenses,
+                  netWorth,
+                  monthScopeLabel,
                 ),
               ),
               SliverToBoxAdapter(
@@ -330,244 +337,180 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     String currencySymbol,
     double actualIncome,
     double actualExpenses,
+    double netWorth,
+    String monthScopeLabel,
   ) {
-    final primaryBalance = summary?.actualBalance ?? 0.0;
+    final monthlyCashflow = summary?.actualBalance ?? 0.0;
+    final monthScopeText = monthScopeLabel;
+    final cashflowIsPositive = monthlyCashflow >= 0;
+    final netWorthIsPositive = netWorth >= 0;
+    final cashflowLightAccent = cashflowIsPositive
+        ? _hsl(185.0, 0.70, 0.27)
+        : _hsl(350.5, 0.504, 0.443);
+    final cashflowDarkAccent = cashflowIsPositive
+        ? _hsl(173.8, 0.743, 0.403)
+        : _hsl(354.5, 1.0, 0.678);
+    final netWorthLightAccent = netWorthIsPositive
+        ? _hsl(207.0, 0.52, 0.31)
+        : _hsl(350.5, 0.504, 0.443);
+    final netWorthDarkAccent =
+        netWorthIsPositive ? _hsl(196.0, 0.58, 0.73) : _hsl(354.5, 1.0, 0.678);
+    final netWorthGradient = netWorthIsPositive
+        ? <Color>[
+            _neoBlueCardStart.withValues(alpha: 0.88),
+            _neoBlueCardEnd.withValues(alpha: 0.86),
+          ]
+        : <Color>[_neoExpenseCardStart, _neoExpenseCardEnd];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: _homeHorizontalPadding),
-      child: Column(
-        children: [
-          _buildBalanceHeroCard(currencySymbol, primaryBalance),
-          const SizedBox(height: 10),
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final cardWidth = (constraints.maxWidth - AppSpacing.sm) / 2;
+          final cardHeight = (cardWidth * 0.80).clamp(118.0, 136.0);
+          final amountFontSize = (cardWidth * 0.26).clamp(32.0, 42.0);
+          final headerHeight = (cardHeight * 0.34).clamp(36.0, 44.0);
+          final footerHeight = (cardHeight * 0.19).clamp(18.0, 24.0);
+
+          return Column(
             children: [
-              Expanded(
-                child: _buildCompactSummaryCard(
-                  title: 'Expenses',
-                  amount: actualExpenses,
-                  isAmountVisible: _isAmountsVisible,
-                  currencySymbol: currencySymbol,
-                  icon: LucideIcons.trendingDown,
-                  isIncome: false,
-                  onTap: () => context.push('/expenses'),
-                ),
+              Row(
+                children: [
+                  Text('Overview', style: _sectionTitleStyle),
+                  const Spacer(),
+                  InkWell(
+                    onTap: () =>
+                        setState(() => _isAmountsVisible = !_isAmountsVisible),
+                    borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+                    child: Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: _neoSurface2,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: _neoStroke),
+                      ),
+                      child: Icon(
+                        _isAmountsVisible
+                            ? LucideIcons.eye
+                            : LucideIcons.eyeOff,
+                        size: NeoIconSizes.md,
+                        color: _neoTextSecondary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: _buildCompactSummaryCard(
-                  title: 'Income',
-                  amount: actualIncome,
-                  isAmountVisible: _isAmountsVisible,
-                  currencySymbol: currencySymbol,
-                  icon: LucideIcons.trendingUp,
-                  isIncome: true,
-                  onTap: () => context.push('/income'),
-                ),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildKpiCard(
+                      title: 'Monthly Net',
+                      cornerLabel: monthScopeText,
+                      amount: monthlyCashflow,
+                      isAmountVisible: _isAmountsVisible,
+                      currencySymbol: currencySymbol,
+                      icon: LucideIcons.arrowLeftRight,
+                      lightAccent: cashflowLightAccent,
+                      darkAccent: cashflowDarkAccent,
+                      gradientColors: cashflowIsPositive
+                          ? <Color>[_neoBlueCardStart, _neoBlueCardEnd]
+                          : <Color>[_neoExpenseCardStart, _neoExpenseCardEnd],
+                      footerIcon: cashflowIsPositive
+                          ? LucideIcons.trendingUp
+                          : LucideIcons.trendingDown,
+                      footerLabel: cashflowIsPositive
+                          ? 'Positive this month'
+                          : 'Negative this month',
+                      amountFontSize: amountFontSize,
+                      cardHeight: cardHeight,
+                      headerHeight: headerHeight,
+                      footerHeight: footerHeight,
+                      onTap: () => context.push('/transactions'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: _buildKpiCard(
+                      title: 'Net worth',
+                      amount: netWorth,
+                      isAmountVisible: _isAmountsVisible,
+                      currencySymbol: currencySymbol,
+                      icon: LucideIcons.pieChart,
+                      lightAccent: netWorthLightAccent,
+                      darkAccent: netWorthDarkAccent,
+                      gradientColors: netWorthGradient,
+                      footerIcon: netWorthIsPositive
+                          ? LucideIcons.shieldCheck
+                          : LucideIcons.alertTriangle,
+                      footerLabel: 'Across included accounts',
+                      amountFontSize: amountFontSize,
+                      cardHeight: cardHeight,
+                      headerHeight: headerHeight,
+                      footerHeight: footerHeight,
+                      onTap: () => context.push('/settings/accounts'),
+                    ),
+                  ),
+                ],
               ),
+              const SizedBox(height: AppSpacing.sm),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildKpiCard(
+                      title: 'Income',
+                      cornerLabel: monthScopeText,
+                      amount: actualIncome,
+                      isAmountVisible: _isAmountsVisible,
+                      currencySymbol: currencySymbol,
+                      icon: LucideIcons.trendingUp,
+                      lightAccent: _hsl(154.4, 0.794, 0.267),
+                      darkAccent: _hsl(151.9, 0.726, 0.527),
+                      gradientColors: <Color>[
+                        _neoIncomeCardStart,
+                        _neoIncomeCardEnd,
+                      ],
+                      footerIcon: LucideIcons.badgeCheck,
+                      footerLabel: 'Received this month',
+                      amountFontSize: amountFontSize,
+                      cardHeight: cardHeight,
+                      headerHeight: headerHeight,
+                      footerHeight: footerHeight,
+                      onTap: () => context.push('/income'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: _buildKpiCard(
+                      title: 'Expenses',
+                      cornerLabel: monthScopeText,
+                      amount: actualExpenses,
+                      isAmountVisible: _isAmountsVisible,
+                      currencySymbol: currencySymbol,
+                      icon: LucideIcons.trendingDown,
+                      lightAccent: _hsl(350.5, 0.504, 0.443),
+                      darkAccent: _hsl(354.5, 1.0, 0.678),
+                      gradientColors: <Color>[
+                        _neoExpenseCardStart,
+                        _neoExpenseCardEnd,
+                      ],
+                      footerIcon: LucideIcons.receipt,
+                      footerLabel: 'Spent this month',
+                      amountFontSize: amountFontSize,
+                      cardHeight: cardHeight,
+                      headerHeight: headerHeight,
+                      footerHeight: footerHeight,
+                      onTap: () => context.push('/expenses'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: _homeSectionSpacing),
             ],
-          ),
-          const SizedBox(height: _homeSectionSpacing),
-        ],
+          );
+        },
       ),
-    );
-  }
-
-  Widget _buildBalanceHeroCard(
-    String currencySymbol,
-    double balanceAmount,
-  ) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isLight = _isLightMode(context);
-        final isNarrow = constraints.maxWidth < 360;
-        final inkColor =
-            isLight ? _hsl(187.8, 0.852, 0.212) : _hsl(174.6, 0.748, 0.467);
-        final iconInkColor =
-            isLight ? _hsl(178.7, 0.821, 0.220) : _hsl(175.2, 0.726, 0.443);
-        final trendColor =
-            isLight ? _hsl(173.1, 0.825, 0.247) : _hsl(173.8, 0.743, 0.403);
-        final eyeBgColor = isLight
-            ? Color.alphaBlend(
-                Colors.white.withValues(alpha: 0.42),
-                _neoBlueCardStart,
-              )
-            : Color.alphaBlend(
-                Colors.white.withValues(alpha: 0.10),
-                _neoBlueCardStart,
-              );
-        final eyeBorderColor = isLight
-            ? inkColor.withValues(alpha: 0.25)
-            : Colors.white.withValues(alpha: 0.22);
-        final eyeIconColor = isLight ? _hsl(210.8, 0.333, 0.218) : iconInkColor;
-        final cardHeight = isNarrow ? 98.0 : 104.0;
-        final rightColumnWidth = isNarrow ? 116.0 : 126.0;
-        final eyeSize = isNarrow ? 42.0 : 46.0;
-        final trendLabel =
-            isNarrow ? '+15% vs last month' : '+15% from last month';
-        final amountStyle = TextStyle(
-          color: inkColor,
-          fontSize: isNarrow ? 44 : 50,
-          fontWeight: FontWeight.w700,
-          height: 0.98,
-          fontFeatures: const [FontFeature.tabularFigures()],
-        );
-        final metaTextStyle = TextStyle(
-          color: trendColor,
-          fontSize: isNarrow ? 11 : 12,
-          fontWeight: FontWeight.w500,
-          height: 1.1,
-        );
-
-        return _buildGlassCard(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-          borderColor: isLight
-              ? inkColor.withValues(alpha: 0.38)
-              : inkColor.withValues(alpha: 0.45),
-          tintColor: _neoBlueCardStart,
-          gradientColors: <Color>[
-            _neoBlueCardStart,
-            _neoBlueCardEnd,
-          ],
-          borderRadius: BorderRadius.circular(_homeCardRadius),
-          child: SizedBox(
-            height: cardHeight,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: isNarrow ? 3 : 5),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: isNarrow ? 24 : 26,
-                            height: isNarrow ? 24 : 26,
-                            decoration: BoxDecoration(
-                              color: isLight
-                                  ? iconInkColor.withValues(alpha: 0.22)
-                                  : iconInkColor.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: isLight
-                                    ? iconInkColor.withValues(alpha: 0.38)
-                                    : iconInkColor.withValues(alpha: 0.34),
-                              ),
-                            ),
-                            child: Icon(
-                              LucideIcons.wallet,
-                              size: isNarrow ? 13 : 14,
-                              color: iconInkColor,
-                            ),
-                          ),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              'Balance',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color: inkColor,
-                                fontSize: isNarrow ? 15 : 16,
-                                fontWeight: FontWeight.w500,
-                                height: 1.05,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 2),
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              _isAmountsVisible
-                                  ? '$currencySymbol${_formatAmount(balanceAmount)}'
-                                  : '\u2022\u2022\u2022\u2022',
-                              style: amountStyle,
-                              maxLines: 1,
-                              softWrap: false,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 6),
-                SizedBox(
-                  width: rightColumnWidth,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      InkWell(
-                        onTap: () => setState(
-                            () => _isAmountsVisible = !_isAmountsVisible),
-                        borderRadius:
-                            BorderRadius.circular(AppSizing.radiusFull),
-                        child: Container(
-                          width: eyeSize,
-                          height: eyeSize,
-                          decoration: BoxDecoration(
-                            color: eyeBgColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: eyeBorderColor,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black
-                                    .withValues(alpha: isLight ? 0.10 : 0.08),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            _isAmountsVisible
-                                ? LucideIcons.eye
-                                : LucideIcons.eyeOff,
-                            size: isNarrow ? 22 : 24,
-                            color: eyeIconColor,
-                          ),
-                        ),
-                      ),
-                      const Spacer(),
-                      SizedBox(
-                        width: rightColumnWidth,
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerRight,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  LucideIcons.trendingUp,
-                                  size: NeoIconSizes.sm,
-                                  color: trendColor,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(trendLabel, style: metaTextStyle),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -674,7 +617,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             ),
             const SizedBox(width: AppSpacing.sm),
             Text(
-              '$currencySymbol${_formatAmount(balance.abs())}',
+              '$currencySymbol${_formatAmount(balance)}',
               style: _rowAmountStyle(amountColor),
             ),
           ],
@@ -683,34 +626,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildCompactSummaryCard({
+  Widget _buildKpiCard({
     required String title,
+    String? cornerLabel,
     required double amount,
     required bool isAmountVisible,
     required String currencySymbol,
     required IconData icon,
-    required bool isIncome,
+    required Color lightAccent,
+    required Color darkAccent,
+    required List<Color> gradientColors,
+    required IconData footerIcon,
+    required String footerLabel,
+    required double amountFontSize,
+    required double cardHeight,
+    required double headerHeight,
+    required double footerHeight,
     VoidCallback? onTap,
   }) {
     final isLight = _isLightMode(context);
-    final darkAccent =
-        isIncome ? _hsl(151.9, 0.726, 0.527) : _hsl(354.5, 1.0, 0.678);
-    final lightAccent =
-        isIncome ? _hsl(154.4, 0.794, 0.267) : _hsl(350.5, 0.504, 0.443);
     final textColor = isLight ? lightAccent : darkAccent;
     final iconBgColor = isLight
         ? lightAccent.withValues(alpha: 0.22)
         : darkAccent.withValues(alpha: 0.18);
-    final gradientColors = isIncome
-        ? <Color>[_neoIncomeCardStart, _neoIncomeCardEnd]
-        : <Color>[_neoExpenseCardStart, _neoExpenseCardEnd];
-    final changeColor = isIncome
-        ? (isLight ? _hsl(153.7, 0.701, 0.249) : _hsl(85.9, 0.317, 0.316))
-        : (isLight ? _hsl(350.7, 0.502, 0.402) : _hsl(349.8, 0.424, 0.490));
+    final footerColor = isLight
+        ? textColor.withValues(alpha: 0.95)
+        : textColor.withValues(alpha: 0.88);
+    final cornerText = cornerLabel?.trim() ?? '';
+    final hasCornerLabel = cornerText.isNotEmpty;
+    final chipBorderColor = isLight
+        ? textColor.withValues(alpha: 0.42)
+        : textColor.withValues(alpha: 0.34);
+    final chipBgColor = isLight
+        ? Colors.white.withValues(alpha: 0.30)
+        : Colors.black.withValues(alpha: 0.18);
     final amountStyle = AppTypography.amountMedium.copyWith(
       color: textColor,
       fontWeight: FontWeight.w700,
-      fontSize: 24,
+      fontSize: amountFontSize,
       height: 1.0,
       fontFeatures: const [FontFeature.tabularFigures()],
     );
@@ -721,9 +674,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         onTap: onTap,
         borderRadius: BorderRadius.circular(_homeCardRadius),
         child: SizedBox(
-          height: 104,
+          height: cardHeight,
           child: _buildGlassCard(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
             tintColor: gradientColors.first,
             gradientColors: gradientColors,
             borderColor: isLight
@@ -733,81 +686,111 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 20,
-                      height: 20,
-                      decoration: BoxDecoration(
-                        color: iconBgColor,
-                        borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-                        border: Border.all(
-                          color: isLight
-                              ? lightAccent.withValues(alpha: 0.42)
-                              : darkAccent.withValues(alpha: 0.34),
+                SizedBox(
+                  height: headerHeight,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 20,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: iconBgColor,
+                          borderRadius:
+                              BorderRadius.circular(AppSizing.radiusSm),
+                          border: Border.all(
+                            color: isLight
+                                ? lightAccent.withValues(alpha: 0.42)
+                                : darkAccent.withValues(alpha: 0.34),
+                          ),
                         ),
-                      ),
-                      child:
-                          Icon(icon, size: NeoIconSizes.xs, color: textColor),
-                    ),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        softWrap: false,
-                        style: TextStyle(
+                        child: Icon(
+                          icon,
+                          size: NeoIconSizes.xs,
                           color: textColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          height: 1.0,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    isAmountVisible
-                        ? '$currencySymbol${_formatAmount(amount)}'
-                        : '\u2022\u2022\u2022\u2022',
-                    style: amountStyle,
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            height: 1.02,
+                          ),
+                        ),
+                      ),
+                      if (hasCornerLabel) ...[
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: chipBgColor,
+                            borderRadius:
+                                BorderRadius.circular(AppSizing.radiusFull),
+                            border: Border.all(color: chipBorderColor),
+                          ),
+                          child: Text(
+                            cornerText,
+                            style: _rowSecondaryStyle.copyWith(
+                              color: footerColor.withValues(alpha: 0.9),
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w700,
+                              height: 1.0,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                const Spacer(),
-                Row(
-                  children: [
-                    Icon(
-                      isIncome
-                          ? LucideIcons.trendingUp
-                          : LucideIcons.trendingDown,
-                      size: 10,
-                      color: isLight
-                          ? changeColor
-                          : darkAccent.withValues(alpha: 0.9),
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
                       child: Text(
-                        isIncome ? '+15% Income' : '+53% Expenses',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: isLight
-                              ? changeColor
-                              : darkAccent.withValues(alpha: 0.9),
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          height: 1.1,
-                        ),
+                        isAmountVisible
+                            ? '$currencySymbol${_formatAmount(amount)}'
+                            : '\u2022\u2022\u2022\u2022',
+                        style: amountStyle,
                       ),
                     ),
-                  ],
+                  ),
+                ),
+                SizedBox(
+                  height: footerHeight,
+                  child: Row(
+                    children: [
+                      Icon(
+                        footerIcon,
+                        size: 10,
+                        color: footerColor,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          footerLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: footerColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            height: 1.05,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

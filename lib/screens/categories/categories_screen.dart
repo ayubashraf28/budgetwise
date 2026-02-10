@@ -9,6 +9,7 @@ import '../../models/account.dart';
 import '../../models/category.dart';
 import '../../models/income_source.dart';
 import '../../providers/providers.dart';
+import '../../widgets/common/neo_page_components.dart';
 import '../expenses/category_form_sheet.dart';
 import '../income/income_form_sheet.dart';
 import '../settings/account_form_sheet.dart';
@@ -27,19 +28,10 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
   NeoPalette get _palette => NeoTheme.of(context);
 
-  bool _isLightMode(BuildContext context) => NeoTheme.isLight(context);
-
   Color get _neoAppBg => _palette.appBg;
-  Color get _neoSurface1 => _palette.surface1;
-  Color get _neoSurface2 => _palette.surface2;
   Color get _neoStroke => _palette.stroke;
   Color get _neoTextPrimary => _palette.textPrimary;
   Color get _neoTextSecondary => _palette.textSecondary;
-  Color get _neoAccent => _palette.accent;
-
-  static const double _cardRadius = 16;
-  static const double _sectionGap = 12;
-  static const double _screenPadding = 16;
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +43,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
     return Scaffold(
       backgroundColor: _neoAppBg,
-      body: _buildBackground(
+      body: NeoPageBackground(
         child: RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(accountsProvider);
@@ -63,26 +55,28 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           },
           child: ListView(
             padding: EdgeInsets.fromLTRB(
-              _screenPadding,
+              NeoLayout.screenPadding,
               0,
-              _screenPadding,
-              AppSpacing.xl + MediaQuery.paddingOf(context).bottom + 92,
+              NeoLayout.screenPadding,
+              AppSpacing.xl +
+                  MediaQuery.paddingOf(context).bottom +
+                  NeoLayout.bottomNavSafeBuffer,
             ),
             children: [
               const SizedBox(height: AppSpacing.sm),
               _buildHeader(),
-              const SizedBox(height: _sectionGap),
+              const SizedBox(height: NeoLayout.sectionGap),
               _buildAccountsCard(
                 accountsAsync: accountsAsync,
                 balancesAsync: balancesAsync,
                 currencySymbol: currencySymbol,
               ),
-              const SizedBox(height: _sectionGap),
+              const SizedBox(height: NeoLayout.sectionGap),
               _buildExpenseCategoriesCard(
                 categoriesAsync: expenseCategoriesAsync,
                 currencySymbol: currencySymbol,
               ),
-              const SizedBox(height: _sectionGap),
+              const SizedBox(height: NeoLayout.sectionGap),
               _buildIncomeCategoriesCard(
                 incomeSourcesAsync: incomeSourcesAsync,
                 currencySymbol: currencySymbol,
@@ -95,54 +89,9 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   }
 
   Widget _buildHeader() {
-    return SafeArea(
-      bottom: false,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Categories',
-            style: NeoTypography.pageTitle(context),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Accounts, expense categories, and income categories',
-            style: NeoTypography.pageContext(context),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBackground({required Widget child}) {
-    final textureColor = _isLightMode(context)
-        ? Colors.black.withValues(alpha: 0.018)
-        : Colors.white.withValues(alpha: 0.025);
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [_neoAppBg, _neoAppBg],
-            ),
-          ),
-        ),
-        IgnorePointer(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: RadialGradient(
-                center: const Alignment(-0.85, -0.95),
-                radius: 1.25,
-                colors: [textureColor, Colors.transparent],
-              ),
-            ),
-          ),
-        ),
-        child,
-      ],
+    return const NeoPageHeader(
+      title: 'Categories',
+      subtitle: 'Accounts, expense categories, and income categories',
     );
   }
 
@@ -156,9 +105,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       expanded: _isAccountsExpanded,
       onToggle: () =>
           setState(() => _isAccountsExpanded = !_isAccountsExpanded),
+      onViewAll: () => context.push('/settings/accounts'),
       onAdd: _showAddAccountSheet,
-      addLabel: 'Add',
-      addIcon: LucideIcons.plus,
       child: accountsAsync.when(
         data: (accounts) {
           final balances =
@@ -176,7 +124,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           return Column(
             children: [
               for (var index = 0; index < accounts.length; index++) ...[
-                _HubRow(
+                NeoHubRow(
                   icon: _accountTypeIcon(accounts[index].type),
                   iconColor: _accountTypeColor(accounts[index].type),
                   title: accounts[index].name,
@@ -215,9 +163,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       title: 'Expense Categories',
       expanded: _isExpenseExpanded,
       onToggle: () => setState(() => _isExpenseExpanded = !_isExpenseExpanded),
+      onViewAll: () => context.push('/budget'),
       onAdd: _showAddExpenseCategorySheet,
-      addLabel: 'Add',
-      addIcon: LucideIcons.plus,
       child: categoriesAsync.when(
         data: (categories) {
           if (categories.isEmpty) {
@@ -236,7 +183,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           return Column(
             children: [
               for (var index = 0; index < sorted.length; index++) ...[
-                _HubRow(
+                NeoHubRow(
                   icon: _categoryIcon(sorted[index].icon),
                   iconColor: sorted[index].colorValue,
                   title: sorted[index].name,
@@ -277,9 +224,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       title: 'Income Categories',
       expanded: _isIncomeExpanded,
       onToggle: () => setState(() => _isIncomeExpanded = !_isIncomeExpanded),
+      onViewAll: () => context.push('/income'),
       onAdd: _showAddIncomeCategorySheet,
-      addLabel: 'Add',
-      addIcon: LucideIcons.plus,
       child: incomeSourcesAsync.when(
         data: (incomeSources) {
           if (incomeSources.isEmpty) {
@@ -298,7 +244,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           return Column(
             children: [
               for (var index = 0; index < sorted.length; index++) ...[
-                _HubRow(
+                NeoHubRow(
                   icon: LucideIcons.trendingUp,
                   iconColor: NeoTheme.positiveValue(context),
                   title: sorted[index].name,
@@ -331,12 +277,11 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     required String title,
     required bool expanded,
     required VoidCallback onToggle,
+    required VoidCallback onViewAll,
     required VoidCallback onAdd,
-    required String addLabel,
-    required IconData addIcon,
     required Widget child,
   }) {
-    return _glassCard(
+    return NeoGlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -351,13 +296,18 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              _buildSectionActionButton(
-                label: addLabel,
-                icon: addIcon,
-                onPressed: onAdd,
+              NeoSectionActionButton(
+                label: 'View all',
+                onPressed: onViewAll,
               ),
               const SizedBox(width: 8),
-              _buildSectionChevronButton(
+              NeoCircleIconButton(
+                icon: LucideIcons.plus,
+                onPressed: onAdd,
+                semanticLabel: 'Add $title',
+              ),
+              const SizedBox(width: 8),
+              NeoSectionChevronButton(
                 expanded: expanded,
                 onPressed: onToggle,
               ),
@@ -368,59 +318,6 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
             child,
           ],
         ],
-      ),
-    );
-  }
-
-  Widget _buildSectionActionButton({
-    required String label,
-    required IconData icon,
-    required VoidCallback onPressed,
-  }) {
-    final isLight = _isLightMode(context);
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      icon: Icon(icon, size: NeoIconSizes.sm, color: _neoAccent),
-      label: Text(label, style: NeoTypography.sectionAction(context)),
-      style: OutlinedButton.styleFrom(
-        foregroundColor: _neoAccent,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        minimumSize: const Size(0, 34),
-        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-        visualDensity: VisualDensity.compact,
-        backgroundColor:
-            isLight ? _neoAccent.withValues(alpha: 0.10) : Colors.transparent,
-        side: BorderSide(
-          color: _neoAccent.withValues(alpha: isLight ? 0.55 : 0.4),
-          width: 1,
-        ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionChevronButton({
-    required bool expanded,
-    required VoidCallback onPressed,
-  }) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-      child: Container(
-        width: 30,
-        height: 30,
-        decoration: BoxDecoration(
-          color: _neoSurface2,
-          borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-          border: Border.all(color: _neoStroke),
-        ),
-        child: Icon(
-          expanded ? LucideIcons.chevronUp : LucideIcons.chevronDown,
-          size: NeoIconSizes.md,
-          color: _neoTextSecondary,
-        ),
       ),
     );
   }
@@ -473,7 +370,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: _neoSurface2,
+              color: _palette.surface2,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: _neoStroke),
             ),
@@ -499,41 +396,16 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           ElevatedButton.icon(
             onPressed: onAction,
             style: ElevatedButton.styleFrom(
-              backgroundColor: _neoAccent,
-              foregroundColor:
-                  _isLightMode(context) ? _neoTextPrimary : _neoSurface1,
+              backgroundColor: _palette.accent,
+              foregroundColor: NeoTheme.isLight(context)
+                  ? _neoTextPrimary
+                  : _palette.surface1,
             ),
             icon: const Icon(LucideIcons.plus, size: NeoIconSizes.md),
             label: Text(actionLabel),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _glassCard({
-    required Widget child,
-    EdgeInsetsGeometry padding = const EdgeInsets.all(AppSpacing.md),
-  }) {
-    final shadowColor = _isLightMode(context)
-        ? Colors.black.withValues(alpha: 0.14)
-        : _neoAppBg.withValues(alpha: 0.86);
-    return Container(
-      width: double.infinity,
-      padding: padding,
-      decoration: BoxDecoration(
-        color: _neoSurface1,
-        borderRadius: BorderRadius.circular(_cardRadius),
-        border: Border.all(color: _neoStroke),
-        boxShadow: [
-          BoxShadow(
-            color: shadowColor,
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: child,
     );
   }
 
@@ -555,7 +427,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   Color _accountTypeColor(AccountType type) {
     switch (type) {
       case AccountType.cash:
-        return _neoAccent;
+        return _palette.accent;
       case AccountType.debit:
         return NeoTheme.infoValue(context);
       case AccountType.credit:
@@ -639,96 +511,6 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const IncomeFormSheet(),
-    );
-  }
-}
-
-class _HubRow extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final String title;
-  final String subtitle;
-  final String trailingTop;
-  final String trailingBottom;
-  final Color trailingColor;
-  final VoidCallback onTap;
-
-  const _HubRow({
-    required this.icon,
-    required this.iconColor,
-    required this.title,
-    required this.subtitle,
-    required this.trailingTop,
-    required this.trailingBottom,
-    required this.trailingColor,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final palette = NeoTheme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Row(
-          children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: palette.surface2,
-                borderRadius: BorderRadius.circular(11),
-                border: Border.all(color: palette.stroke),
-              ),
-              child: Icon(
-                icon,
-                size: NeoIconSizes.lg,
-                color: iconColor,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: NeoTypography.rowTitle(context),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: NeoTypography.rowSecondary(context),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  trailingTop,
-                  style: NeoTypography.rowAmount(context, trailingColor),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  trailingBottom,
-                  style: NeoTypography.rowSecondary(context),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
