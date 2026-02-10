@@ -11,6 +11,7 @@ import '../../models/item.dart';
 import '../../models/income_source.dart';
 import '../../models/account.dart';
 import '../../providers/providers.dart';
+import '../../utils/app_icon_registry.dart';
 import '../expenses/category_form_sheet.dart';
 import '../expenses/item_form_sheet.dart';
 import '../income/income_form_sheet.dart';
@@ -764,28 +765,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   }
 
   IconData _getCategoryIcon(String iconName) {
-    final icons = {
-      'home': LucideIcons.home,
-      'utensils': LucideIcons.utensils,
-      'car': LucideIcons.car,
-      'tv': LucideIcons.tv,
-      'shopping-bag': LucideIcons.shoppingBag,
-      'gamepad-2': LucideIcons.gamepad2,
-      'piggy-bank': LucideIcons.piggyBank,
-      'graduation-cap': LucideIcons.graduationCap,
-      'heart': LucideIcons.heart,
-      'wallet': LucideIcons.wallet,
-      'briefcase': LucideIcons.briefcase,
-      'plane': LucideIcons.plane,
-      'gift': LucideIcons.gift,
-      'credit-card': LucideIcons.creditCard,
-      'landmark': LucideIcons.landmark,
-      'baby': LucideIcons.baby,
-      'dumbbell': LucideIcons.dumbbell,
-      'music': LucideIcons.music,
-      'book': LucideIcons.book,
-    };
-    return icons[iconName] ?? LucideIcons.wallet;
+    return resolveAppIcon(iconName, fallback: LucideIcons.wallet);
   }
 
   IconData _getAccountTypeIcon(AccountType accountType) {

@@ -5,7 +5,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/theme.dart';
 import '../../models/transaction.dart';
 
-/// List item widget for displaying a transaction
+/// List item widget for displaying a transaction.
 class TransactionListItem extends StatelessWidget {
   final Transaction transaction;
   final VoidCallback? onTap;
@@ -26,10 +26,14 @@ class TransactionListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     final isIncome = transaction.isIncome;
-    final amountColor = isIncome ? AppColors.success : AppColors.error;
+    final amountColor = isIncome
+        ? NeoTheme.positiveValue(context)
+        : NeoTheme.negativeValue(context);
     final categoryColor = _parseColor(transaction.categoryColor);
-    final iconBgColor = isIncome ? AppColors.success : categoryColor;
+    final iconColor =
+        isIncome ? NeoTheme.positiveValue(context) : categoryColor;
 
     return Material(
       color: Colors.transparent,
@@ -40,30 +44,29 @@ class TransactionListItem extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(
             horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm + 2,
+            vertical: AppSpacing.sm,
           ),
           child: Row(
             children: [
-              // Icon with status indicator dot
               Stack(
                 clipBehavior: Clip.none,
                 children: [
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
-                      color: iconBgColor.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                      color: palette.surface2,
+                      borderRadius: BorderRadius.circular(11),
+                      border: Border.all(color: palette.stroke),
                     ),
                     child: Icon(
                       isIncome
-                          ? LucideIcons.trendingDown
+                          ? LucideIcons.arrowDownLeft
                           : _getCategoryIcon(transaction.categoryName),
-                      color: iconBgColor,
-                      size: 20,
+                      color: iconColor,
+                      size: NeoIconSizes.lg,
                     ),
                   ),
-                  // Status dot — top-right corner
                   Positioned(
                     top: -2,
                     right: -2,
@@ -71,69 +74,66 @@ class TransactionListItem extends StatelessWidget {
                       width: 14,
                       height: 14,
                       decoration: BoxDecoration(
-                        color: isIncome ? AppColors.success : AppColors.error,
+                        color: amountColor,
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.surface, width: 2),
+                        border: Border.all(color: palette.surface1, width: 2),
                       ),
                       child: Center(
                         child: isIncome
                             ? const Icon(LucideIcons.plus,
-                                size: 8, color: Colors.white)
+                                size: NeoIconSizes.xxs, color: Colors.white)
                             : const Icon(LucideIcons.minus,
-                                size: 8, color: Colors.white),
+                                size: NeoIconSizes.xxs, color: Colors.white),
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(width: AppSpacing.md),
-
-              // Name + category badge + date
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       transaction.displayName,
-                      style: AppTypography.labelLarge,
+                      style: NeoTypography.rowTitle(context),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Wrap(
                       spacing: AppSpacing.xs,
                       runSpacing: 4,
                       crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        // Category/type badge chip
                         _buildMetaChip(
+                          context,
                           text: isIncome
                               ? 'Income'
                               : (transaction.categoryName ?? 'Expense'),
-                          color: isIncome ? AppColors.success : categoryColor,
+                          color: iconColor,
                         ),
-
                         if (transaction.accountName != null)
                           _buildMetaChip(
+                            context,
                             text: transaction.accountName!,
-                            color: AppColors.savings,
+                            color: NeoTheme.infoValue(context),
                             icon: LucideIcons.wallet,
                           ),
-
-                        // Calendar icon + date
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(
+                            Icon(
                               LucideIcons.calendar,
-                              size: 12,
-                              color: AppColors.textMuted,
+                              size: NeoIconSizes.xs,
+                              color: palette.textMuted,
                             ),
                             const SizedBox(width: 3),
                             Text(
                               DateFormat('MMM d, yyyy')
                                   .format(transaction.date),
-                              style: AppTypography.bodySmall,
+                              style: NeoTypography.rowSecondary(context)
+                                  .copyWith(fontSize: 11),
                             ),
                           ],
                         ),
@@ -142,23 +142,19 @@ class TransactionListItem extends StatelessWidget {
                   ],
                 ),
               ),
-
-              // Amount + status text
+              const SizedBox(width: AppSpacing.sm),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     transaction.formattedAmount(currencySymbol),
-                    style: TextStyle(
-                      color: amountColor,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: NeoTypography.rowAmount(context, amountColor),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     isIncome ? 'Received' : 'Paid',
-                    style: AppTypography.bodySmall,
+                    style: NeoTypography.rowSecondary(context)
+                        .copyWith(fontSize: 11),
                   ),
                 ],
               ),
@@ -174,7 +170,7 @@ class TransactionListItem extends StatelessWidget {
     try {
       final hexCode = hex.replaceFirst('#', '');
       return Color(int.parse('FF$hexCode', radix: 16));
-    } catch (e) {
+    } catch (_) {
       return AppColors.primary;
     }
   }
@@ -208,7 +204,8 @@ class TransactionListItem extends StatelessWidget {
     return LucideIcons.receipt;
   }
 
-  Widget _buildMetaChip({
+  Widget _buildMetaChip(
+    BuildContext context, {
     required String text,
     required Color color,
     IconData? icon,
@@ -216,25 +213,22 @@ class TransactionListItem extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
+        color: color.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(
-              icon,
-              size: 10,
-              color: color,
-            ),
+            Icon(icon, size: NeoIconSizes.xs, color: color),
             const SizedBox(width: 3),
           ],
           Text(
             text,
-            style: TextStyle(
+            style: AppTypography.bodySmall.copyWith(
               fontSize: 10,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
               color: color,
             ),
           ),

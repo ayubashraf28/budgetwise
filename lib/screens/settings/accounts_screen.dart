@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
 import '../../models/account.dart';
 import '../../providers/providers.dart';
+import '../../widgets/common/neo_page_components.dart';
 import 'account_form_sheet.dart';
 
 class AccountsScreen extends ConsumerStatefulWidget {
@@ -23,6 +25,8 @@ class AccountsScreen extends ConsumerStatefulWidget {
 class _AccountsScreenState extends ConsumerState<AccountsScreen> {
   bool _didHandleInitialAccount = false;
 
+  NeoPalette get _palette => NeoTheme.of(context);
+
   @override
   Widget build(BuildContext context) {
     final accountsAsync = ref.watch(allAccountsProvider);
@@ -31,17 +35,8 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
     final netWorthAsync = ref.watch(netWorthProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Accounts'),
-        backgroundColor: AppColors.background,
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showCreateSheet,
-        icon: const Icon(LucideIcons.plus),
-        label: const Text('Add Account'),
-      ),
-      body: SafeArea(
+      backgroundColor: _palette.appBg,
+      body: NeoPageBackground(
         child: RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(accountsProvider);
@@ -53,54 +48,471 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
           child: accountsAsync.when(
             data: (accounts) {
               _maybeOpenInitialAccount(accounts);
-
               final balances = balancesAsync.value ?? const <String, double>{};
               final activeAccounts =
                   accounts.where((a) => !a.isArchived).toList();
               final archivedAccounts =
                   accounts.where((a) => a.isArchived).toList();
 
-              if (accounts.isEmpty) {
-                return _buildEmptyState();
-              }
-
               return ListView(
-                padding: const EdgeInsets.all(AppSpacing.md),
+                padding: EdgeInsets.fromLTRB(
+                  NeoLayout.screenPadding,
+                  0,
+                  NeoLayout.screenPadding,
+                  AppSpacing.xl +
+                      MediaQuery.paddingOf(context).bottom +
+                      NeoLayout.bottomNavSafeBuffer,
+                ),
                 children: [
+                  const SizedBox(height: AppSpacing.sm),
+                  _buildHeader(),
+                  const SizedBox(height: NeoLayout.sectionGap),
                   _buildNetWorthCard(
                     netWorth: netWorthAsync.value ?? 0,
                     currencySymbol: currencySymbol,
                   ),
-                  const SizedBox(height: AppSpacing.lg),
-                  _buildSectionHeader(
+                  const SizedBox(height: NeoLayout.sectionGap),
+                  _buildSectionCard(
                     title: 'Active Accounts',
                     subtitle: 'Drag to reorder',
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  _buildActiveAccountsCard(
-                    activeAccounts: activeAccounts,
-                    balances: balances,
-                    currencySymbol: currencySymbol,
-                  ),
-                  if (archivedAccounts.isNotEmpty) ...[
-                    const SizedBox(height: AppSpacing.lg),
-                    _buildSectionHeader(
-                      title: 'Archived',
-                      subtitle: 'Unavailable for new transactions',
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    _buildArchivedAccountsCard(
-                      archivedAccounts: archivedAccounts,
+                    child: _buildActiveAccountsList(
+                      activeAccounts: activeAccounts,
                       balances: balances,
                       currencySymbol: currencySymbol,
                     ),
+                  ),
+                  if (archivedAccounts.isNotEmpty) ...[
+                    const SizedBox(height: NeoLayout.sectionGap),
+                    _buildSectionCard(
+                      title: 'Archived',
+                      subtitle: 'Unavailable for new transactions',
+                      child: _buildArchivedAccountsList(
+                        archivedAccounts: archivedAccounts,
+                        balances: balances,
+                        currencySymbol: currencySymbol,
+                      ),
+                    ),
                   ],
-                  const SizedBox(height: AppSpacing.xxl),
+                  if (accounts.isEmpty) ...[
+                    const SizedBox(height: NeoLayout.sectionGap),
+                    _buildEmptyState(),
+                  ],
                 ],
               );
             },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, stack) => _buildErrorState(error.toString()),
+            loading: () => ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: const [
+                SizedBox(height: 280),
+                Center(child: CircularProgressIndicator()),
+              ],
+            ),
+            error: (error, stack) => ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(AppSpacing.md),
+              children: [
+                _buildErrorState(error.toString()),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return SafeArea(
+      bottom: false,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Accounts',
+                  style: NeoTypography.pageTitle(context),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Balances, ordering, and account settings',
+                  style: NeoTypography.pageContext(context),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: NeoCircleIconButton(
+              icon: LucideIcons.plus,
+              onPressed: _showCreateSheet,
+              semanticLabel: 'Add account',
+              size: 36,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNetWorthCard({
+    required double netWorth,
+    required String currencySymbol,
+  }) {
+    final isNegative = netWorth < 0;
+    final accent = isNegative
+        ? NeoTheme.negativeValue(context)
+        : NeoTheme.positiveValue(context);
+
+    return NeoGlassCard(
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: _palette.surface2,
+              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+              border: Border.all(color: _palette.stroke),
+            ),
+            child: Icon(
+              LucideIcons.pieChart,
+              size: NeoIconSizes.lg,
+              color: accent,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Net worth', style: NeoTypography.rowSecondary(context)),
+                const SizedBox(height: 2),
+                Text(
+                  '$currencySymbol${_formatAmount(netWorth)}',
+                  style: NeoTypography.rowAmount(context, accent),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required String title,
+    required String subtitle,
+    required Widget child,
+  }) {
+    return NeoGlassCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: NeoTypography.sectionTitle(context)),
+          const SizedBox(height: 2),
+          Text(subtitle, style: NeoTypography.rowSecondary(context)),
+          const SizedBox(height: AppSpacing.sm),
+          child,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActiveAccountsList({
+    required List<Account> activeAccounts,
+    required Map<String, double> balances,
+    required String currencySymbol,
+  }) {
+    if (activeAccounts.isEmpty) {
+      return Text(
+        'No active accounts yet. Create one to get started.',
+        style: NeoTypography.rowSecondary(context),
+      );
+    }
+
+    return ReorderableListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: activeAccounts.length,
+      buildDefaultDragHandles: false,
+      onReorder: (oldIndex, newIndex) =>
+          _onReorder(activeAccounts, oldIndex, newIndex),
+      itemBuilder: (context, index) {
+        final account = activeAccounts[index];
+        final balance = balances[account.id] ?? 0;
+        final isLast = index == activeAccounts.length - 1;
+        return Column(
+          key: ValueKey(account.id),
+          children: [
+            _buildAccountRow(
+              account: account,
+              balance: balance,
+              currencySymbol: currencySymbol,
+              showDragHandle: true,
+              dragIndex: index,
+            ),
+            if (!isLast)
+              Divider(
+                height: 12,
+                color: _palette.stroke.withValues(alpha: 0.85),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildArchivedAccountsList({
+    required List<Account> archivedAccounts,
+    required Map<String, double> balances,
+    required String currencySymbol,
+  }) {
+    return Column(
+      children: archivedAccounts.asMap().entries.map((entry) {
+        final index = entry.key;
+        final account = entry.value;
+        final balance = balances[account.id] ?? 0;
+        final isLast = index == archivedAccounts.length - 1;
+
+        return Column(
+          children: [
+            _buildAccountRow(
+              account: account,
+              balance: balance,
+              currencySymbol: currencySymbol,
+            ),
+            if (!isLast)
+              Divider(
+                height: 12,
+                color: _palette.stroke.withValues(alpha: 0.85),
+              ),
+          ],
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildAccountRow({
+    required Account account,
+    required double balance,
+    required String currencySymbol,
+    bool showDragHandle = false,
+    int? dragIndex,
+  }) {
+    final isNegative = balance < 0;
+    final balanceColor = isNegative
+        ? NeoTheme.negativeValue(context)
+        : NeoTheme.positiveValue(context);
+    final accountColor = _accountTypeColor(account.type);
+
+    return InkWell(
+      onTap: () => _showEditSheet(account),
+      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: _palette.surface2,
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: _palette.stroke),
+              ),
+              child: Icon(
+                _accountTypeIcon(account.type),
+                size: NeoIconSizes.lg,
+                color: accountColor,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          account.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: NeoTypography.rowTitle(context),
+                        ),
+                      ),
+                      if (!account.includeInNetWorth) ...[
+                        const SizedBox(width: AppSpacing.xs),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: NeoTheme.warningValue(context)
+                                .withValues(alpha: 0.14),
+                            borderRadius:
+                                BorderRadius.circular(AppSizing.radiusFull),
+                          ),
+                          child: Text(
+                            'Excluded',
+                            style: AppTypography.bodySmall.copyWith(
+                              color: NeoTheme.warningValue(context),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _accountTypeLabel(account.type),
+                    style: NeoTypography.rowSecondary(context),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '$currencySymbol${_formatAmount(balance)}',
+                  style: NeoTypography.rowAmount(context, balanceColor),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  account.isArchived ? 'Archived' : 'Active',
+                  style: NeoTypography.rowSecondary(context),
+                ),
+              ],
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Theme(
+              data: Theme.of(context).copyWith(
+                popupMenuTheme: PopupMenuThemeData(
+                  color: _palette.surface2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                    side: BorderSide(color: _palette.stroke),
+                  ),
+                  textStyle: AppTypography.bodyMedium.copyWith(
+                    color: _palette.textPrimary,
+                  ),
+                ),
+              ),
+              child: PopupMenuButton<String>(
+                icon: Icon(
+                  LucideIcons.moreVertical,
+                  size: NeoIconSizes.lg,
+                  color: _palette.textSecondary,
+                ),
+                onSelected: (value) => _onMenuSelect(account, value),
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                  if (!account.isArchived)
+                    const PopupMenuItem(
+                        value: 'archive', child: Text('Archive')),
+                  if (account.isArchived)
+                    const PopupMenuItem(
+                      value: 'unarchive',
+                      child: Text('Unarchive'),
+                    ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text(
+                      'Delete',
+                      style: TextStyle(color: NeoTheme.negativeValue(context)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (showDragHandle)
+              ReorderableDragStartListener(
+                index: dragIndex ?? 0,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 2),
+                  child: Icon(
+                    LucideIcons.gripVertical,
+                    size: NeoIconSizes.lg,
+                    color: _palette.textMuted,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return NeoGlassCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Column(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: _palette.surface2,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _palette.stroke),
+              ),
+              child: Icon(
+                LucideIcons.wallet,
+                color: _palette.textSecondary,
+                size: NeoIconSizes.xl,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text('No accounts yet', style: NeoTypography.rowTitle(context)),
+            const SizedBox(height: 2),
+            Text(
+              'Create your first account to start tracking balances.',
+              style: NeoTypography.rowSecondary(context),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            ElevatedButton.icon(
+              onPressed: _showCreateSheet,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _palette.accent,
+                foregroundColor: NeoTheme.isLight(context)
+                    ? _palette.textPrimary
+                    : _palette.surface1,
+              ),
+              icon: const Icon(LucideIcons.plus, size: NeoIconSizes.md),
+              label: const Text('Create account'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String error) {
+    return NeoGlassCard(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: NeoTheme.negativeValue(context).withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: NeoTheme.negativeValue(context).withValues(alpha: 0.35),
+          ),
+        ),
+        child: Text(
+          'Failed to load accounts: $error',
+          style: AppTypography.bodySmall.copyWith(
+            color: NeoTheme.negativeValue(context),
           ),
         ),
       ),
@@ -129,302 +541,6 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
     });
   }
 
-  Widget _buildNetWorthCard({
-    required double netWorth,
-    required String currencySymbol,
-  }) {
-    final isNegative = netWorth < 0;
-    final color = isNegative ? AppColors.error : AppColors.savings;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-            ),
-            child: Icon(
-              LucideIcons.pieChart,
-              size: 20,
-              color: color,
-            ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Net Worth',
-                  style: AppTypography.labelLarge,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '$currencySymbol${_formatAmount(netWorth)}',
-                  style: AppTypography.amountMedium.copyWith(color: color),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader({
-    required String title,
-    required String subtitle,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: AppTypography.h3,
-        ),
-        Text(
-          subtitle,
-          style: AppTypography.bodySmall,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildActiveAccountsCard({
-    required List<Account> activeAccounts,
-    required Map<String, double> balances,
-    required String currencySymbol,
-  }) {
-    if (activeAccounts.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        ),
-        child: const Text(
-          'No active accounts yet. Create one to get started.',
-          style: AppTypography.bodyMedium,
-        ),
-      );
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-      ),
-      child: ReorderableListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: activeAccounts.length,
-        buildDefaultDragHandles: false,
-        onReorder: (oldIndex, newIndex) =>
-            _onReorder(activeAccounts, oldIndex, newIndex),
-        itemBuilder: (context, index) {
-          final account = activeAccounts[index];
-          final balance = balances[account.id] ?? 0;
-          return _buildAccountTile(
-            key: ValueKey(account.id),
-            account: account,
-            balance: balance,
-            currencySymbol: currencySymbol,
-            showDragHandle: true,
-            dragIndex: index,
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildArchivedAccountsCard({
-    required List<Account> archivedAccounts,
-    required Map<String, double> balances,
-    required String currencySymbol,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-      ),
-      child: Column(
-        children: archivedAccounts.asMap().entries.map((entry) {
-          final index = entry.key;
-          final account = entry.value;
-          final balance = balances[account.id] ?? 0;
-          final isLast = index == archivedAccounts.length - 1;
-          return Column(
-            children: [
-              _buildAccountTile(
-                account: account,
-                balance: balance,
-                currencySymbol: currencySymbol,
-              ),
-              if (!isLast) const Divider(height: 1, color: AppColors.border),
-            ],
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildAccountTile({
-    Key? key,
-    required Account account,
-    required double balance,
-    required String currencySymbol,
-    bool showDragHandle = false,
-    int? dragIndex,
-  }) {
-    final isNegative = balance < 0;
-    final accent = isNegative ? AppColors.error : AppColors.savings;
-
-    return Material(
-      key: key,
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => _showEditSheet(account),
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.md,
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color:
-                      _accountTypeColor(account.type).withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                ),
-                child: Icon(
-                  _accountTypeIcon(account.type),
-                  size: 18,
-                  color: _accountTypeColor(account.type),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Flexible(
-                          child: Text(
-                            account.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppTypography.labelLarge,
-                          ),
-                        ),
-                        if (!account.includeInNetWorth) ...[
-                          const SizedBox(width: AppSpacing.xs),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.warning.withValues(alpha: 0.15),
-                              borderRadius:
-                                  BorderRadius.circular(AppSizing.radiusFull),
-                            ),
-                            child: const Text(
-                              'Excluded',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: AppColors.warning,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _accountTypeLabel(account.type),
-                      style: AppTypography.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    '$currencySymbol${_formatAmount(balance)}',
-                    style: AppTypography.labelLarge.copyWith(color: accent),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    account.isArchived ? 'Archived' : 'Active',
-                    style: AppTypography.bodySmall,
-                  ),
-                ],
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              PopupMenuButton<String>(
-                color: AppColors.surfaceLight,
-                icon: const Icon(
-                  LucideIcons.moreVertical,
-                  size: 18,
-                  color: AppColors.textSecondary,
-                ),
-                onSelected: (value) => _onMenuSelect(account, value),
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Text('Edit'),
-                  ),
-                  if (!account.isArchived)
-                    const PopupMenuItem(
-                      value: 'archive',
-                      child: Text('Archive'),
-                    ),
-                  if (account.isArchived)
-                    const PopupMenuItem(
-                      value: 'unarchive',
-                      child: Text('Unarchive'),
-                    ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Text('Delete'),
-                  ),
-                ],
-              ),
-              if (showDragHandle)
-                ReorderableDragStartListener(
-                  index: dragIndex ?? 0,
-                  child: const Padding(
-                    padding: EdgeInsets.only(left: 2),
-                    child: Icon(
-                      LucideIcons.gripVertical,
-                      size: 18,
-                      color: AppColors.textMuted,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Future<void> _onReorder(
       List<Account> activeAccounts, int oldIndex, int newIndex) async {
     HapticFeedback.selectionClick();
@@ -445,7 +561,7 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to reorder accounts: $e'),
-          backgroundColor: AppColors.error,
+          backgroundColor: NeoTheme.negativeValue(context),
         ),
       );
     }
@@ -480,7 +596,7 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error: $e'),
-          backgroundColor: AppColors.error,
+          backgroundColor: NeoTheme.negativeValue(context),
         ),
       );
     }
@@ -490,10 +606,16 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: AppColors.surface,
-            title: const Text('Delete Account?'),
-            content: const Text(
+            backgroundColor: _palette.surface1,
+            title: Text(
+              'Delete Account?',
+              style: AppTypography.h3.copyWith(color: _palette.textPrimary),
+            ),
+            content: Text(
               'Delete this account only if it has no transaction or transfer history.',
+              style: AppTypography.bodyMedium.copyWith(
+                color: _palette.textSecondary,
+              ),
             ),
             actions: [
               TextButton(
@@ -502,7 +624,9 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                style: TextButton.styleFrom(
+                  foregroundColor: NeoTheme.negativeValue(context),
+                ),
                 child: const Text('Delete'),
               ),
             ],
@@ -513,9 +637,8 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
 
   void _showSuccess(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _showCreateSheet() {
@@ -533,60 +656,6 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => AccountFormSheet(account: account),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return ListView(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      children: [
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          ),
-          child: Column(
-            children: [
-              const Icon(
-                LucideIcons.wallet,
-                size: 46,
-                color: AppColors.textMuted,
-              ),
-              const SizedBox(height: AppSpacing.md),
-              const Text(
-                'No accounts yet',
-                style: AppTypography.h3,
-              ),
-              const SizedBox(height: AppSpacing.sm),
-              const Text(
-                'Create accounts for cash, debit cards, and credit cards to track balances accurately.',
-                style: AppTypography.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.lg),
-              ElevatedButton.icon(
-                onPressed: _showCreateSheet,
-                icon: const Icon(LucideIcons.plus, size: 18),
-                label: const Text('Create First Account'),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildErrorState(String error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        child: Text(
-          'Failed to load accounts: $error',
-          style: AppTypography.bodyMedium,
-          textAlign: TextAlign.center,
-        ),
-      ),
     );
   }
 
@@ -608,15 +677,15 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
   Color _accountTypeColor(AccountType type) {
     switch (type) {
       case AccountType.cash:
-        return AppColors.savings;
+        return _palette.accent;
       case AccountType.debit:
-        return AppColors.info;
+        return NeoTheme.infoValue(context);
       case AccountType.credit:
-        return AppColors.warning;
+        return NeoTheme.warningValue(context);
       case AccountType.savings:
-        return AppColors.success;
+        return NeoTheme.positiveValue(context);
       case AccountType.other:
-        return AppColors.textSecondary;
+        return _palette.textSecondary;
     }
   }
 
@@ -637,7 +706,9 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
 
   String _formatAmount(double amount) {
     final absolute = amount.abs();
-    final sign = amount < 0 ? '-' : '';
-    return '$sign${absolute.toStringAsFixed(2)}';
+    final formatted = absolute == absolute.roundToDouble()
+        ? NumberFormat('#,##0').format(absolute)
+        : NumberFormat('#,##0.##').format(absolute);
+    return amount < 0 ? '-$formatted' : formatted;
   }
 }

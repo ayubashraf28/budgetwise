@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'dart:math' as math;
 import 'package:intl/intl.dart';
-import 'package:fl_chart/fl_chart.dart';
 
 import '../../config/theme.dart';
 import '../../models/category.dart';
@@ -13,8 +11,10 @@ import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../services/category_service.dart';
 import '../../services/income_service.dart';
+import '../../utils/app_icon_registry.dart';
 import '../../widgets/charts/donut_chart.dart';
 import '../../widgets/charts/stacked_bar_chart.dart';
+import '../../widgets/common/neo_page_components.dart';
 import 'category_form_sheet.dart';
 
 class ExpensesOverviewScreen extends ConsumerStatefulWidget {
@@ -52,11 +52,15 @@ class _ExpensesOverviewScreenState
 
   @override
   Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
     // Budget screen's own month (independent from home / transactions)
     final selectedMonthId = ref.watch(budgetSelectedMonthIdProvider);
     if (selectedMonthId == null) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+      return Scaffold(
+        backgroundColor: palette.appBg,
+        body: const NeoPageBackground(
+          child: Center(child: CircularProgressIndicator()),
+        ),
       );
     }
 
@@ -68,9 +72,8 @@ class _ExpensesOverviewScreenState
     final monthTx =
         ref.watch(transactionsForMonthProvider(selectedMonthId)).valueOrNull ??
             [];
-    final expenseTransactions = monthTx
-        .where((t) => t.type == TransactionType.expense)
-        .toList();
+    final expenseTransactions =
+        monthTx.where((t) => t.type == TransactionType.expense).toList();
 
     // ── Year view providers ──
     final yearlyMonthlyExpenses = ref.watch(yearlyMonthlyExpensesProvider);
@@ -87,158 +90,161 @@ class _ExpensesOverviewScreenState
     }
 
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(categoriesForMonthProvider(selectedMonthId));
-          ref.invalidate(transactionsForMonthProvider(selectedMonthId));
-          if (_isYearView) {
-            ref.invalidate(yearlyMonthlyExpensesProvider);
-            ref.invalidate(yearlyCategorySummariesProvider);
-          }
-        },
-        child: categories.when(
-          data: (categoryList) {
-            // Filter to only categories with actual spending for the chart
-            final totalActual = categoryList.fold<double>(
-                0.0, (sum, c) => sum + c.totalActual);
-            final spendingCategories =
-                categoryList.where((c) => c.totalActual > 0).toList();
+      backgroundColor: palette.appBg,
+      body: NeoPageBackground(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(categoriesForMonthProvider(selectedMonthId));
+            ref.invalidate(transactionsForMonthProvider(selectedMonthId));
+            if (_isYearView) {
+              ref.invalidate(yearlyMonthlyExpensesProvider);
+              ref.invalidate(yearlyCategorySummariesProvider);
+            }
+          },
+          child: categories.when(
+            data: (categoryList) {
+              // Filter to only categories with actual spending for the chart
+              final totalActual = categoryList.fold<double>(
+                  0.0, (sum, c) => sum + c.totalActual);
+              final spendingCategories =
+                  categoryList.where((c) => c.totalActual > 0).toList();
 
-            return CustomScrollView(
-              slivers: [
-                // ── Page Header (unchanged) ──
-                SliverToBoxAdapter(
-                  child: _buildPageHeader(),
-                ),
-
-                // ── Month/Year Toggle (NEW) ──
-                SliverToBoxAdapter(
-                  child: _buildViewToggle(),
-                ),
-
-                // ── MONTH VIEW (unchanged, conditionally shown) ──
-                if (!_isYearView) ...[
-                  // Month Selector
+              return CustomScrollView(
+                slivers: [
+                  // ── Page Header (unchanged) ──
                   SliverToBoxAdapter(
-                    child: _buildMonthSelector(userMonths, selectedMonthId),
+                    child: _buildPageHeader(),
                   ),
-                  // Spacing
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: AppSpacing.lg),
-                  ),
-                  // Donut Chart
-                  SliverToBoxAdapter(
-                    child: _buildDonutChart(
-                      spendingCategories,
-                      totalActual,
-                      currencySymbol,
-                    ),
-                  ),
-                ],
 
-                // ── YEAR VIEW (conditionally shown) ──
-                if (_isYearView) ...[
-                  // Year Selector
+                  // ── Month/Year Toggle (NEW) ──
                   SliverToBoxAdapter(
-                    child: _buildYearSelector(),
+                    child: _buildViewToggle(),
                   ),
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: AppSpacing.lg),
-                  ),
-                  SliverToBoxAdapter(
-                    child: yearlyMonthlyExpenses.when(
-                      data: (monthlyData) =>
-                          _buildBarChart(monthlyData, currencySymbol),
-                      loading: () => const SizedBox(
-                        height: 280,
-                        child: Center(child: CircularProgressIndicator()),
-                      ),
-                      error: (_, __) => const SizedBox.shrink(),
-                    ),
-                  ),
-                ],
 
-                // ── Categories Header ──
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(
-                      AppSpacing.md,
-                      AppSpacing.lg,
-                      AppSpacing.md,
-                      AppSpacing.sm,
-                    ),
-                    child: _isYearView && _selectedBarMonthIndex != null
-                        ? _buildSelectedBarHeader(yearlyMonthlyExpenses)
-                        : const Text(
-                            'Categories',
-                            style: AppTypography.h3,
-                          ),
-                  ),
-                ),
-
-                // ── MONTH VIEW: Category List (unchanged, conditionally shown) ──
-                if (!_isYearView) ...[
-                  if (categoryList.isEmpty)
-                    SliverToBoxAdapter(child: _buildEmptyState())
-                  else
+                  // ── MONTH VIEW (unchanged, conditionally shown) ──
+                  if (!_isYearView) ...[
+                    // Month Selector
                     SliverToBoxAdapter(
-                      child: _buildCategoryList(
-                        categoryList,
+                      child: _buildMonthSelector(userMonths, selectedMonthId),
+                    ),
+                    // Spacing
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: AppSpacing.lg),
+                    ),
+                    // Donut Chart
+                    SliverToBoxAdapter(
+                      child: _buildDonutChart(
+                        spendingCategories,
                         totalActual,
                         currencySymbol,
-                        txCountByCategory,
                       ),
                     ),
-                ],
+                  ],
 
-                // ── YEAR VIEW: Category list ──
-                if (_isYearView) ...[
-                  // When a bar is selected → show that month's categories
-                  if (_selectedBarMonthIndex != null)
+                  // ── YEAR VIEW (conditionally shown) ──
+                  if (_isYearView) ...[
+                    // Year Selector
                     SliverToBoxAdapter(
-                      child: _buildBarMonthCategories(
-                        yearlyMonthlyExpenses,
-                        currencySymbol,
-                      ),
-                    )
-                  // Default → yearly aggregated categories
-                  else
+                      child: _buildYearSelector(),
+                    ),
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: AppSpacing.lg),
+                    ),
                     SliverToBoxAdapter(
-                      child: yearlyCategorySummaries.when(
-                        data: (summaries) {
-                          if (summaries.isEmpty) return _buildEmptyState();
-                          return _buildYearlyCategoryList(
-                            summaries,
-                            totalYearlyExpenses,
-                            currencySymbol,
-                          );
-                        },
-                        loading: () => const Padding(
-                          padding: EdgeInsets.all(AppSpacing.xl),
+                      child: yearlyMonthlyExpenses.when(
+                        data: (monthlyData) =>
+                            _buildBarChart(monthlyData, currencySymbol),
+                        loading: () => const SizedBox(
+                          height: 280,
                           child: Center(child: CircularProgressIndicator()),
                         ),
                         error: (_, __) => const SizedBox.shrink(),
                       ),
                     ),
-                ],
+                  ],
 
-                // ── Add Category Button (unchanged) ──
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    child: _buildAddButton(),
+                  // ── Categories Header ──
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.md,
+                        AppSpacing.lg,
+                        AppSpacing.md,
+                        AppSpacing.sm,
+                      ),
+                      child: _isYearView && _selectedBarMonthIndex != null
+                          ? _buildSelectedBarHeader(yearlyMonthlyExpenses)
+                          : const Text(
+                              'Categories',
+                              style: AppTypography.h3,
+                            ),
+                    ),
                   ),
-                ),
 
-                // ── Bottom Padding (unchanged) ──
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: AppSpacing.xxl),
-                ),
-              ],
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stack) => _buildErrorState(error.toString()),
+                  // ── MONTH VIEW: Category List (unchanged, conditionally shown) ──
+                  if (!_isYearView) ...[
+                    if (categoryList.isEmpty)
+                      SliverToBoxAdapter(child: _buildEmptyState())
+                    else
+                      SliverToBoxAdapter(
+                        child: _buildCategoryList(
+                          categoryList,
+                          totalActual,
+                          currencySymbol,
+                          txCountByCategory,
+                        ),
+                      ),
+                  ],
+
+                  // ── YEAR VIEW: Category list ──
+                  if (_isYearView) ...[
+                    // When a bar is selected → show that month's categories
+                    if (_selectedBarMonthIndex != null)
+                      SliverToBoxAdapter(
+                        child: _buildBarMonthCategories(
+                          yearlyMonthlyExpenses,
+                          currencySymbol,
+                        ),
+                      )
+                    // Default → yearly aggregated categories
+                    else
+                      SliverToBoxAdapter(
+                        child: yearlyCategorySummaries.when(
+                          data: (summaries) {
+                            if (summaries.isEmpty) return _buildEmptyState();
+                            return _buildYearlyCategoryList(
+                              summaries,
+                              totalYearlyExpenses,
+                              currencySymbol,
+                            );
+                          },
+                          loading: () => const Padding(
+                            padding: EdgeInsets.all(AppSpacing.xl),
+                            child: Center(child: CircularProgressIndicator()),
+                          ),
+                          error: (_, __) => const SizedBox.shrink(),
+                        ),
+                      ),
+                  ],
+
+                  // ── Add Category Button (unchanged) ──
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      child: _buildAddButton(),
+                    ),
+                  ),
+
+                  // ── Bottom Padding (unchanged) ──
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: AppSpacing.xxl),
+                  ),
+                ],
+              );
+            },
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, stack) => _buildErrorState(error.toString()),
+          ),
         ),
       ),
     );
@@ -249,26 +255,16 @@ class _ExpensesOverviewScreenState
   // ──────────────────────────────────────────────
 
   Widget _buildPageHeader() {
-    return const SafeArea(
-      bottom: false,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          AppSpacing.md,
-          AppSpacing.lg,
-          AppSpacing.md,
-          AppSpacing.sm,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Budget', style: AppTypography.h2),
-            SizedBox(height: AppSpacing.xs),
-            Text(
-              'View your spending by category',
-              style: AppTypography.bodySmall,
-            ),
-          ],
-        ),
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(
+        NeoLayout.screenPadding,
+        0,
+        NeoLayout.screenPadding,
+        AppSpacing.sm,
+      ),
+      child: NeoPageHeader(
+        title: 'Budget',
+        subtitle: 'View your spending by category',
       ),
     );
   }
@@ -300,8 +296,18 @@ class _ExpensesOverviewScreenState
         if (yearMonths.isEmpty) return const SizedBox.shrink();
 
         final monthAbbreviations = [
-          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec'
         ];
 
         return Padding(
@@ -325,9 +331,10 @@ class _ExpensesOverviewScreenState
                               month.startDate.year == now.year;
 
                       // Get 3-letter abbreviation
-                      final abbr = month.startDate.month <= monthAbbreviations.length
-                          ? monthAbbreviations[month.startDate.month - 1]
-                          : month.name.substring(0, 3);
+                      final abbr =
+                          month.startDate.month <= monthAbbreviations.length
+                              ? monthAbbreviations[month.startDate.month - 1]
+                              : month.name.substring(0, 3);
 
                       return GestureDetector(
                         onTap: () => _switchMonth(month.id),
@@ -340,9 +347,8 @@ class _ExpensesOverviewScreenState
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                color: isActive
-                                    ? Colors.white
-                                    : AppColors.surface,
+                                color:
+                                    isActive ? Colors.white : AppColors.surface,
                                 borderRadius:
                                     BorderRadius.circular(AppSizing.radiusMd),
                                 border: isActive
@@ -461,7 +467,8 @@ class _ExpensesOverviewScreenState
               onTap: isDisabled
                   ? null
                   : () {
-                      ref.read(budgetSelectedYearProvider.notifier).state = year;
+                      ref.read(budgetSelectedYearProvider.notifier).state =
+                          year;
                       setState(() {
                         _selectedCategoryIndex = null;
                         _selectedBarMonthIndex = null;
@@ -477,11 +484,9 @@ class _ExpensesOverviewScreenState
                     ),
                     decoration: BoxDecoration(
                       color: isActive ? Colors.white : AppColors.surface,
-                      borderRadius:
-                          BorderRadius.circular(AppSizing.radiusMd),
-                      border: isActive
-                          ? null
-                          : Border.all(color: AppColors.border),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                      border:
+                          isActive ? null : Border.all(color: AppColors.border),
                     ),
                     child: Text(
                       '$year',
@@ -489,11 +494,9 @@ class _ExpensesOverviewScreenState
                         color: isActive
                             ? AppColors.background
                             : isDisabled
-                                ? AppColors.textMuted
-                                    .withValues(alpha: 0.3)
+                                ? AppColors.textMuted.withValues(alpha: 0.3)
                                 : isFuture
-                                    ? AppColors.textMuted
-                                        .withValues(alpha: 0.5)
+                                    ? AppColors.textMuted.withValues(alpha: 0.5)
                                     : hasData
                                         ? AppColors.textSecondary
                                         : AppColors.textMuted
@@ -584,8 +587,7 @@ class _ExpensesOverviewScreenState
     int? selectedIndex,
   ) {
     // Default: show total
-    if (selectedIndex == null ||
-        selectedIndex >= spendingCategories.length) {
+    if (selectedIndex == null || selectedIndex >= spendingCategories.length) {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -615,9 +617,8 @@ class _ExpensesOverviewScreenState
 
     // Selected category
     final category = spendingCategories[selectedIndex];
-    final percentage = totalActual > 0
-        ? (category.totalActual / totalActual * 100)
-        : 0.0;
+    final percentage =
+        totalActual > 0 ? (category.totalActual / totalActual * 100) : 0.0;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -668,13 +669,12 @@ class _ExpensesOverviewScreenState
     return Column(
       children: categoryList.asMap().entries.map((entry) {
         final category = entry.value;
-        final percentage = totalActual > 0
-            ? (category.totalActual / totalActual * 100)
-            : 0.0;
+        final percentage =
+            totalActual > 0 ? (category.totalActual / totalActual * 100) : 0.0;
         final txCount = txCountByCategory[category.id] ?? 0;
 
         return Padding(
-          padding: EdgeInsets.only(
+          padding: const EdgeInsets.only(
             left: AppSpacing.md,
             right: AppSpacing.md,
             bottom: AppSpacing.sm,
@@ -840,7 +840,8 @@ class _ExpensesOverviewScreenState
                 onTap: () {
                   // Initialize year from current selected month when switching
                   if (!_isYearView) {
-                    final selectedMonthId = ref.read(budgetSelectedMonthIdProvider);
+                    final selectedMonthId =
+                        ref.read(budgetSelectedMonthIdProvider);
                     final months = ref.read(userMonthsProvider).value ?? [];
                     final selectedMonth = months
                         .where((m) => m.id == selectedMonthId)
@@ -936,9 +937,8 @@ class _ExpensesOverviewScreenState
   ) {
     final monthlyData = yearlyMonthlyExpenses.valueOrNull ?? [];
     final idx = _selectedBarMonthIndex ?? 0;
-    final monthName = (idx < monthlyData.length)
-        ? monthlyData[idx].monthName
-        : 'Month';
+    final monthName =
+        (idx < monthlyData.length) ? monthlyData[idx].monthName : 'Month';
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -948,7 +948,7 @@ class _ExpensesOverviewScreenState
         ),
         GestureDetector(
           onTap: () => setState(() => _selectedBarMonthIndex = null),
-          child: Text(
+          child: const Text(
             'Show Year',
             style: TextStyle(
               color: AppColors.savings,
@@ -989,8 +989,7 @@ class _ExpensesOverviewScreenState
         final txList = monthTx.valueOrNull ?? [];
         final txCountByCategory = <String, int>{};
         for (final tx in txList) {
-          if (tx.categoryId != null &&
-              tx.type == TransactionType.expense) {
+          if (tx.categoryId != null && tx.type == TransactionType.expense) {
             txCountByCategory[tx.categoryId!] =
                 (txCountByCategory[tx.categoryId!] ?? 0) + 1;
           }
@@ -1012,10 +1011,8 @@ class _ExpensesOverviewScreenState
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: () =>
-                      context.push('/budget/category/${category.id}'),
-                  borderRadius:
-                      BorderRadius.circular(AppSizing.radiusLg),
+                  onTap: () => context.push('/budget/category/${category.id}'),
+                  borderRadius: BorderRadius.circular(AppSizing.radiusLg),
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,
@@ -1023,8 +1020,7 @@ class _ExpensesOverviewScreenState
                     ),
                     decoration: BoxDecoration(
                       color: AppColors.surface,
-                      borderRadius:
-                          BorderRadius.circular(AppSizing.radiusLg),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusLg),
                       border: Border.all(color: AppColors.border),
                     ),
                     child: Row(
@@ -1048,8 +1044,7 @@ class _ExpensesOverviewScreenState
                         // Name + transaction count
                         Expanded(
                           child: Column(
-                            crossAxisAlignment:
-                                CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 category.name,
@@ -1301,7 +1296,8 @@ class _ExpensesOverviewScreenState
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(LucideIcons.alertCircle, size: 48, color: AppColors.error),
+            const Icon(LucideIcons.alertCircle,
+                size: 48, color: AppColors.error),
             const SizedBox(height: AppSpacing.md),
             const Text('Something went wrong', style: AppTypography.h3),
             const SizedBox(height: AppSpacing.sm),
@@ -1328,29 +1324,7 @@ class _ExpensesOverviewScreenState
   }
 
   IconData _getIcon(String iconName) {
-    final icons = {
-      'home': LucideIcons.home,
-      'utensils': LucideIcons.utensils,
-      'car': LucideIcons.car,
-      'tv': LucideIcons.tv,
-      'shopping-bag': LucideIcons.shoppingBag,
-      'gamepad-2': LucideIcons.gamepad2,
-      'piggy-bank': LucideIcons.piggyBank,
-      'graduation-cap': LucideIcons.graduationCap,
-      'heart': LucideIcons.heart,
-      'wallet': LucideIcons.wallet,
-      'briefcase': LucideIcons.briefcase,
-      'plane': LucideIcons.plane,
-      'gift': LucideIcons.gift,
-      'credit-card': LucideIcons.creditCard,
-      'landmark': LucideIcons.landmark,
-      'baby': LucideIcons.baby,
-      'dumbbell': LucideIcons.dumbbell,
-      'music': LucideIcons.music,
-      'book': LucideIcons.book,
-      'repeat': LucideIcons.repeat,
-    };
-    return icons[iconName] ?? LucideIcons.wallet;
+    return resolveAppIcon(iconName, fallback: LucideIcons.wallet);
   }
 
   void _showAddSheet() {
@@ -1371,4 +1345,3 @@ class _ExpensesOverviewScreenState
     );
   }
 }
-

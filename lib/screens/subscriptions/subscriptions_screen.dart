@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
 import '../../models/account.dart';
 import '../../models/subscription.dart';
 import '../../providers/providers.dart';
+import '../../utils/app_icon_registry.dart';
 import '../../utils/subscription_payment_feedback.dart';
+import '../../widgets/common/neo_page_components.dart';
 import 'subscription_form_sheet.dart';
 
 class SubscriptionsScreen extends ConsumerWidget {
@@ -16,268 +18,285 @@ class SubscriptionsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = NeoTheme.of(context);
     final subscriptionsAsync = ref.watch(subscriptionsProvider);
     final accounts = ref.watch(accountsProvider).value ?? <Account>[];
     final totalCost = ref.watch(totalSubscriptionCostProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
 
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(subscriptionsProvider);
-        },
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            // Custom header
-            SliverToBoxAdapter(
-              child: SafeArea(
-                bottom: false,
+      backgroundColor: palette.appBg,
+      body: NeoPageBackground(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(subscriptionsProvider);
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.lg,
-                    AppSpacing.lg,
-                    AppSpacing.lg,
+                    NeoLayout.screenPadding,
+                    0,
+                    NeoLayout.screenPadding,
                     AppSpacing.sm,
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text('Subscriptions', style: AppTypography.h2),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Manage recurring payments',
-                            style: AppTypography.bodySmall.copyWith(
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
+                  child: _buildHeader(context, ref),
+                ),
+              ),
+              ...subscriptionsAsync.when(
+                data: (subscriptions) {
+                  final active =
+                      subscriptions.where((s) => s.isActive).toList();
+                  final paused =
+                      subscriptions.where((s) => !s.isActive).toList();
+
+                  return <Widget>[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: NeoLayout.screenPadding,
+                        ),
+                        child: _buildSummaryCard(
+                          context,
+                          totalCost,
+                          active.length,
+                          currencySymbol,
+                        ),
                       ),
-                      // Add button
-                      GestureDetector(
-                        onTap: () => _showAddSheet(context, ref),
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: AppColors.savings.withValues(alpha: 0.15),
-                            borderRadius:
-                                BorderRadius.circular(AppSizing.radiusMd),
-                            border: Border.all(
-                              color: AppColors.savings.withValues(alpha: 0.3),
-                            ),
+                    ),
+                    if (active.isNotEmpty) ...[
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            NeoLayout.screenPadding,
+                            NeoLayout.sectionGap,
+                            NeoLayout.screenPadding,
+                            AppSpacing.sm,
                           ),
-                          child: const Icon(
-                            LucideIcons.plus,
-                            size: 18,
-                            color: AppColors.savings,
+                          child: _buildSectionHeading(
+                            context,
+                            title: 'Active',
+                            count: active.length,
+                          ),
+                        ),
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: NeoLayout.screenPadding,
+                        ),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final sub = active[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(
+                                    bottom: AppSpacing.sm),
+                                child: _buildSubscriptionCard(
+                                  context,
+                                  ref,
+                                  sub,
+                                  currencySymbol,
+                                  accounts,
+                                ),
+                              );
+                            },
+                            childCount: active.length,
                           ),
                         ),
                       ),
                     ],
+                    if (paused.isNotEmpty) ...[
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            NeoLayout.screenPadding,
+                            NeoLayout.sectionGap,
+                            NeoLayout.screenPadding,
+                            AppSpacing.sm,
+                          ),
+                          child: _buildSectionHeading(
+                            context,
+                            title: 'Paused',
+                            count: paused.length,
+                          ),
+                        ),
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: NeoLayout.screenPadding,
+                        ),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              final sub = paused[index];
+                              return Padding(
+                                padding: const EdgeInsets.only(
+                                    bottom: AppSpacing.sm),
+                                child: _buildSubscriptionCard(
+                                  context,
+                                  ref,
+                                  sub,
+                                  currencySymbol,
+                                  accounts,
+                                ),
+                              );
+                            },
+                            childCount: paused.length,
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (subscriptions.isEmpty)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            NeoLayout.screenPadding,
+                            NeoLayout.sectionGap,
+                            NeoLayout.screenPadding,
+                            0,
+                          ),
+                          child: _buildEmptyState(context, ref),
+                        ),
+                      ),
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: AppSpacing.xl +
+                            MediaQuery.paddingOf(context).bottom +
+                            NeoLayout.bottomNavSafeBuffer,
+                      ),
+                    ),
+                  ];
+                },
+                loading: () => [
+                  const SliverToBoxAdapter(
+                    child: SizedBox(
+                      height: 360,
+                      child: Center(
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
-
-            // Content
-            ...subscriptionsAsync.when(
-              data: (subscriptions) {
-                final active = subscriptions.where((s) => s.isActive).toList();
-                final paused = subscriptions.where((s) => !s.isActive).toList();
-
-                return <Widget>[
-                  // Summary Card
+                ],
+                error: (error, stack) => [
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: _buildSummaryCard(
-                          totalCost, active.length, currencySymbol),
+                      padding: const EdgeInsets.all(NeoLayout.screenPadding),
+                      child: _buildErrorState(context, error.toString()),
                     ),
                   ),
-
-                  // Active Section
-                  if (active.isNotEmpty) ...[
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.md,
-                          AppSpacing.sm,
-                          AppSpacing.md,
-                          AppSpacing.sm,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Active', style: AppTypography.h3),
-                            Text(
-                              '${active.length} ${active.length == 1 ? 'subscription' : 'subscriptions'}',
-                              style: AppTypography.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SliverPadding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final sub = active[index];
-                            return Padding(
-                              padding:
-                                  const EdgeInsets.only(bottom: AppSpacing.sm),
-                              child: _buildSubscriptionCard(
-                                context,
-                                ref,
-                                sub,
-                                currencySymbol,
-                                accounts,
-                              ),
-                            );
-                          },
-                          childCount: active.length,
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  // Paused Section
-                  if (paused.isNotEmpty) ...[
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.md,
-                          AppSpacing.lg,
-                          AppSpacing.md,
-                          AppSpacing.sm,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('Paused', style: AppTypography.h3),
-                            Text(
-                              '${paused.length} ${paused.length == 1 ? 'subscription' : 'subscriptions'}',
-                              style: AppTypography.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    SliverPadding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                      sliver: SliverList(
-                        delegate: SliverChildBuilderDelegate(
-                          (context, index) {
-                            final sub = paused[index];
-                            return Padding(
-                              padding:
-                                  const EdgeInsets.only(bottom: AppSpacing.sm),
-                              child: _buildSubscriptionCard(
-                                context,
-                                ref,
-                                sub,
-                                currencySymbol,
-                                accounts,
-                              ),
-                            );
-                          },
-                          childCount: paused.length,
-                        ),
-                      ),
-                    ),
-                  ],
-
-                  // Empty State
-                  if (subscriptions.isEmpty)
-                    SliverToBoxAdapter(
-                      child: _buildEmptyState(context, ref),
-                    ),
-
-                  // Bottom padding
-                  const SliverToBoxAdapter(
-                    child: SizedBox(height: AppSpacing.xl),
-                  ),
-                ];
-              },
-              loading: () => [
-                const SliverToBoxAdapter(
-                  child: SizedBox(
-                    height: 400,
-                    child: Center(child: CircularProgressIndicator()),
-                  ),
-                ),
-              ],
-              error: (error, stack) => [
-                SliverToBoxAdapter(
-                  child: _buildErrorState(error.toString()),
-                ),
-              ],
-            ),
-          ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSummaryCard(
-      double totalCost, int activeCount, String currencySymbol) {
-    const color = AppColors.savings;
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Column(
+  Widget _buildHeader(BuildContext context, WidgetRef ref) {
+    return SafeArea(
+      bottom: false,
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Icon + title row
-          Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Subscriptions',
+                  style: NeoTypography.pageTitle(context),
                 ),
-                child: const Icon(LucideIcons.repeat, size: 18, color: color),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              const Text(
-                'Monthly Cost',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: color,
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Recurring payments and due-date tracking',
+                  style: NeoTypography.pageContext(context),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: AppSpacing.md),
-          // Amount
-          Text(
-            '$currencySymbol${totalCost.toStringAsFixed(0)}',
-            style: AppTypography.amountMedium.copyWith(color: color),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            '$activeCount ${activeCount == 1 ? 'active subscription' : 'active subscriptions'}',
-            style: TextStyle(
-              fontSize: 12,
-              color: color.withValues(alpha: 0.7),
+          const SizedBox(width: AppSpacing.sm),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: NeoCircleIconButton(
+              icon: LucideIcons.plus,
+              onPressed: () => _showAddSheet(context, ref),
+              semanticLabel: 'Add subscription',
+              size: 36,
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSummaryCard(
+    BuildContext context,
+    double totalCost,
+    int activeCount,
+    String currencySymbol,
+  ) {
+    final palette = NeoTheme.of(context);
+    final accent = palette.accent;
+
+    return NeoGlassCard(
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: palette.surface2,
+              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+              border: Border.all(color: palette.stroke),
+            ),
+            child: Icon(
+              LucideIcons.repeat,
+              size: NeoIconSizes.lg,
+              color: accent,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Monthly cost',
+                    style: NeoTypography.rowSecondary(context)),
+                const SizedBox(height: 2),
+                Text(
+                  '$currencySymbol${_formatAmount(totalCost)}',
+                  style: NeoTypography.rowAmount(context, accent),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$activeCount ${activeCount == 1 ? 'active subscription' : 'active subscriptions'}',
+                  style: NeoTypography.rowSecondary(context),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeading(
+    BuildContext context, {
+    required String title,
+    required int count,
+  }) {
+    return Row(
+      children: [
+        Text(title, style: NeoTypography.sectionTitle(context)),
+        const Spacer(),
+        Text(
+          '$count ${count == 1 ? 'subscription' : 'subscriptions'}',
+          style: NeoTypography.rowSecondary(context),
+        ),
+      ],
     );
   }
 
@@ -288,6 +307,7 @@ class SubscriptionsScreen extends ConsumerWidget {
     String currencySymbol,
     List<Account> accounts,
   ) {
+    final palette = NeoTheme.of(context);
     final color = sub.colorValue;
     final defaultAccount =
         accounts.where((a) => a.id == sub.defaultAccountId).firstOrNull;
@@ -299,8 +319,8 @@ class SubscriptionsScreen extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: AppSpacing.md),
         decoration: BoxDecoration(
-          color: AppColors.error,
-          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          color: NeoTheme.negativeValue(context),
+          borderRadius: BorderRadius.circular(NeoLayout.cardRadius),
         ),
         child: const Icon(LucideIcons.trash2, color: Colors.white),
       ),
@@ -313,59 +333,46 @@ class SubscriptionsScreen extends ConsumerWidget {
           SnackBar(content: Text('${sub.name} deleted')),
         );
       },
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          border: Border.all(color: AppColors.border),
-        ),
+      child: NeoGlassCard(
         child: Row(
           children: [
-            // Icon
             Container(
-              width: 40,
-              height: 40,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                color: palette.surface2,
+                borderRadius: BorderRadius.circular(11),
+                border: Border.all(color: palette.stroke),
               ),
               child: Icon(
                 _getIcon(sub.icon),
                 color: color,
-                size: 20,
+                size: NeoIconSizes.lg,
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            // Details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     sub.name,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary,
-                    ),
+                    style: NeoTypography.rowTitle(context),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '$currencySymbol${sub.amount.toStringAsFixed(0)} / ${sub.billingCycleLabel.toLowerCase()}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.textSecondary,
-                    ),
+                    '$currencySymbol${_formatAmount(sub.amount)} / ${sub.billingCycleLabel.toLowerCase()}',
+                    style: NeoTypography.rowSecondary(context),
                   ),
-                  const SizedBox(height: 4),
-                  // Due date chip
-                  _buildDueDateChip(sub),
+                  const SizedBox(height: 6),
+                  _buildDueDateChip(context, sub),
                   if (defaultAccount != null) ...[
                     const SizedBox(height: 4),
                     Text(
                       'Pays from ${defaultAccount.name}',
-                      style: AppTypography.bodySmall,
+                      style: NeoTypography.rowSecondary(context),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -373,86 +380,71 @@ class SubscriptionsScreen extends ConsumerWidget {
                 ],
               ),
             ),
-            // Menu
-            PopupMenuButton<String>(
-              icon: const Icon(
-                LucideIcons.moreVertical,
-                size: 18,
-                color: AppColors.textSecondary,
-              ),
-              color: AppColors.surface,
-              onSelected: (value) {
-                switch (value) {
-                  case 'edit':
-                    _showEditSheet(context, ref, sub);
-                    break;
-                  case 'mark_paid':
-                    _markAsPaid(context, ref, sub, accounts);
-                    break;
-                  case 'toggle':
-                    _toggleActive(context, ref, sub);
-                    break;
-                  case 'delete':
-                    _showDeleteConfirmation(context, sub).then((confirmed) {
-                      if (confirmed == true && context.mounted) {
-                        ref
-                            .read(subscriptionNotifierProvider.notifier)
-                            .deleteSubscription(sub.id);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('${sub.name} deleted')),
-                        );
-                      }
-                    });
-                    break;
-                }
-              },
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: 'edit',
-                  child: Row(
-                    children: [
-                      Icon(LucideIcons.pencil, size: 18),
-                      SizedBox(width: 8),
-                      Text('Edit'),
-                    ],
+            const SizedBox(width: AppSpacing.xs),
+            Theme(
+              data: Theme.of(context).copyWith(
+                popupMenuTheme: PopupMenuThemeData(
+                  color: palette.surface2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                    side: BorderSide(color: palette.stroke),
+                  ),
+                  textStyle: AppTypography.bodyMedium.copyWith(
+                    color: palette.textPrimary,
                   ),
                 ),
-                if (sub.isActive)
-                  const PopupMenuItem(
-                    value: 'mark_paid',
-                    child: Row(
-                      children: [
-                        Icon(LucideIcons.check, size: 18),
-                        SizedBox(width: 8),
-                        Text('Mark as Paid'),
-                      ],
+              ),
+              child: PopupMenuButton<String>(
+                icon: Icon(
+                  LucideIcons.moreVertical,
+                  size: NeoIconSizes.lg,
+                  color: palette.textSecondary,
+                ),
+                onSelected: (value) {
+                  switch (value) {
+                    case 'edit':
+                      _showEditSheet(context, ref, sub);
+                      break;
+                    case 'mark_paid':
+                      _markAsPaid(context, ref, sub, accounts);
+                      break;
+                    case 'toggle':
+                      _toggleActive(context, ref, sub);
+                      break;
+                    case 'delete':
+                      _showDeleteConfirmation(context, sub).then((confirmed) {
+                        if (confirmed == true && context.mounted) {
+                          ref
+                              .read(subscriptionNotifierProvider.notifier)
+                              .deleteSubscription(sub.id);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('${sub.name} deleted')),
+                          );
+                        }
+                      });
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                  if (sub.isActive)
+                    const PopupMenuItem(
+                      value: 'mark_paid',
+                      child: Text('Mark as paid'),
+                    ),
+                  PopupMenuItem(
+                    value: 'toggle',
+                    child: Text(sub.isActive ? 'Pause' : 'Resume'),
+                  ),
+                  PopupMenuItem(
+                    value: 'delete',
+                    child: Text(
+                      'Delete',
+                      style: TextStyle(color: NeoTheme.negativeValue(context)),
                     ),
                   ),
-                PopupMenuItem(
-                  value: 'toggle',
-                  child: Row(
-                    children: [
-                      Icon(
-                        sub.isActive ? LucideIcons.pause : LucideIcons.play,
-                        size: 18,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(sub.isActive ? 'Pause' : 'Resume'),
-                    ],
-                  ),
-                ),
-                const PopupMenuItem(
-                  value: 'delete',
-                  child: Row(
-                    children: [
-                      Icon(LucideIcons.trash2,
-                          size: 18, color: AppColors.error),
-                      SizedBox(width: 8),
-                      Text('Delete', style: TextStyle(color: AppColors.error)),
-                    ],
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ),
@@ -460,14 +452,14 @@ class SubscriptionsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildDueDateChip(Subscription sub) {
+  Widget _buildDueDateChip(BuildContext context, Subscription sub) {
     final Color chipColor;
     if (sub.isOverdue) {
-      chipColor = AppColors.error;
-    } else if (sub.isDueToday) {
-      chipColor = AppColors.warning;
+      chipColor = NeoTheme.negativeValue(context);
+    } else if (sub.isDueToday || sub.isDueSoon) {
+      chipColor = NeoTheme.warningValue(context);
     } else {
-      chipColor = AppColors.textMuted;
+      chipColor = NeoTheme.of(context).textSecondary;
     }
 
     final String text;
@@ -480,22 +472,23 @@ class SubscriptionsScreen extends ConsumerWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: chipColor.withValues(alpha: 0.15),
+        color: chipColor.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+        border: Border.all(color: chipColor.withValues(alpha: 0.25)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(LucideIcons.calendar, size: 10, color: chipColor),
-          const SizedBox(width: 3),
+          Icon(LucideIcons.calendar, size: NeoIconSizes.xs, color: chipColor),
+          const SizedBox(width: 4),
           Text(
             text,
-            style: TextStyle(
+            style: AppTypography.bodySmall.copyWith(
               fontSize: 11,
               color: chipColor,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
@@ -504,144 +497,82 @@ class SubscriptionsScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
-    const color = AppColors.savings;
+    final palette = NeoTheme.of(context);
 
-    return Container(
-      margin: const EdgeInsets.all(AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+    return NeoGlassCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Column(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: palette.surface2,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: palette.stroke),
+              ),
+              child: Icon(
+                LucideIcons.repeat,
+                color: palette.textSecondary,
+                size: NeoIconSizes.xl,
+              ),
             ),
-            child: const Icon(LucideIcons.repeat, size: 24, color: color),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          const Text(
-            'No subscriptions yet',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+            const SizedBox(height: AppSpacing.sm),
+            Text('No subscriptions yet',
+                style: NeoTypography.rowTitle(context)),
+            const SizedBox(height: 2),
+            Text(
+              'Add recurring services to track upcoming payments.',
+              style: NeoTypography.rowSecondary(context),
+              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          const Text(
-            'Add your first subscription to track recurring payments',
-            style: TextStyle(
-              fontSize: 13,
-              color: AppColors.textSecondary,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          SizedBox(
-            width: double.infinity,
-            height: 44,
-            child: ElevatedButton.icon(
+            const SizedBox(height: AppSpacing.md),
+            ElevatedButton.icon(
               onPressed: () => _showAddSheet(context, ref),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white.withValues(alpha: 0.12),
-                foregroundColor: color,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                  side: BorderSide(color: color.withValues(alpha: 0.3)),
-                ),
+                backgroundColor: palette.accent,
+                foregroundColor: NeoTheme.isLight(context)
+                    ? palette.textPrimary
+                    : palette.surface1,
               ),
-              icon: const Icon(LucideIcons.plus, size: 18),
-              label: const Text(
-                'Add Subscription',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
+              icon: const Icon(LucideIcons.plus, size: NeoIconSizes.md),
+              label: const Text('Add subscription'),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildErrorState(String error) {
-    return Container(
-      margin: const EdgeInsets.all(AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.error.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-            ),
-            child: const Icon(
-              LucideIcons.alertCircle,
-              size: 24,
-              color: AppColors.error,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          const Text(
-            'Something went wrong',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.error,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            error,
-            style: TextStyle(
-              fontSize: 12,
-              color: AppColors.error.withValues(alpha: 0.7),
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+  Widget _buildErrorState(BuildContext context, String error) {
+    final danger = NeoTheme.negativeValue(context);
+    return NeoGlassCard(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: danger.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: danger.withValues(alpha: 0.35)),
+        ),
+        child: Text(
+          'Failed to load subscriptions: $error',
+          style: AppTypography.bodySmall.copyWith(color: danger),
+        ),
       ),
     );
+  }
+
+  String _formatAmount(double amount) {
+    if (amount == amount.roundToDouble()) {
+      return NumberFormat('#,##0').format(amount);
+    }
+    return NumberFormat('#,##0.##').format(amount);
   }
 
   IconData _getIcon(String iconName) {
-    final icons = {
-      'home': LucideIcons.home,
-      'utensils': LucideIcons.utensils,
-      'car': LucideIcons.car,
-      'tv': LucideIcons.tv,
-      'shopping-bag': LucideIcons.shoppingBag,
-      'gamepad-2': LucideIcons.gamepad2,
-      'piggy-bank': LucideIcons.piggyBank,
-      'graduation-cap': LucideIcons.graduationCap,
-      'heart': LucideIcons.heart,
-      'wallet': LucideIcons.wallet,
-      'briefcase': LucideIcons.briefcase,
-      'plane': LucideIcons.plane,
-      'gift': LucideIcons.gift,
-      'credit-card': LucideIcons.creditCard,
-      'landmark': LucideIcons.landmark,
-      'baby': LucideIcons.baby,
-      'dumbbell': LucideIcons.dumbbell,
-      'music': LucideIcons.music,
-      'book': LucideIcons.book,
-    };
-    return icons[iconName] ?? LucideIcons.creditCard;
+    return resolveAppIcon(iconName, fallback: LucideIcons.creditCard);
   }
 
   void _showAddSheet(BuildContext context, WidgetRef ref) {
@@ -716,7 +647,8 @@ class SubscriptionsScreen extends ConsumerWidget {
                   ? 'Payment already in progress'
                   : 'Error: ${e.toString()}',
             ),
-            backgroundColor: inFlightDuplicate ? null : AppColors.error,
+            backgroundColor:
+                inFlightDuplicate ? null : NeoTheme.negativeValue(context),
           ),
         );
       }
@@ -731,10 +663,11 @@ class SubscriptionsScreen extends ConsumerWidget {
     if (activeAccounts.isEmpty) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content:
-                Text('Create an account before marking a subscription paid'),
-            backgroundColor: AppColors.error,
+          SnackBar(
+            content: const Text(
+              'Create an account before marking a subscription paid',
+            ),
+            backgroundColor: NeoTheme.negativeValue(context),
           ),
         );
       }
@@ -758,74 +691,115 @@ class SubscriptionsScreen extends ConsumerWidget {
 
     return showModalBottomSheet<String>(
       context: context,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(AppSizing.radiusXl),
-        ),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.lg),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: AppColors.border,
-                          borderRadius: BorderRadius.circular(2),
+        final palette = NeoTheme.of(context);
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+              AppSpacing.md,
+            ),
+            child: NeoGlassCard(
+              child: StatefulBuilder(
+                builder: (context, setModalState) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: palette.stroke,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    const Text('Choose Payment Account',
-                        style: AppTypography.h3),
-                    const SizedBox(height: AppSpacing.sm),
-                    const Text(
-                      'This subscription has no default account. Select one for this payment.',
-                      style: AppTypography.bodySmall,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    ...accounts.map(
-                      (account) => RadioListTile<String>(
-                        value: account.id,
-                        groupValue: selectedId,
-                        onChanged: (value) {
-                          if (value == null) return;
-                          setModalState(() => selectedId = value);
+                      const SizedBox(height: AppSpacing.md),
+                      Text(
+                        'Choose payment account',
+                        style: NeoTypography.sectionTitle(context),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        'This subscription has no default account.',
+                        style: NeoTypography.rowSecondary(context),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      ...accounts.map(
+                        (account) {
+                          final isSelected = account.id == selectedId;
+                          return InkWell(
+                            onTap: () =>
+                                setModalState(() => selectedId = account.id),
+                            borderRadius:
+                                BorderRadius.circular(AppSizing.radiusMd),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 8,
+                                horizontal: 2,
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    isSelected
+                                        ? LucideIcons.checkCircle2
+                                        : LucideIcons.circle,
+                                    size: NeoIconSizes.lg,
+                                    color: isSelected
+                                        ? palette.accent
+                                        : palette.textMuted,
+                                  ),
+                                  const SizedBox(width: AppSpacing.sm),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          account.name,
+                                          style:
+                                              AppTypography.bodyLarge.copyWith(
+                                            color: palette.textPrimary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          _accountTypeLabel(account.type),
+                                          style:
+                                              AppTypography.bodySmall.copyWith(
+                                            color: palette.textSecondary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
                         },
-                        activeColor: AppColors.savings,
-                        title: Text(
-                          account.name,
-                          style: AppTypography.bodyLarge,
-                        ),
-                        subtitle: Text(
-                          _accountTypeLabel(account.type),
-                          style: AppTypography.bodySmall,
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      SizedBox(
+                        width: double.infinity,
+                        height: AppSizing.buttonHeightCompact,
+                        child: ElevatedButton(
+                          onPressed: () =>
+                              Navigator.of(context).pop(selectedId),
+                          child: const Text('Use account'),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    SizedBox(
-                      width: double.infinity,
-                      height: AppSizing.buttonHeightCompact,
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.of(context).pop(selectedId),
-                        child: const Text('Use Account'),
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  );
+                },
               ),
-            );
-          },
+            ),
+          ),
         );
       },
     );
@@ -865,7 +839,7 @@ class SubscriptionsScreen extends ConsumerWidget {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
-            backgroundColor: AppColors.error,
+            backgroundColor: NeoTheme.negativeValue(context),
           ),
         );
       }
@@ -874,13 +848,21 @@ class SubscriptionsScreen extends ConsumerWidget {
 
   Future<bool> _showDeleteConfirmation(
       BuildContext context, Subscription sub) async {
+    final palette = NeoTheme.of(context);
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: AppColors.surface,
-            title: const Text('Delete Subscription?'),
+            backgroundColor: palette.surface1,
+            title: Text(
+              'Delete Subscription?',
+              style: AppTypography.h3.copyWith(color: palette.textPrimary),
+            ),
             content: Text(
-                'This will permanently delete "${sub.name}". This action cannot be undone.'),
+              'This will permanently delete "${sub.name}". This action cannot be undone.',
+              style: AppTypography.bodyMedium.copyWith(
+                color: palette.textSecondary,
+              ),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(false),
@@ -888,7 +870,9 @@ class SubscriptionsScreen extends ConsumerWidget {
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                style: TextButton.styleFrom(
+                  foregroundColor: NeoTheme.negativeValue(context),
+                ),
                 child: const Text('Delete'),
               ),
             ],

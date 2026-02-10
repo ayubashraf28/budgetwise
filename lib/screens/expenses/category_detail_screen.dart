@@ -7,7 +7,9 @@ import '../../config/theme.dart';
 import '../../models/category.dart';
 import '../../models/item.dart';
 import '../../providers/providers.dart';
+import '../../utils/app_icon_registry.dart';
 import '../../widgets/budget/budget_widgets.dart';
+import '../../widgets/common/neo_page_components.dart';
 import 'category_form_sheet.dart';
 import 'item_form_sheet.dart';
 
@@ -35,6 +37,7 @@ class CategoryDetailScreen extends ConsumerWidget {
       data: (category) {
         if (category == null) {
           return Scaffold(
+            backgroundColor: NeoTheme.of(context).appBg,
             appBar: AppBar(
               leading: IconButton(
                 icon: const Icon(LucideIcons.arrowLeft),
@@ -49,6 +52,7 @@ class CategoryDetailScreen extends ConsumerWidget {
         return _buildScreen(context, ref, category, currencySymbol);
       },
       loading: () => Scaffold(
+        backgroundColor: NeoTheme.of(context).appBg,
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(LucideIcons.arrowLeft),
@@ -58,6 +62,7 @@ class CategoryDetailScreen extends ConsumerWidget {
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (error, stack) => Scaffold(
+        backgroundColor: NeoTheme.of(context).appBg,
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(LucideIcons.arrowLeft),
@@ -69,7 +74,9 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildYearMode(BuildContext context, WidgetRef ref, String currencySymbol) {
+  Widget _buildYearMode(
+      BuildContext context, WidgetRef ref, String currencySymbol) {
+    final palette = NeoTheme.of(context);
     final yearDataAsync = ref.watch(yearlyCategoryDetailProvider(categoryId));
     final activeMonth = ref.watch(activeMonthProvider);
     final yearLabel = activeMonth.value?.startDate.year.toString() ?? '';
@@ -78,6 +85,7 @@ class CategoryDetailScreen extends ConsumerWidget {
       data: (data) {
         if (data == null) {
           return Scaffold(
+            backgroundColor: NeoTheme.of(context).appBg,
             appBar: AppBar(
               leading: IconButton(
                 icon: const Icon(LucideIcons.arrowLeft),
@@ -91,202 +99,226 @@ class CategoryDetailScreen extends ConsumerWidget {
         final category = data.category;
         final transactions = data.transactions;
         final color = category.colorValue;
+        final accentColor = NeoTheme.accentCardTone(context, color);
 
         return Scaffold(
-          body: CustomScrollView(
-            slivers: [
-              // Header
-              SliverAppBar(
-                leading: IconButton(
-                  icon: const Icon(LucideIcons.arrowLeft),
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-                title: Text('${category.name} — $yearLabel'),
-                floating: true,
-              ),
-              // Summary card
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.md),
-                  child: Container(
-                    padding: const EdgeInsets.all(AppSpacing.lg),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(AppSizing.radiusXl),
-                      border: Border.all(color: color.withValues(alpha: 0.2)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Year Total',
-                          style: TextStyle(
-                            color: color.withValues(alpha: 0.7),
-                            fontSize: 13,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          '$currencySymbol${category.totalActual.toStringAsFixed(0)}',
-                          style: AppTypography.amountMedium.copyWith(color: color),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          '${transactions.length} transactions',
-                          style: TextStyle(
-                            color: color.withValues(alpha: 0.6),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
+          backgroundColor: NeoTheme.of(context).appBg,
+          body: NeoPageBackground(
+            child: CustomScrollView(
+              slivers: [
+                // Header
+                SliverAppBar(
+                  leading: IconButton(
+                    icon: const Icon(LucideIcons.arrowLeft),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
+                  title: Text('${category.name} — $yearLabel'),
+                  floating: true,
+                  backgroundColor: palette.appBg,
                 ),
-              ),
-              // Items
-              if (category.items != null && category.items!.isNotEmpty) ...[
-                const SliverToBoxAdapter(
+                // Summary card
+                SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                      AppSpacing.md, AppSpacing.sm, AppSpacing.md, AppSpacing.xs,
-                    ),
-                    child: Text('Items', style: AppTypography.h3),
-                  ),
-                ),
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final item = category.items![index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.xs,
+                    padding: const EdgeInsets.all(AppSpacing.md),
+                    child: Container(
+                      padding: const EdgeInsets.all(AppSpacing.lg),
+                      decoration: BoxDecoration(
+                        color: NeoTheme.accentCardSurface(context, color),
+                        borderRadius: BorderRadius.circular(AppSizing.radiusXl),
+                        border: Border.all(
+                          color: NeoTheme.accentCardBorder(context, color),
                         ),
-                        child: Container(
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface.withValues(alpha: 0.7),
-                            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-                            border: Border.all(color: AppColors.border.withValues(alpha: 0.5)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Year Total',
+                            style: TextStyle(
+                              color: accentColor.withValues(alpha: 0.82),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  item.name,
-                                  style: const TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ),
-                              Text(
-                                '$currencySymbol${item.actual.toStringAsFixed(0)}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: color,
-                                ),
-                              ),
-                            ],
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            '$currencySymbol${category.totalActual.toStringAsFixed(0)}',
+                            style: AppTypography.amountMedium
+                                .copyWith(color: accentColor),
                           ),
-                        ),
-                      );
-                    },
-                    childCount: category.items!.length,
-                  ),
-                ),
-              ],
-              // Transactions header
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.md, AppSpacing.lg, AppSpacing.md, AppSpacing.xs,
-                  ),
-                  child: Text(
-                    'Transactions (${transactions.length})',
-                    style: AppTypography.h3,
-                  ),
-                ),
-              ),
-              // Transaction list
-              if (transactions.isEmpty)
-                const SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.all(AppSpacing.xl),
-                    child: Center(
-                      child: Text(
-                        'No transactions yet',
-                        style: AppTypography.bodyMedium,
+                          const SizedBox(height: AppSpacing.xs),
+                          Text(
+                            '${transactions.length} transactions',
+                            style: TextStyle(
+                              color: accentColor.withValues(alpha: 0.74),
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
-                )
-              else
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final tx = transactions[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md,
-                          vertical: AppSpacing.xs,
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.all(AppSpacing.md),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-                            border: Border.all(color: AppColors.border),
+                ),
+                // Items
+                if (category.items != null && category.items!.isNotEmpty) ...[
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.md,
+                        AppSpacing.sm,
+                        AppSpacing.md,
+                        AppSpacing.xs,
+                      ),
+                      child: Text(
+                        'Items',
+                        style: NeoTypography.sectionTitle(context),
+                      ),
+                    ),
+                  ),
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final item = category.items![index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: AppSpacing.xs,
                           ),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      tx.displayName,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${tx.date.day}/${tx.date.month}/${tx.date.year}',
-                                      style: AppTypography.bodySmall,
-                                    ),
-                                  ],
-                                ),
+                          child: Container(
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            decoration: BoxDecoration(
+                              color: palette.surface1,
+                              borderRadius:
+                                  BorderRadius.circular(AppSizing.radiusLg),
+                              border: Border.all(
+                                color: palette.stroke.withValues(alpha: 0.7),
                               ),
-                              Text(
-                                tx.formattedAmount(currencySymbol),
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  color: tx.isExpense
-                                      ? AppColors.error
-                                      : AppColors.success,
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    item.name,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: palette.textPrimary,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ],
+                                Text(
+                                  '$currencySymbol${item.actual.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: color,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                    childCount: transactions.length,
+                        );
+                      },
+                      childCount: category.items!.length,
+                    ),
+                  ),
+                ],
+                // Transactions header
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      AppSpacing.lg,
+                      AppSpacing.md,
+                      AppSpacing.xs,
+                    ),
+                    child: Text(
+                      'Transactions (${transactions.length})',
+                      style: NeoTypography.sectionTitle(context),
+                    ),
                   ),
                 ),
-              const SliverToBoxAdapter(
-                child: SizedBox(height: AppSpacing.xxl),
-              ),
-            ],
+                // Transaction list
+                if (transactions.isEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.xl),
+                      child: Center(
+                        child: Text(
+                          'No transactions yet',
+                          style: NeoTypography.rowSecondary(context),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final tx = transactions[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.md,
+                            vertical: AppSpacing.xs,
+                          ),
+                          child: Container(
+                            padding: const EdgeInsets.all(AppSpacing.md),
+                            decoration: BoxDecoration(
+                              color: palette.surface1,
+                              borderRadius:
+                                  BorderRadius.circular(AppSizing.radiusLg),
+                              border: Border.all(color: palette.stroke),
+                            ),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        tx.displayName,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                          color: palette.textPrimary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        '${tx.date.day}/${tx.date.month}/${tx.date.year}',
+                                        style:
+                                            NeoTypography.rowSecondary(context),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                Text(
+                                  tx.formattedAmount(currencySymbol),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    color: tx.isExpense
+                                        ? AppColors.error
+                                        : AppColors.success,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                      childCount: transactions.length,
+                    ),
+                  ),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: AppSpacing.xxl),
+                ),
+              ],
+            ),
           ),
         );
       },
       loading: () => Scaffold(
+        backgroundColor: NeoTheme.of(context).appBg,
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(LucideIcons.arrowLeft),
@@ -296,6 +328,7 @@ class CategoryDetailScreen extends ConsumerWidget {
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (error, _) => Scaffold(
+        backgroundColor: NeoTheme.of(context).appBg,
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(LucideIcons.arrowLeft),
@@ -309,134 +342,146 @@ class CategoryDetailScreen extends ConsumerWidget {
 
   Widget _buildScreen(BuildContext context, WidgetRef ref, Category category,
       String currencySymbol) {
+    final palette = NeoTheme.of(context);
     final items = category.items ?? [];
 
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(categoryByIdProvider(categoryId));
-          ref.invalidate(categoriesProvider);
-        },
-        child: CustomScrollView(
-          slivers: [
-            // App Bar
-            SliverAppBar(
-              pinned: true,
-              leading: IconButton(
-                icon: const Icon(LucideIcons.arrowLeft),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              actions: [
-                PopupMenuButton<String>(
-                  icon: const Icon(LucideIcons.moreVertical),
-                  color: AppColors.surface,
-                  onSelected: (value) {
-                    switch (value) {
-                      case 'edit':
-                        _showEditCategorySheet(context, ref, category);
-                      case 'delete':
-                        _showDeleteCategoryConfirmation(context, ref, category);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(LucideIcons.pencil, size: 18),
-                          SizedBox(width: 8),
-                          Text('Edit Category'),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(LucideIcons.trash2,
-                              size: 18, color: AppColors.error),
-                          SizedBox(width: 8),
-                          Text('Delete Category',
-                              style: TextStyle(color: AppColors.error)),
-                        ],
-                      ),
-                    ),
-                  ],
+      backgroundColor: NeoTheme.of(context).appBg,
+      body: NeoPageBackground(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(categoryByIdProvider(categoryId));
+            ref.invalidate(categoriesProvider);
+          },
+          child: CustomScrollView(
+            slivers: [
+              // App Bar
+              SliverAppBar(
+                pinned: true,
+                leading: IconButton(
+                  icon: const Icon(LucideIcons.arrowLeft),
+                  onPressed: () => Navigator.of(context).pop(),
                 ),
-              ],
-              backgroundColor: AppColors.background,
-            ),
-
-            // Glass Summary Card
-            SliverToBoxAdapter(
-              child: _buildGlassSummaryCard(category, currencySymbol),
-            ),
-
-            // Items Section Title
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.md,
-                  AppSpacing.lg,
-                  AppSpacing.md,
-                  AppSpacing.sm,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Items', style: AppTypography.h3),
-                    Text(
-                      '${items.length} ${items.length == 1 ? 'item' : 'items'}',
-                      style: AppTypography.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Items List
-            if (items.isEmpty)
-              SliverToBoxAdapter(
-                child: _buildEmptyState(context, ref, category),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final item = items[index];
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: _buildItemCard(
-                            context, ref, category, item, currencySymbol),
-                      );
+                actions: [
+                  PopupMenuButton<String>(
+                    icon: const Icon(LucideIcons.moreVertical),
+                    color: palette.surface2,
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'edit':
+                          _showEditCategorySheet(context, ref, category);
+                        case 'delete':
+                          _showDeleteCategoryConfirmation(
+                              context, ref, category);
+                      }
                     },
-                    childCount: items.length,
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(LucideIcons.pencil, size: 18),
+                            SizedBox(width: 8),
+                            Text('Edit Category'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(LucideIcons.trash2,
+                                size: 18, color: AppColors.error),
+                            SizedBox(width: 8),
+                            Text('Delete Category',
+                                style: TextStyle(color: AppColors.error)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                backgroundColor: palette.appBg,
+              ),
+
+              // Glass Summary Card
+              SliverToBoxAdapter(
+                child:
+                    _buildGlassSummaryCard(context, category, currencySymbol),
+              ),
+
+              // Items Section Title
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    AppSpacing.lg,
+                    AppSpacing.md,
+                    AppSpacing.sm,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Items',
+                        style: NeoTypography.sectionTitle(context),
+                      ),
+                      Text(
+                        '${items.length} ${items.length == 1 ? 'item' : 'items'}',
+                        style: NeoTypography.rowSecondary(context),
+                      ),
+                    ],
                   ),
                 ),
               ),
 
-            // Add Button
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: _buildAddButton(context, ref, category),
-              ),
-            ),
+              // Items List
+              if (items.isEmpty)
+                SliverToBoxAdapter(
+                  child: _buildEmptyState(context, ref, category),
+                )
+              else
+                SliverPadding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final item = items[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                          child: _buildItemCard(
+                              context, ref, category, item, currencySymbol),
+                        );
+                      },
+                      childCount: items.length,
+                    ),
+                  ),
+                ),
 
-            // Bottom padding
-            const SliverToBoxAdapter(
-              child: SizedBox(height: AppSpacing.xl),
-            ),
-          ],
+              // Add Button
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: _buildAddButton(context, ref, category),
+                ),
+              ),
+
+              // Bottom padding
+              const SliverToBoxAdapter(
+                child: SizedBox(height: AppSpacing.xl),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildGlassSummaryCard(Category category, String currencySymbol) {
+  Widget _buildGlassSummaryCard(
+      BuildContext context, Category category, String currencySymbol) {
     final color = category.colorValue;
+    final accentColor = NeoTheme.accentCardTone(context, color);
     final isOverBudget = category.isOverBudget;
 
     return Padding(
@@ -447,9 +492,9 @@ class CategoryDetailScreen extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.15),
+          color: NeoTheme.accentCardSurface(context, color),
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          border: Border.all(color: NeoTheme.accentCardBorder(context, color)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,13 +506,13 @@ class CategoryDetailScreen extends ConsumerWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.2),
+                    color: accentColor.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                   ),
                   child: Icon(
                     _getIcon(category.icon),
                     size: 18,
-                    color: color,
+                    color: accentColor,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -477,7 +522,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: color,
+                      color: accentColor,
                     ),
                   ),
                 ),
@@ -491,13 +536,14 @@ class CategoryDetailScreen extends ConsumerWidget {
               children: [
                 Text(
                   '$currencySymbol${category.totalActual.toStringAsFixed(0)}',
-                  style: AppTypography.amountMedium.copyWith(color: color),
+                  style:
+                      AppTypography.amountMedium.copyWith(color: accentColor),
                 ),
                 if (category.isBudgeted)
                   Text(
                     ' / $currencySymbol${category.totalProjected.toStringAsFixed(0)}',
                     style: TextStyle(
-                      color: color.withValues(alpha: 0.6),
+                      color: accentColor.withValues(alpha: 0.7),
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -506,7 +552,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                   Text(
                     ' spent',
                     style: TextStyle(
-                      color: color.withValues(alpha: 0.6),
+                      color: accentColor.withValues(alpha: 0.7),
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -519,8 +565,8 @@ class CategoryDetailScreen extends ConsumerWidget {
               BudgetProgressBar(
                 projected: category.totalProjected,
                 actual: category.totalActual,
-                color: color,
-                backgroundColor: color.withValues(alpha: 0.3),
+                color: accentColor,
+                backgroundColor: accentColor.withValues(alpha: 0.28),
               ),
               const SizedBox(height: AppSpacing.xs),
               // Status text
@@ -532,7 +578,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                   fontSize: 12,
                   color: isOverBudget
                       ? AppColors.error
-                      : color.withValues(alpha: 0.7),
+                      : accentColor.withValues(alpha: 0.78),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -550,6 +596,7 @@ class CategoryDetailScreen extends ConsumerWidget {
     Item item,
     String currencySymbol,
   ) {
+    final palette = NeoTheme.of(context);
     final color = category.colorValue;
 
     return Dismissible(
@@ -585,12 +632,12 @@ class CategoryDetailScreen extends ConsumerWidget {
           decoration: BoxDecoration(
             color: (item.isOverBudget)
                 ? AppColors.error.withValues(alpha: 0.08)
-                : AppColors.surface.withValues(alpha: 0.7),
+                : palette.surface1,
             borderRadius: BorderRadius.circular(AppSizing.radiusLg),
             border: Border.all(
               color: (item.isOverBudget)
                   ? AppColors.error.withValues(alpha: 0.2)
-                  : AppColors.border.withValues(alpha: 0.5),
+                  : palette.stroke.withValues(alpha: 0.7),
             ),
             boxShadow: [
               BoxShadow(
@@ -627,15 +674,15 @@ class CategoryDetailScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             item.name,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
+                              color: palette.textPrimary,
                               letterSpacing: -0.2,
                             ),
                           ),
                         ),
-                        _buildItemStatusBadge(item, currencySymbol),
+                        _buildItemStatusBadge(context, item, currencySymbol),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -656,22 +703,22 @@ class CategoryDetailScreen extends ConsumerWidget {
                           const SizedBox(width: 4),
                           Text(
                             '/ $currencySymbol${item.projected.toStringAsFixed(0)}',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.textSecondary,
+                              color: palette.textSecondary,
                               letterSpacing: -0.2,
                             ),
                           ),
                         ],
                         if (!item.isBudgeted && category.isBudgeted) ...[
                           const SizedBox(width: 4),
-                          const Text(
+                          Text(
                             'spending only',
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.textMuted,
+                              color: palette.textMuted,
                             ),
                           ),
                         ],
@@ -693,7 +740,7 @@ class CategoryDetailScreen extends ConsumerWidget {
               Icon(
                 LucideIcons.chevronRight,
                 size: 18,
-                color: AppColors.textMuted.withValues(alpha: 0.4),
+                color: palette.textMuted.withValues(alpha: 0.4),
               ),
             ],
           ),
@@ -702,13 +749,17 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildItemStatusBadge(Item item, String currencySymbol) {
+  Widget _buildItemStatusBadge(
+      BuildContext context, Item item, String currencySymbol) {
+    final palette = NeoTheme.of(context);
     String label;
     Color color;
 
     if (!item.isBudgeted || item.projected <= 0) {
-      label = item.actual > 0 ? '${item.actual.toStringAsFixed(0)} spent' : 'No spending';
-      color = AppColors.textMuted;
+      label = item.actual > 0
+          ? '${item.actual.toStringAsFixed(0)} spent'
+          : 'No spending';
+      color = palette.textMuted;
     } else if (item.isOverBudget) {
       label =
           '+$currencySymbol${(item.actual - item.projected).toStringAsFixed(0)}';
@@ -718,7 +769,7 @@ class CategoryDetailScreen extends ConsumerWidget {
       color = AppColors.success;
     } else if (item.actual == 0) {
       label = 'Pending';
-      color = AppColors.textMuted;
+      color = palette.textMuted;
     } else {
       label = 'Under budget';
       color = AppColors.success;
@@ -748,14 +799,15 @@ class CategoryDetailScreen extends ConsumerWidget {
 
   Widget _buildAddButton(
       BuildContext context, WidgetRef ref, Category category) {
+    final palette = NeoTheme.of(context);
     final color = category.colorValue;
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.7),
+        color: palette.surface1,
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         border: Border.all(
-          color: AppColors.border.withValues(alpha: 0.5),
+          color: palette.stroke.withValues(alpha: 0.7),
         ),
         boxShadow: [
           BoxShadow(
@@ -811,16 +863,17 @@ class CategoryDetailScreen extends ConsumerWidget {
 
   Widget _buildEmptyState(
       BuildContext context, WidgetRef ref, Category category) {
+    final palette = NeoTheme.of(context);
     final color = category.colorValue;
 
     return Container(
       margin: const EdgeInsets.all(AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.xl),
       decoration: BoxDecoration(
-        color: AppColors.surface.withValues(alpha: 0.7),
+        color: palette.surface1,
         borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         border: Border.all(
-          color: AppColors.border.withValues(alpha: 0.5),
+          color: palette.stroke.withValues(alpha: 0.7),
         ),
         boxShadow: [
           BoxShadow(
@@ -847,21 +900,21 @@ class CategoryDetailScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.md),
-          const Text(
+          Text(
             'No items yet',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
+              color: palette.textPrimary,
               letterSpacing: -0.3,
             ),
           ),
           const SizedBox(height: AppSpacing.xs),
-          const Text(
+          Text(
             'Add budget items to track your spending in this category',
             style: TextStyle(
               fontSize: 13,
-              color: AppColors.textSecondary,
+              color: palette.textSecondary,
               height: 1.4,
             ),
             textAlign: TextAlign.center,
@@ -869,10 +922,10 @@ class CategoryDetailScreen extends ConsumerWidget {
           const SizedBox(height: AppSpacing.lg),
           Container(
             decoration: BoxDecoration(
-              color: AppColors.surface.withValues(alpha: 0.7),
+              color: palette.surface1,
               borderRadius: BorderRadius.circular(AppSizing.radiusLg),
               border: Border.all(
-                color: AppColors.border.withValues(alpha: 0.5),
+                color: palette.stroke.withValues(alpha: 0.7),
               ),
               boxShadow: [
                 BoxShadow(
@@ -900,7 +953,8 @@ class CategoryDetailScreen extends ConsumerWidget {
                         height: 20,
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                          borderRadius:
+                              BorderRadius.circular(AppSizing.radiusSm),
                         ),
                         child: Icon(
                           LucideIcons.plus,
@@ -948,7 +1002,7 @@ class CategoryDetailScreen extends ConsumerWidget {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: AppColors.surface,
+            backgroundColor: NeoTheme.of(context).surface1,
             title: const Text('Delete Item?'),
             content: Text(
               'This will delete "${item.name}" and all its transactions. This action cannot be undone.',
@@ -987,7 +1041,7 @@ class CategoryDetailScreen extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: NeoTheme.of(context).surface1,
         title: const Text('Delete Category?'),
         content: Text(
           'This will permanently delete "${category.name}" and all its items and transactions.',
@@ -1020,28 +1074,7 @@ class CategoryDetailScreen extends ConsumerWidget {
   }
 
   IconData _getIcon(String iconName) {
-    final icons = {
-      'home': LucideIcons.home,
-      'utensils': LucideIcons.utensils,
-      'car': LucideIcons.car,
-      'tv': LucideIcons.tv,
-      'shopping-bag': LucideIcons.shoppingBag,
-      'gamepad-2': LucideIcons.gamepad2,
-      'piggy-bank': LucideIcons.piggyBank,
-      'graduation-cap': LucideIcons.graduationCap,
-      'heart': LucideIcons.heart,
-      'wallet': LucideIcons.wallet,
-      'briefcase': LucideIcons.briefcase,
-      'plane': LucideIcons.plane,
-      'gift': LucideIcons.gift,
-      'credit-card': LucideIcons.creditCard,
-      'landmark': LucideIcons.landmark,
-      'baby': LucideIcons.baby,
-      'dumbbell': LucideIcons.dumbbell,
-      'music': LucideIcons.music,
-      'book': LucideIcons.book,
-    };
-    return icons[iconName] ?? LucideIcons.wallet;
+    return resolveAppIcon(iconName, fallback: LucideIcons.wallet);
   }
 
   IconData _getItemIcon(String itemName) {
@@ -1060,7 +1093,9 @@ class CategoryDetailScreen extends ConsumerWidget {
     if (name.contains('water')) {
       return LucideIcons.droplet;
     }
-    if (name.contains('internet') || name.contains('wifi') || name.contains('broadband')) {
+    if (name.contains('internet') ||
+        name.contains('wifi') ||
+        name.contains('broadband')) {
       return LucideIcons.wifi;
     }
     if (name.contains('council') || name.contains('tax')) {
@@ -1074,27 +1109,40 @@ class CategoryDetailScreen extends ConsumerWidget {
     }
 
     // Food & Dining
-    if (name.contains('grocery') || name.contains('groceries') || name.contains('food')) {
+    if (name.contains('grocery') ||
+        name.contains('groceries') ||
+        name.contains('food')) {
       return LucideIcons.shoppingCart;
     }
-    if (name.contains('dining') || name.contains('restaurant') || name.contains('eat out')) {
+    if (name.contains('dining') ||
+        name.contains('restaurant') ||
+        name.contains('eat out')) {
       return LucideIcons.utensilsCrossed;
     }
     if (name.contains('coffee') || name.contains('cafe')) {
       return LucideIcons.coffee;
     }
-    if (name.contains('takeaway') || name.contains('takeout') || name.contains('delivery')) {
+    if (name.contains('takeaway') ||
+        name.contains('takeout') ||
+        name.contains('delivery')) {
       return LucideIcons.package;
     }
 
     // Transport
-    if (name.contains('fuel') || name.contains('petrol') || name.contains('gasoline')) {
+    if (name.contains('fuel') ||
+        name.contains('petrol') ||
+        name.contains('gasoline')) {
       return LucideIcons.fuel;
     }
-    if (name.contains('public transport') || name.contains('bus') || name.contains('train') || name.contains('metro')) {
+    if (name.contains('public transport') ||
+        name.contains('bus') ||
+        name.contains('train') ||
+        name.contains('metro')) {
       return LucideIcons.bus;
     }
-    if (name.contains('uber') || name.contains('taxi') || name.contains('cab')) {
+    if (name.contains('uber') ||
+        name.contains('taxi') ||
+        name.contains('cab')) {
       return LucideIcons.car;
     }
     if (name.contains('parking')) {
@@ -1102,13 +1150,19 @@ class CategoryDetailScreen extends ConsumerWidget {
     }
 
     // Subscriptions & Services
-    if (name.contains('netflix') || name.contains('streaming') || name.contains('video')) {
+    if (name.contains('netflix') ||
+        name.contains('streaming') ||
+        name.contains('video')) {
       return LucideIcons.tv;
     }
-    if (name.contains('spotify') || name.contains('music') || name.contains('audio')) {
+    if (name.contains('spotify') ||
+        name.contains('music') ||
+        name.contains('audio')) {
       return LucideIcons.music;
     }
-    if (name.contains('gym') || name.contains('fitness') || name.contains('workout')) {
+    if (name.contains('gym') ||
+        name.contains('fitness') ||
+        name.contains('workout')) {
       return LucideIcons.dumbbell;
     }
     if (name.contains('phone') || name.contains('mobile')) {
@@ -1119,13 +1173,19 @@ class CategoryDetailScreen extends ConsumerWidget {
     }
 
     // Personal & Shopping
-    if (name.contains('clothing') || name.contains('clothes') || name.contains('apparel')) {
+    if (name.contains('clothing') ||
+        name.contains('clothes') ||
+        name.contains('apparel')) {
       return LucideIcons.shirt;
     }
-    if (name.contains('haircut') || name.contains('hair') || name.contains('salon')) {
+    if (name.contains('haircut') ||
+        name.contains('hair') ||
+        name.contains('salon')) {
       return LucideIcons.scissors;
     }
-    if (name.contains('health') || name.contains('medicine') || name.contains('medical')) {
+    if (name.contains('health') ||
+        name.contains('medicine') ||
+        name.contains('medical')) {
       return LucideIcons.heartPulse;
     }
     if (name.contains('personal care') || name.contains('hygiene')) {
@@ -1136,10 +1196,14 @@ class CategoryDetailScreen extends ConsumerWidget {
     if (name.contains('game') || name.contains('gaming')) {
       return LucideIcons.gamepad2;
     }
-    if (name.contains('movie') || name.contains('cinema') || name.contains('theater')) {
+    if (name.contains('movie') ||
+        name.contains('cinema') ||
+        name.contains('theater')) {
       return LucideIcons.film;
     }
-    if (name.contains('event') || name.contains('concert') || name.contains('show')) {
+    if (name.contains('event') ||
+        name.contains('concert') ||
+        name.contains('show')) {
       return LucideIcons.ticket;
     }
     if (name.contains('hobby') || name.contains('hobbies')) {
@@ -1150,18 +1214,26 @@ class CategoryDetailScreen extends ConsumerWidget {
     if (name.contains('saving') || name.contains('emergency fund')) {
       return LucideIcons.piggyBank;
     }
-    if (name.contains('investment') || name.contains('stock') || name.contains('crypto')) {
+    if (name.contains('investment') ||
+        name.contains('stock') ||
+        name.contains('crypto')) {
       return LucideIcons.trendingUp;
     }
-    if (name.contains('holiday') || name.contains('vacation') || name.contains('travel')) {
+    if (name.contains('holiday') ||
+        name.contains('vacation') ||
+        name.contains('travel')) {
       return LucideIcons.plane;
     }
 
     // Education
-    if (name.contains('education') || name.contains('school') || name.contains('tuition')) {
+    if (name.contains('education') ||
+        name.contains('school') ||
+        name.contains('tuition')) {
       return LucideIcons.graduationCap;
     }
-    if (name.contains('book') || name.contains('course') || name.contains('learning')) {
+    if (name.contains('book') ||
+        name.contains('course') ||
+        name.contains('learning')) {
       return LucideIcons.bookOpen;
     }
 
@@ -1172,7 +1244,9 @@ class CategoryDetailScreen extends ConsumerWidget {
     if (name.contains('bill') || name.contains('payment')) {
       return LucideIcons.fileText;
     }
-    if (name.contains('bank') || name.contains('fee') || name.contains('charge')) {
+    if (name.contains('bank') ||
+        name.contains('fee') ||
+        name.contains('charge')) {
       return LucideIcons.landmark;
     }
     if (name.contains('gift') || name.contains('present')) {

@@ -3,6 +3,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
 import '../../models/category.dart';
+import '../../utils/app_icon_registry.dart';
 import 'progress_bar.dart';
 import 'difference_indicator.dart';
 
@@ -138,27 +139,6 @@ class CategoryListItem extends StatelessWidget {
   }
 
   IconData _getIcon(String iconName) {
-    final icons = {
-      'home': LucideIcons.home,
-      'utensils': LucideIcons.utensils,
-      'car': LucideIcons.car,
-      'tv': LucideIcons.tv,
-      'shopping-bag': LucideIcons.shoppingBag,
-      'gamepad-2': LucideIcons.gamepad2,
-      'piggy-bank': LucideIcons.piggyBank,
-      'graduation-cap': LucideIcons.graduationCap,
-      'heart': LucideIcons.heart,
-      'wallet': LucideIcons.wallet,
-      'briefcase': LucideIcons.briefcase,
-      'plane': LucideIcons.plane,
-      'gift': LucideIcons.gift,
-      'credit-card': LucideIcons.creditCard,
-      'landmark': LucideIcons.landmark,
-      'baby': LucideIcons.baby,
-      'dumbbell': LucideIcons.dumbbell,
-      'music': LucideIcons.music,
-      'book': LucideIcons.book,
-    };
-    return icons[iconName] ?? LucideIcons.wallet;
+    return resolveAppIcon(iconName, fallback: LucideIcons.wallet);
   }
 }

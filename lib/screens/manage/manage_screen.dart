@@ -8,6 +8,7 @@ import '../../config/theme.dart';
 import '../../models/category.dart';
 import '../../models/subscription.dart';
 import '../../providers/providers.dart';
+import '../../utils/app_icon_registry.dart';
 import '../../widgets/common/neo_page_components.dart';
 import '../expenses/category_form_sheet.dart';
 import '../subscriptions/subscription_form_sheet.dart';
@@ -421,55 +422,11 @@ class _ManageScreenState extends ConsumerState<ManageScreen> {
   }
 
   IconData _categoryIcon(String iconName) {
-    final icons = <String, IconData>{
-      'home': LucideIcons.home,
-      'utensils': LucideIcons.utensils,
-      'car': LucideIcons.car,
-      'tv': LucideIcons.tv,
-      'shopping-bag': LucideIcons.shoppingBag,
-      'gamepad-2': LucideIcons.gamepad2,
-      'piggy-bank': LucideIcons.piggyBank,
-      'graduation-cap': LucideIcons.graduationCap,
-      'heart': LucideIcons.heart,
-      'wallet': LucideIcons.wallet,
-      'briefcase': LucideIcons.briefcase,
-      'plane': LucideIcons.plane,
-      'gift': LucideIcons.gift,
-      'credit-card': LucideIcons.creditCard,
-      'landmark': LucideIcons.landmark,
-      'baby': LucideIcons.baby,
-      'dumbbell': LucideIcons.dumbbell,
-      'music': LucideIcons.music,
-      'book': LucideIcons.book,
-      'repeat': LucideIcons.repeat,
-    };
-    return icons[iconName] ?? LucideIcons.wallet;
+    return resolveAppIcon(iconName, fallback: LucideIcons.wallet);
   }
 
   IconData _subscriptionIcon(String iconName) {
-    final icons = <String, IconData>{
-      'home': LucideIcons.home,
-      'utensils': LucideIcons.utensils,
-      'car': LucideIcons.car,
-      'tv': LucideIcons.tv,
-      'shopping-bag': LucideIcons.shoppingBag,
-      'gamepad-2': LucideIcons.gamepad2,
-      'piggy-bank': LucideIcons.piggyBank,
-      'graduation-cap': LucideIcons.graduationCap,
-      'heart': LucideIcons.heart,
-      'wallet': LucideIcons.wallet,
-      'briefcase': LucideIcons.briefcase,
-      'plane': LucideIcons.plane,
-      'gift': LucideIcons.gift,
-      'credit-card': LucideIcons.creditCard,
-      'landmark': LucideIcons.landmark,
-      'baby': LucideIcons.baby,
-      'dumbbell': LucideIcons.dumbbell,
-      'music': LucideIcons.music,
-      'book': LucideIcons.book,
-      'repeat': LucideIcons.repeat,
-    };
-    return icons[iconName] ?? LucideIcons.creditCard;
+    return resolveAppIcon(iconName, fallback: LucideIcons.creditCard);
   }
 
   Future<void> _showAddSubscriptionSheet() async {

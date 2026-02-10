@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
 import '../../models/income_source.dart';
 import '../../providers/providers.dart';
 import '../../widgets/budget/budget_widgets.dart';
+import '../../widgets/common/neo_page_components.dart';
 import 'income_form_sheet.dart';
 
 class IncomeScreen extends ConsumerWidget {
@@ -13,147 +15,209 @@ class IncomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = NeoTheme.of(context);
     final incomeSources = ref.watch(incomeSourcesProvider);
     final totalProjected = ref.watch(totalProjectedIncomeProvider);
     final totalActual = ref.watch(totalActualIncomeProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Income'),
-        leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(incomeSourcesProvider);
-        },
-        child: CustomScrollView(
-          slivers: [
-            // Summary Card
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: _buildSummaryCard(totalProjected, totalActual, currencySymbol),
-              ),
-            ),
-
-            // Section Title
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  AppSpacing.md,
-                  AppSpacing.sm,
-                  AppSpacing.md,
-                  AppSpacing.sm,
-                ),
-                child: Text(
-                  'Income Sources',
-                  style: AppTypography.h3,
+      backgroundColor: palette.appBg,
+      body: NeoPageBackground(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(incomeSourcesProvider);
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    NeoLayout.screenPadding,
+                    0,
+                    NeoLayout.screenPadding,
+                    AppSpacing.sm,
+                  ),
+                  child: _buildHeader(context, ref),
                 ),
               ),
-            ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: NeoLayout.screenPadding,
+                  ),
+                  child: _buildSummaryCard(
+                      context, totalProjected, totalActual, currencySymbol),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    NeoLayout.screenPadding,
+                    NeoLayout.sectionGap,
+                    NeoLayout.screenPadding,
+                    AppSpacing.sm,
+                  ),
+                  child: Text(
+                    'Income Sources',
+                    style: NeoTypography.sectionTitle(context),
+                  ),
+                ),
+              ),
+              incomeSources.when(
+                data: (sources) {
+                  if (sources.isEmpty) {
+                    return SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: NeoLayout.screenPadding,
+                        ),
+                        child: _buildEmptyState(context, ref),
+                      ),
+                    );
+                  }
 
-            // Income Sources List
-            incomeSources.when(
-              data: (sources) {
-                if (sources.isEmpty) {
-                  return SliverToBoxAdapter(
-                    child: _buildEmptyState(context, ref),
+                  return SliverPadding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: NeoLayout.screenPadding,
+                    ),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final source = sources[index];
+                          return Padding(
+                            padding:
+                                const EdgeInsets.only(bottom: AppSpacing.sm),
+                            child: _buildIncomeSourceItem(
+                              context,
+                              ref,
+                              source,
+                              currencySymbol,
+                            ),
+                          );
+                        },
+                        childCount: sources.length,
+                      ),
+                    ),
                   );
-                }
-                return SliverPadding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final source = sources[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                          child: _buildIncomeSourceItem(context, ref, source, currencySymbol),
-                        );
-                      },
-                      childCount: sources.length,
+                },
+                loading: () => const SliverToBoxAdapter(
+                  child: SizedBox(
+                    height: 280,
+                    child: Center(
+                      child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   ),
-                );
-              },
-              loading: () => const SliverToBoxAdapter(
-                child: Center(
+                ),
+                error: (error, stack) => SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.all(AppSpacing.xl),
-                    child: CircularProgressIndicator(),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: NeoLayout.screenPadding,
+                    ),
+                    child: _buildErrorState(context, error.toString()),
                   ),
                 ),
               ),
-              error: (error, stack) => SliverToBoxAdapter(
-                child: _buildErrorState(error.toString()),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: AppSpacing.xl +
+                      MediaQuery.paddingOf(context).bottom +
+                      NeoLayout.bottomNavSafeBuffer,
+                ),
               ),
-            ),
-
-            // Add Button
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.md),
-                child: _buildAddButton(context, ref),
-              ),
-            ),
-
-            // Bottom padding
-            const SliverToBoxAdapter(
-              child: SizedBox(height: AppSpacing.xl),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildSummaryCard(double totalProjected, double totalActual, String currencySymbol) {
-    final difference = totalActual - totalProjected;
-    final isAhead = difference >= 0;
-
-    return Container(
-      padding: AppSpacing.cardPadding,
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+  Widget _buildHeader(BuildContext context, WidgetRef ref) {
+    return SafeArea(
+      bottom: false,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Income', style: NeoTypography.pageTitle(context)),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Track projected and actual income sources',
+                  style: NeoTypography.pageContext(context),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: NeoCircleIconButton(
+              icon: LucideIcons.plus,
+              onPressed: () => _showAddSheet(context, ref),
+              semanticLabel: 'Add income source',
+              size: 36,
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSummaryCard(
+    BuildContext context,
+    double totalProjected,
+    double totalActual,
+    String currencySymbol,
+  ) {
+    final difference = totalActual - totalProjected;
+    final isAhead = difference >= 0;
+    final deltaColor = isAhead
+        ? NeoTheme.positiveValue(context)
+        : NeoTheme.negativeValue(context);
+
+    Widget summaryRow(String label, double amount) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: NeoTypography.rowSecondary(context)),
+          Text(
+            '$currencySymbol${_formatAmount(amount)}',
+            style: NeoTypography.rowAmount(
+                context, NeoTheme.of(context).textPrimary),
+          ),
+        ],
+      );
+    }
+
+    return NeoGlassCard(
       child: Column(
         children: [
-          _buildSummaryRow('Total Projected', totalProjected, currencySymbol),
+          summaryRow('Total projected', totalProjected),
           const SizedBox(height: AppSpacing.sm),
-          _buildSummaryRow('Total Actual', totalActual, currencySymbol),
-          const Divider(height: AppSpacing.lg, color: AppColors.border),
+          summaryRow('Total actual', totalActual),
+          Divider(
+            height: AppSpacing.lg,
+            color: NeoTheme.of(context).stroke.withValues(alpha: 0.85),
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Difference',
-                style: AppTypography.labelLarge,
-              ),
+              Text('Difference', style: NeoTypography.cardTitle(context)),
               Row(
                 children: [
                   Icon(
                     isAhead ? LucideIcons.trendingUp : LucideIcons.trendingDown,
-                    size: 16,
-                    color: isAhead ? AppColors.success : AppColors.error,
+                    size: NeoIconSizes.md,
+                    color: deltaColor,
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Text(
-                    '${isAhead ? '+' : ''}$currencySymbol${difference.toStringAsFixed(0)}',
-                    style: AppTypography.amountSmall.copyWith(
-                      color: isAhead ? AppColors.success : AppColors.error,
-                    ),
+                    '${isAhead ? '+' : '-'}$currencySymbol${_formatAmount(difference.abs())}',
+                    style: NeoTypography.rowAmount(context, deltaColor),
                   ),
                 ],
               ),
@@ -164,25 +228,14 @@ class IncomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildSummaryRow(String label, double amount, String currencySymbol) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: AppTypography.bodyMedium),
-        Text(
-          '$currencySymbol${amount.toStringAsFixed(0)}',
-          style: AppTypography.amountSmall,
-        ),
-      ],
-    );
-  }
-
   Widget _buildIncomeSourceItem(
     BuildContext context,
     WidgetRef ref,
     IncomeSource source,
     String currencySymbol,
   ) {
+    final palette = NeoTheme.of(context);
+
     return Dismissible(
       key: Key(source.id),
       direction: DismissDirection.endToStart,
@@ -190,8 +243,8 @@ class IncomeScreen extends ConsumerWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: AppSpacing.md),
         decoration: BoxDecoration(
-          color: AppColors.error,
-          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          color: NeoTheme.negativeValue(context),
+          borderRadius: BorderRadius.circular(NeoLayout.cardRadius),
         ),
         child: const Icon(LucideIcons.trash2, color: Colors.white),
       ),
@@ -204,122 +257,54 @@ class IncomeScreen extends ConsumerWidget {
           SnackBar(content: Text('${source.name} deleted')),
         );
       },
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _showEditSheet(context, ref, source),
-          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          child: Container(
-            padding: AppSpacing.cardPadding,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      source.name,
-                      style: AppTypography.labelLarge,
-                    ),
-                    _buildStatusBadge(source),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(
-                  source.isRecurring
-                      ? '$currencySymbol${source.actual.toStringAsFixed(0)} / $currencySymbol${source.projected.toStringAsFixed(0)}'
-                      : '$currencySymbol${source.actual.toStringAsFixed(0)}',
-                  style: AppTypography.bodyMedium,
-                ),
-                if (source.isRecurring) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  BudgetProgressBar(
-                    projected: source.projected,
-                    actual: source.actual,
-                    color: AppColors.success,
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(IncomeSource source) {
-    String label;
-    Color color;
-
-    if (!source.isRecurring) {
-      // Non-recurring: simple received/pending
-      if (source.actual > 0) {
-        label = 'Received';
-        color = AppColors.success;
-      } else {
-        label = 'Pending';
-        color = AppColors.textMuted;
-      }
-    } else if (source.actual >= source.projected && source.projected > 0) {
-      label = 'Received';
-      color = AppColors.success;
-    } else if (source.actual > 0) {
-      label = 'Partial';
-      color = AppColors.warning;
-    } else {
-      label = 'Pending';
-      color = AppColors.textMuted;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.15),
-        borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAddButton(BuildContext context, WidgetRef ref) {
-    return Material(
-      color: Colors.transparent,
       child: InkWell(
-        onTap: () => _showAddSheet(context, ref),
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        child: Container(
-          padding: AppSpacing.cardPadding,
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-            border: Border.all(
-              color: AppColors.border,
-              style: BorderStyle.solid,
-            ),
-          ),
-          child: const Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+        onTap: () => _showEditSheet(context, ref, source),
+        borderRadius: BorderRadius.circular(NeoLayout.cardRadius),
+        child: NeoGlassCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(LucideIcons.plus, color: AppColors.primary, size: 20),
-              SizedBox(width: AppSpacing.sm),
-              Text(
-                'Add Income Source',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w600,
-                ),
+              Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: palette.surface2,
+                      borderRadius: BorderRadius.circular(11),
+                      border: Border.all(color: palette.stroke),
+                    ),
+                    child: Icon(
+                      LucideIcons.trendingUp,
+                      size: NeoIconSizes.lg,
+                      color: NeoTheme.positiveValue(context),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      source.name,
+                      style: NeoTypography.rowTitle(context),
+                    ),
+                  ),
+                  _buildStatusBadge(context, source),
+                ],
               ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                source.isRecurring
+                    ? '$currencySymbol${_formatAmount(source.actual)} / $currencySymbol${_formatAmount(source.projected)}'
+                    : '$currencySymbol${_formatAmount(source.actual)}',
+                style: NeoTypography.rowSecondary(context),
+              ),
+              if (source.isRecurring) ...[
+                const SizedBox(height: AppSpacing.sm),
+                BudgetProgressBar(
+                  projected: source.projected,
+                  actual: source.actual,
+                  color: NeoTheme.positiveValue(context),
+                ),
+              ],
             ],
           ),
         ),
@@ -327,67 +312,119 @@ class IncomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+  Widget _buildStatusBadge(BuildContext context, IncomeSource source) {
+    String label;
+    Color color;
+
+    if (!source.isRecurring) {
+      if (source.actual > 0) {
+        label = 'Received';
+        color = NeoTheme.positiveValue(context);
+      } else {
+        label = 'Pending';
+        color = NeoTheme.of(context).textMuted;
+      }
+    } else if (source.actual >= source.projected && source.projected > 0) {
+      label = 'Received';
+      color = NeoTheme.positiveValue(context);
+    } else if (source.actual > 0) {
+      label = 'Partial';
+      color = NeoTheme.warningValue(context);
+    } else {
+      label = 'Pending';
+      color = NeoTheme.of(context).textMuted;
+    }
+
     return Container(
-      margin: const EdgeInsets.all(AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.xl),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+        color: color.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            LucideIcons.wallet,
-            size: 48,
-            color: AppColors.textMuted,
-          ),
-          const SizedBox(height: AppSpacing.md),
-          const Text(
-            'No income sources yet',
-            style: AppTypography.h3,
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          const Text(
-            'Add your first income source to start tracking',
-            style: AppTypography.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          ElevatedButton.icon(
-            onPressed: () => _showAddSheet(context, ref),
-            icon: const Icon(LucideIcons.plus, size: 18),
-            label: const Text('Add Income Source'),
-          ),
-        ],
+      child: Text(
+        label,
+        style: AppTypography.bodySmall.copyWith(
+          color: color,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
       ),
     );
   }
 
-  Widget _buildErrorState(String error) {
-    return Container(
-      margin: const EdgeInsets.all(AppSpacing.md),
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(LucideIcons.alertCircle, size: 48, color: AppColors.error),
-          const SizedBox(height: AppSpacing.md),
-          const Text('Something went wrong', style: AppTypography.h3),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            error,
-            style: AppTypography.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-        ],
+  Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+    final palette = NeoTheme.of(context);
+    return NeoGlassCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Column(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: palette.surface2,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: palette.stroke),
+              ),
+              child: Icon(
+                LucideIcons.wallet,
+                size: NeoIconSizes.xl,
+                color: palette.textSecondary,
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text('No income sources yet',
+                style: NeoTypography.rowTitle(context)),
+            const SizedBox(height: 2),
+            Text(
+              'Add your first income source to start tracking.',
+              style: NeoTypography.rowSecondary(context),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            ElevatedButton.icon(
+              onPressed: () => _showAddSheet(context, ref),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: palette.accent,
+                foregroundColor: NeoTheme.isLight(context)
+                    ? palette.textPrimary
+                    : palette.surface1,
+              ),
+              icon: const Icon(LucideIcons.plus, size: NeoIconSizes.md),
+              label: const Text('Add income source'),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildErrorState(BuildContext context, String error) {
+    final danger = NeoTheme.negativeValue(context);
+    return NeoGlassCard(
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: danger.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: danger.withValues(alpha: 0.35)),
+        ),
+        child: Text(
+          'Failed to load income sources: $error',
+          style: AppTypography.bodySmall.copyWith(color: danger),
+        ),
+      ),
+    );
+  }
+
+  String _formatAmount(double amount) {
+    if (amount == amount.roundToDouble()) {
+      return NumberFormat('#,##0').format(amount);
+    }
+    return NumberFormat('#,##0.##').format(amount);
   }
 
   void _showAddSheet(BuildContext context, WidgetRef ref) {
@@ -399,7 +436,8 @@ class IncomeScreen extends ConsumerWidget {
     );
   }
 
-  void _showEditSheet(BuildContext context, WidgetRef ref, IncomeSource source) {
+  void _showEditSheet(
+      BuildContext context, WidgetRef ref, IncomeSource source) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -409,13 +447,20 @@ class IncomeScreen extends ConsumerWidget {
   }
 
   Future<bool> _showDeleteConfirmation(BuildContext context) async {
+    final palette = NeoTheme.of(context);
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: AppColors.surface,
-            title: const Text('Delete Income Source?'),
-            content: const Text(
+            backgroundColor: palette.surface1,
+            title: Text(
+              'Delete Income Source?',
+              style: AppTypography.h3.copyWith(color: palette.textPrimary),
+            ),
+            content: Text(
               'This action cannot be undone. Any transactions linked to this income source will be unlinked.',
+              style: AppTypography.bodyMedium.copyWith(
+                color: palette.textSecondary,
+              ),
             ),
             actions: [
               TextButton(
@@ -424,7 +469,9 @@ class IncomeScreen extends ConsumerWidget {
               ),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                style: TextButton.styleFrom(foregroundColor: AppColors.error),
+                style: TextButton.styleFrom(
+                  foregroundColor: NeoTheme.negativeValue(context),
+                ),
                 child: const Text('Delete'),
               ),
             ],

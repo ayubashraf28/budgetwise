@@ -334,6 +334,23 @@ class NeoTheme {
   static Color controlSelectedBorder(BuildContext context) =>
       controlSelectedForeground(context)
           .withValues(alpha: isLight(context) ? 0.55 : 0.42);
+
+  static Color accentCardTone(BuildContext context, Color base) {
+    if (!isLight(context)) return base;
+    final hsl = HSLColor.fromColor(base);
+    return hsl
+        .withSaturation((hsl.saturation + 0.08).clamp(0.0, 1.0))
+        .withLightness((hsl.lightness - 0.05).clamp(0.0, 1.0))
+        .toColor();
+  }
+
+  static Color accentCardSurface(BuildContext context, Color base) =>
+      accentCardTone(context, base)
+          .withValues(alpha: isLight(context) ? 0.22 : 0.15);
+
+  static Color accentCardBorder(BuildContext context, Color base) =>
+      accentCardTone(context, base)
+          .withValues(alpha: isLight(context) ? 0.36 : 0.30);
 }
 
 class NeoTypography {

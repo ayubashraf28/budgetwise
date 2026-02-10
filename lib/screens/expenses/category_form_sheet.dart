@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../../models/category.dart';
 import '../../providers/providers.dart';
+import '../../utils/app_icon_registry.dart';
 import '../../utils/category_name_utils.dart';
 
 class CategoryFormSheet extends ConsumerStatefulWidget {
@@ -29,27 +31,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
 
   bool get isEditing => widget.category != null;
 
-  static const List<String> _iconOptions = [
-    'home',
-    'utensils',
-    'car',
-    'tv',
-    'shopping-bag',
-    'gamepad-2',
-    'piggy-bank',
-    'graduation-cap',
-    'heart',
-    'wallet',
-    'briefcase',
-    'plane',
-    'gift',
-    'credit-card',
-    'landmark',
-    'baby',
-    'dumbbell',
-    'music',
-    'book',
-  ];
+  static const List<String> _iconOptions = categoryIcons;
 
   static const List<String> _colorOptions = [
     '#3B82F6', // Blue
@@ -375,28 +357,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
   }
 
   IconData _getIconData(String iconName) {
-    final icons = {
-      'home': LucideIcons.home,
-      'utensils': LucideIcons.utensils,
-      'car': LucideIcons.car,
-      'tv': LucideIcons.tv,
-      'shopping-bag': LucideIcons.shoppingBag,
-      'gamepad-2': LucideIcons.gamepad2,
-      'piggy-bank': LucideIcons.piggyBank,
-      'graduation-cap': LucideIcons.graduationCap,
-      'heart': LucideIcons.heart,
-      'wallet': LucideIcons.wallet,
-      'briefcase': LucideIcons.briefcase,
-      'plane': LucideIcons.plane,
-      'gift': LucideIcons.gift,
-      'credit-card': LucideIcons.creditCard,
-      'landmark': LucideIcons.landmark,
-      'baby': LucideIcons.baby,
-      'dumbbell': LucideIcons.dumbbell,
-      'music': LucideIcons.music,
-      'book': LucideIcons.book,
-    };
-    return icons[iconName] ?? LucideIcons.wallet;
+    return resolveAppIcon(iconName, fallback: LucideIcons.wallet);
   }
 
   Future<void> _handleSubmit() async {

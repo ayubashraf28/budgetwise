@@ -1,0 +1,61 @@
+import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+
+const Map<String, IconData> appIconRegistry = {
+  'home': LucideIcons.home,
+  'utensils': LucideIcons.utensils,
+  'car': LucideIcons.car,
+  'tv': LucideIcons.tv,
+  'shopping-bag': LucideIcons.shoppingBag,
+  'gamepad-2': LucideIcons.gamepad2,
+  'piggy-bank': LucideIcons.piggyBank,
+  'graduation-cap': LucideIcons.graduationCap,
+  'heart': LucideIcons.heart,
+  'wallet': LucideIcons.wallet,
+  'briefcase': LucideIcons.briefcase,
+  'plane': LucideIcons.plane,
+  'gift': LucideIcons.gift,
+  'credit-card': LucideIcons.creditCard,
+  'landmark': LucideIcons.landmark,
+  'baby': LucideIcons.baby,
+  'dog': LucideIcons.dog,
+  'dumbbell': LucideIcons.dumbbell,
+  'music': LucideIcons.music,
+  'book': LucideIcons.book,
+  'repeat': LucideIcons.repeat,
+  'banknote': LucideIcons.banknote,
+  'coins': LucideIcons.coins,
+  'circle-dollar-sign': LucideIcons.circleDollarSign,
+  'badge-dollar-sign': LucideIcons.badgeDollarSign,
+  'wallet-cards': LucideIcons.walletCards,
+  'wallet-2': LucideIcons.wallet2,
+  'receipt': LucideIcons.receipt,
+  'file-text': LucideIcons.fileText,
+  'file-plus-2': LucideIcons.filePlus2,
+  'calculator': LucideIcons.calculator,
+  'percent': LucideIcons.percent,
+  'badge-percent': LucideIcons.badgePercent,
+  'target': LucideIcons.target,
+  'line-chart': LucideIcons.lineChart,
+  'bar-chart': LucideIcons.barChart,
+  'bar-chart-3': LucideIcons.barChart3,
+  'pie-chart': LucideIcons.pieChart,
+  'candlestick-chart': LucideIcons.candlestickChart,
+  'scale': LucideIcons.scale,
+  'store': LucideIcons.store,
+  'building-2': LucideIcons.building2,
+  'currency': LucideIcons.currency,
+  'euro': LucideIcons.euro,
+  'pound-sterling': LucideIcons.poundSterling,
+  'indian-rupee': LucideIcons.indianRupee,
+  'japanese-yen': LucideIcons.japaneseYen,
+  'russian-ruble': LucideIcons.russianRuble,
+  'sigma': LucideIcons.sigma,
+};
+
+IconData resolveAppIcon(
+  String iconName, {
+  IconData fallback = LucideIcons.wallet,
+}) {
+  return appIconRegistry[iconName] ?? fallback;
+}

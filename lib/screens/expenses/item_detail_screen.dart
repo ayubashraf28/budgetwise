@@ -8,6 +8,7 @@ import '../../models/item.dart';
 import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../widgets/budget/budget_widgets.dart';
+import '../../widgets/common/neo_page_components.dart';
 import '../transactions/transaction_form_sheet.dart';
 import 'item_form_sheet.dart';
 
@@ -32,6 +33,7 @@ class ItemDetailScreen extends ConsumerWidget {
       data: (item) {
         if (item == null) {
           return Scaffold(
+            backgroundColor: NeoTheme.of(context).appBg,
             appBar: AppBar(
               leading: IconButton(
                 icon: const Icon(LucideIcons.arrowLeft),
@@ -62,6 +64,7 @@ class ItemDetailScreen extends ConsumerWidget {
         );
       },
       loading: () => Scaffold(
+        backgroundColor: NeoTheme.of(context).appBg,
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(LucideIcons.arrowLeft),
@@ -71,6 +74,7 @@ class ItemDetailScreen extends ConsumerWidget {
         body: const Center(child: CircularProgressIndicator()),
       ),
       error: (error, stack) => Scaffold(
+        backgroundColor: NeoTheme.of(context).appBg,
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(LucideIcons.arrowLeft),
@@ -106,6 +110,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final palette = NeoTheme.of(context);
     final grouped = <DateTime, List<Transaction>>{};
     for (final tx in transactions) {
       final key = DateTime(tx.date.year, tx.date.month, tx.date.day);
@@ -114,116 +119,124 @@ class _ItemDetailScaffold extends ConsumerWidget {
     final sortedDates = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
 
     return Scaffold(
-      body: RefreshIndicator(
-        onRefresh: () async {
-          final _ = await Future.wait([
-            ref.refresh(itemByIdProvider(itemId).future),
-            ref.refresh(transactionsByItemProvider(itemId).future),
-            ref.refresh(categoryByIdProvider(categoryId).future),
-          ]);
-        },
-        child: CustomScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          slivers: [
-            SliverAppBar(
-              pinned: true,
-              leading: IconButton(
-                icon: const Icon(LucideIcons.arrowLeft),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-              actions: [
-                PopupMenuButton<String>(
-                  icon: const Icon(LucideIcons.moreVertical),
-                  color: AppColors.surface,
-                  onSelected: (value) {
-                    switch (value) {
-                      case 'edit':
-                        _showEditItemSheet(context, ref, item);
-                      case 'delete':
-                        _showDeleteItemConfirmation(context, ref, item);
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(LucideIcons.pencil, size: 18),
-                          SizedBox(width: 8),
-                          Text('Edit Item'),
-                        ],
+      backgroundColor: NeoTheme.of(context).appBg,
+      body: NeoPageBackground(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            final _ = await Future.wait([
+              ref.refresh(itemByIdProvider(itemId).future),
+              ref.refresh(transactionsByItemProvider(itemId).future),
+              ref.refresh(categoryByIdProvider(categoryId).future),
+            ]);
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                leading: IconButton(
+                  icon: const Icon(LucideIcons.arrowLeft),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+                actions: [
+                  PopupMenuButton<String>(
+                    icon: const Icon(LucideIcons.moreVertical),
+                    color: palette.surface2,
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'edit':
+                          _showEditItemSheet(context, ref, item);
+                        case 'delete':
+                          _showDeleteItemConfirmation(context, ref, item);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'edit',
+                        child: Row(
+                          children: [
+                            Icon(LucideIcons.pencil, size: 18),
+                            SizedBox(width: 8),
+                            Text('Edit Item'),
+                          ],
+                        ),
                       ),
-                    ),
-                    const PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(
-                            LucideIcons.trash2,
-                            size: 18,
-                            color: AppColors.error,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            'Delete Item',
-                            style: TextStyle(color: AppColors.error),
-                          ),
-                        ],
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(
+                              LucideIcons.trash2,
+                              size: 18,
+                              color: AppColors.error,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              'Delete Item',
+                              style: TextStyle(color: AppColors.error),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-              backgroundColor: AppColors.background,
-            ),
-            // Glass Summary Card
-            SliverToBoxAdapter(
-              child: _buildGlassSummaryCard(item),
-            ),
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.md,
-                  AppSpacing.lg,
-                  AppSpacing.md,
-                  AppSpacing.sm,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text('Transactions', style: AppTypography.h3),
-                    Text(
-                      '${transactions.length} ${transactions.length == 1 ? 'transaction' : 'transactions'}',
-                      style: AppTypography.bodySmall,
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
+                backgroundColor: palette.appBg,
               ),
-            ),
-            if (transactions.isEmpty)
+              // Glass Summary Card
               SliverToBoxAdapter(
-                child: _buildEmptyState(context, ref),
-              )
-            else
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final date = sortedDates[index];
-                    final dayTransactions = grouped[date]!;
-                    return _buildDateGroup(context, ref, date, dayTransactions);
-                  },
-                  childCount: sortedDates.length,
+                child: _buildGlassSummaryCard(context, item),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.md,
+                    AppSpacing.lg,
+                    AppSpacing.md,
+                    AppSpacing.sm,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Transactions',
+                        style: NeoTypography.sectionTitle(context),
+                      ),
+                      Text(
+                        '${transactions.length} ${transactions.length == 1 ? 'transaction' : 'transactions'}',
+                        style: NeoTypography.rowSecondary(context),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            const SliverToBoxAdapter(child: SizedBox(height: 80)),
-          ],
+              if (transactions.isEmpty)
+                SliverToBoxAdapter(
+                  child: _buildEmptyState(context, ref),
+                )
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final date = sortedDates[index];
+                      final dayTransactions = grouped[date]!;
+                      return _buildDateGroup(
+                          context, ref, date, dayTransactions);
+                    },
+                    childCount: sortedDates.length,
+                  ),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 80)),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildGlassSummaryCard(Item item) {
+  Widget _buildGlassSummaryCard(BuildContext context, Item item) {
     final color = categoryColor;
+    final accentColor = NeoTheme.accentCardTone(context, color);
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -233,9 +246,9 @@ class _ItemDetailScaffold extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.15),
+          color: NeoTheme.accentCardSurface(context, color),
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          border: Border.all(color: color.withValues(alpha: 0.3)),
+          border: Border.all(color: NeoTheme.accentCardBorder(context, color)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -247,13 +260,13 @@ class _ItemDetailScaffold extends ConsumerWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.2),
+                    color: accentColor.withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                   ),
                   child: Icon(
                     _getItemIcon(item.name),
                     size: 18,
-                    color: color,
+                    color: accentColor,
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -263,11 +276,11 @@ class _ItemDetailScaffold extends ConsumerWidget {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: color,
+                      color: accentColor,
                     ),
                   ),
                 ),
-                _buildStatusBadge(item),
+                _buildStatusBadge(context, item),
               ],
             ),
             const SizedBox(height: AppSpacing.md),
@@ -278,13 +291,14 @@ class _ItemDetailScaffold extends ConsumerWidget {
               children: [
                 Text(
                   '$currencySymbol${item.actual.toStringAsFixed(0)}',
-                  style: AppTypography.amountMedium.copyWith(color: color),
+                  style:
+                      AppTypography.amountMedium.copyWith(color: accentColor),
                 ),
                 if (isBudgeted)
                   Text(
                     ' / $currencySymbol${item.projected.toStringAsFixed(0)}',
                     style: TextStyle(
-                      color: color.withValues(alpha: 0.6),
+                      color: accentColor.withValues(alpha: 0.7),
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -293,7 +307,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
                   Text(
                     ' spent',
                     style: TextStyle(
-                      color: color.withValues(alpha: 0.6),
+                      color: accentColor.withValues(alpha: 0.7),
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -306,8 +320,8 @@ class _ItemDetailScaffold extends ConsumerWidget {
               BudgetProgressBar(
                 projected: item.projected,
                 actual: item.actual,
-                color: color,
-                backgroundColor: color.withValues(alpha: 0.3),
+                color: accentColor,
+                backgroundColor: accentColor.withValues(alpha: 0.28),
               ),
               const SizedBox(height: AppSpacing.xs),
               // Status text
@@ -319,7 +333,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
                   fontSize: 12,
                   color: item.isOverBudget
                       ? AppColors.error
-                      : color.withValues(alpha: 0.7),
+                      : accentColor.withValues(alpha: 0.78),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -330,7 +344,8 @@ class _ItemDetailScaffold extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusBadge(Item item) {
+  Widget _buildStatusBadge(BuildContext context, Item item) {
+    final palette = NeoTheme.of(context);
     final label = item.status;
     final Color badgeColor;
     switch (label) {
@@ -342,7 +357,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
       case 'Not started':
       case 'No budget':
       default:
-        badgeColor = AppColors.textMuted;
+        badgeColor = palette.textMuted;
     }
 
     return Container(
@@ -371,6 +386,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
     DateTime date,
     List<Transaction> dayTransactions,
   ) {
+    final palette = NeoTheme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -383,15 +399,14 @@ class _ItemDetailScaffold extends ConsumerWidget {
           ),
           child: Text(
             _formatDateHeader(date),
-            style: AppTypography.labelMedium.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: AppTypography.labelMedium
+                .copyWith(color: palette.textSecondary),
           ),
         ),
         Container(
           margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: palette.surface1,
             borderRadius: BorderRadius.circular(AppSizing.radiusLg),
           ),
           child: Column(
@@ -444,10 +459,10 @@ class _ItemDetailScaffold extends ConsumerWidget {
                     ),
                   ),
                   if (!isLast)
-                    const Divider(
+                    Divider(
                       height: 1,
                       indent: AppSpacing.md + 44 + AppSpacing.md,
-                      color: AppColors.border,
+                      color: palette.stroke.withValues(alpha: 0.85),
                     ),
                 ],
               );
@@ -471,14 +486,16 @@ class _ItemDetailScaffold extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(BuildContext context, WidgetRef ref) {
+    final palette = NeoTheme.of(context);
     return Center(
       child: SingleChildScrollView(
         child: Container(
           margin: const EdgeInsets.all(AppSpacing.md),
           padding: const EdgeInsets.all(AppSpacing.xl),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: palette.surface1,
             borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+            border: Border.all(color: palette.stroke.withValues(alpha: 0.7)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -486,14 +503,17 @@ class _ItemDetailScaffold extends ConsumerWidget {
               Icon(
                 _getItemIcon(item.name),
                 size: 48,
-                color: AppColors.textMuted,
+                color: palette.textMuted,
               ),
-              SizedBox(height: AppSpacing.md),
-              Text('No transactions yet', style: AppTypography.h3),
-              SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'No transactions yet',
+                style: NeoTypography.sectionTitle(context),
+              ),
+              const SizedBox(height: AppSpacing.sm),
               Text(
                 'Add a transaction to start tracking spending for this item',
-                style: AppTypography.bodyMedium,
+                style: NeoTypography.rowSecondary(context),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -541,7 +561,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: AppColors.surface,
+            backgroundColor: NeoTheme.of(context).surface1,
             title: const Text('Delete Item?'),
             content: Text(
               'This will delete "${item.name}" and all its transactions. This cannot be undone.',
@@ -581,7 +601,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            backgroundColor: AppColors.surface,
+            backgroundColor: NeoTheme.of(context).surface1,
             title: const Text('Delete Transaction?'),
             content: const Text('This action cannot be undone.'),
             actions: [
@@ -624,7 +644,9 @@ class _ItemDetailScaffold extends ConsumerWidget {
     if (name.contains('water')) {
       return LucideIcons.droplet;
     }
-    if (name.contains('internet') || name.contains('wifi') || name.contains('broadband')) {
+    if (name.contains('internet') ||
+        name.contains('wifi') ||
+        name.contains('broadband')) {
       return LucideIcons.wifi;
     }
     if (name.contains('council') || name.contains('tax')) {
@@ -638,27 +660,40 @@ class _ItemDetailScaffold extends ConsumerWidget {
     }
 
     // Food & Dining
-    if (name.contains('grocery') || name.contains('groceries') || name.contains('food')) {
+    if (name.contains('grocery') ||
+        name.contains('groceries') ||
+        name.contains('food')) {
       return LucideIcons.shoppingCart;
     }
-    if (name.contains('dining') || name.contains('restaurant') || name.contains('eat out')) {
+    if (name.contains('dining') ||
+        name.contains('restaurant') ||
+        name.contains('eat out')) {
       return LucideIcons.utensilsCrossed;
     }
     if (name.contains('coffee') || name.contains('cafe')) {
       return LucideIcons.coffee;
     }
-    if (name.contains('takeaway') || name.contains('takeout') || name.contains('delivery')) {
+    if (name.contains('takeaway') ||
+        name.contains('takeout') ||
+        name.contains('delivery')) {
       return LucideIcons.package;
     }
 
     // Transport
-    if (name.contains('fuel') || name.contains('petrol') || name.contains('gasoline')) {
+    if (name.contains('fuel') ||
+        name.contains('petrol') ||
+        name.contains('gasoline')) {
       return LucideIcons.fuel;
     }
-    if (name.contains('public transport') || name.contains('bus') || name.contains('train') || name.contains('metro')) {
+    if (name.contains('public transport') ||
+        name.contains('bus') ||
+        name.contains('train') ||
+        name.contains('metro')) {
       return LucideIcons.bus;
     }
-    if (name.contains('uber') || name.contains('taxi') || name.contains('cab')) {
+    if (name.contains('uber') ||
+        name.contains('taxi') ||
+        name.contains('cab')) {
       return LucideIcons.car;
     }
     if (name.contains('parking')) {
@@ -666,13 +701,19 @@ class _ItemDetailScaffold extends ConsumerWidget {
     }
 
     // Subscriptions & Services
-    if (name.contains('netflix') || name.contains('streaming') || name.contains('video')) {
+    if (name.contains('netflix') ||
+        name.contains('streaming') ||
+        name.contains('video')) {
       return LucideIcons.tv;
     }
-    if (name.contains('spotify') || name.contains('music') || name.contains('audio')) {
+    if (name.contains('spotify') ||
+        name.contains('music') ||
+        name.contains('audio')) {
       return LucideIcons.music;
     }
-    if (name.contains('gym') || name.contains('fitness') || name.contains('workout')) {
+    if (name.contains('gym') ||
+        name.contains('fitness') ||
+        name.contains('workout')) {
       return LucideIcons.dumbbell;
     }
     if (name.contains('phone') || name.contains('mobile')) {
@@ -683,13 +724,19 @@ class _ItemDetailScaffold extends ConsumerWidget {
     }
 
     // Personal & Shopping
-    if (name.contains('clothing') || name.contains('clothes') || name.contains('apparel')) {
+    if (name.contains('clothing') ||
+        name.contains('clothes') ||
+        name.contains('apparel')) {
       return LucideIcons.shirt;
     }
-    if (name.contains('haircut') || name.contains('hair') || name.contains('salon')) {
+    if (name.contains('haircut') ||
+        name.contains('hair') ||
+        name.contains('salon')) {
       return LucideIcons.scissors;
     }
-    if (name.contains('health') || name.contains('medicine') || name.contains('medical')) {
+    if (name.contains('health') ||
+        name.contains('medicine') ||
+        name.contains('medical')) {
       return LucideIcons.heartPulse;
     }
     if (name.contains('personal care') || name.contains('hygiene')) {
@@ -700,10 +747,14 @@ class _ItemDetailScaffold extends ConsumerWidget {
     if (name.contains('game') || name.contains('gaming')) {
       return LucideIcons.gamepad2;
     }
-    if (name.contains('movie') || name.contains('cinema') || name.contains('theater')) {
+    if (name.contains('movie') ||
+        name.contains('cinema') ||
+        name.contains('theater')) {
       return LucideIcons.film;
     }
-    if (name.contains('event') || name.contains('concert') || name.contains('show')) {
+    if (name.contains('event') ||
+        name.contains('concert') ||
+        name.contains('show')) {
       return LucideIcons.ticket;
     }
     if (name.contains('hobby') || name.contains('hobbies')) {
@@ -714,18 +765,26 @@ class _ItemDetailScaffold extends ConsumerWidget {
     if (name.contains('saving') || name.contains('emergency fund')) {
       return LucideIcons.piggyBank;
     }
-    if (name.contains('investment') || name.contains('stock') || name.contains('crypto')) {
+    if (name.contains('investment') ||
+        name.contains('stock') ||
+        name.contains('crypto')) {
       return LucideIcons.trendingUp;
     }
-    if (name.contains('holiday') || name.contains('vacation') || name.contains('travel')) {
+    if (name.contains('holiday') ||
+        name.contains('vacation') ||
+        name.contains('travel')) {
       return LucideIcons.plane;
     }
 
     // Education
-    if (name.contains('education') || name.contains('school') || name.contains('tuition')) {
+    if (name.contains('education') ||
+        name.contains('school') ||
+        name.contains('tuition')) {
       return LucideIcons.graduationCap;
     }
-    if (name.contains('book') || name.contains('course') || name.contains('learning')) {
+    if (name.contains('book') ||
+        name.contains('course') ||
+        name.contains('learning')) {
       return LucideIcons.bookOpen;
     }
 
@@ -736,7 +795,9 @@ class _ItemDetailScaffold extends ConsumerWidget {
     if (name.contains('bill') || name.contains('payment')) {
       return LucideIcons.fileText;
     }
-    if (name.contains('bank') || name.contains('fee') || name.contains('charge')) {
+    if (name.contains('bank') ||
+        name.contains('fee') ||
+        name.contains('charge')) {
       return LucideIcons.landmark;
     }
     if (name.contains('gift') || name.contains('present')) {

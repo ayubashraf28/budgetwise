@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 
+import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../../models/account.dart';
 import '../../models/subscription.dart';
 import '../../providers/providers.dart';
+import '../../utils/app_icon_registry.dart';
 
 class SubscriptionFormSheet extends ConsumerStatefulWidget {
   final Subscription? subscription;
@@ -41,27 +43,7 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
 
   bool get isEditing => widget.subscription != null;
 
-  static const List<String> _iconOptions = [
-    'home',
-    'utensils',
-    'car',
-    'tv',
-    'shopping-bag',
-    'gamepad-2',
-    'piggy-bank',
-    'graduation-cap',
-    'heart',
-    'wallet',
-    'briefcase',
-    'plane',
-    'gift',
-    'credit-card',
-    'landmark',
-    'baby',
-    'dumbbell',
-    'music',
-    'book',
-  ];
+  static const List<String> _iconOptions = categoryIcons;
 
   static const List<String> _colorOptions = [
     '#3B82F6', // Blue
@@ -631,28 +613,7 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
   }
 
   IconData _getIconData(String iconName) {
-    final icons = {
-      'home': LucideIcons.home,
-      'utensils': LucideIcons.utensils,
-      'car': LucideIcons.car,
-      'tv': LucideIcons.tv,
-      'shopping-bag': LucideIcons.shoppingBag,
-      'gamepad-2': LucideIcons.gamepad2,
-      'piggy-bank': LucideIcons.piggyBank,
-      'graduation-cap': LucideIcons.graduationCap,
-      'heart': LucideIcons.heart,
-      'wallet': LucideIcons.wallet,
-      'briefcase': LucideIcons.briefcase,
-      'plane': LucideIcons.plane,
-      'gift': LucideIcons.gift,
-      'credit-card': LucideIcons.creditCard,
-      'landmark': LucideIcons.landmark,
-      'baby': LucideIcons.baby,
-      'dumbbell': LucideIcons.dumbbell,
-      'music': LucideIcons.music,
-      'book': LucideIcons.book,
-    };
-    return icons[iconName] ?? LucideIcons.creditCard;
+    return resolveAppIcon(iconName, fallback: LucideIcons.creditCard);
   }
 
   IconData _accountTypeIcon(AccountType type) {

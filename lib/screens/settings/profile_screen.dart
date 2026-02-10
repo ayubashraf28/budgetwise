@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
 import '../../providers/providers.dart';
+import '../../widgets/common/neo_page_components.dart';
 import 'currency_picker_sheet.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -20,11 +21,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   bool _isLoading = false;
   bool _hasChanges = false;
 
+  NeoPalette get _palette => NeoTheme.of(context);
+
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController();
-    // Pre-fill from profile
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final profile = ref.read(userProfileProvider).valueOrNull;
       _nameController.text = profile?.displayName ?? '';
@@ -60,17 +62,24 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final memberSince = profile.valueOrNull?.createdAt;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Profile'),
-        backgroundColor: AppColors.background,
-      ),
-      body: SafeArea(
+      backgroundColor: _palette.appBg,
+      body: NeoPageBackground(
         child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.md),
+          padding: EdgeInsets.fromLTRB(
+            NeoLayout.screenPadding,
+            0,
+            NeoLayout.screenPadding,
+            AppSpacing.xl +
+                MediaQuery.paddingOf(context).bottom +
+                NeoLayout.bottomNavSafeBuffer,
+          ),
           children: [
-            // Avatar
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.sm),
+            const NeoPageHeader(
+              title: 'Profile',
+              subtitle: 'Identity, account info, and personal settings',
+            ),
+            const SizedBox(height: NeoLayout.sectionGap),
             Center(
               child: GestureDetector(
                 onTap: () {
@@ -82,44 +91,34 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 child: Column(
                   children: [
                     CircleAvatar(
-                      radius: 48,
-                      backgroundColor: AppColors.savings,
+                      radius: 42,
+                      backgroundColor: _palette.accent.withValues(alpha: 0.18),
                       child: Text(
                         displayName.isNotEmpty
                             ? displayName[0].toUpperCase()
                             : 'U',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
+                        style: AppTypography.h1.copyWith(
+                          color: _palette.accent,
+                          fontSize: 32,
                         ),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.sm),
-                    const Text(
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
                       'Tap to change',
-                      style: TextStyle(
-                        color: AppColors.textMuted,
-                        fontSize: 12,
-                      ),
+                      style: NeoTypography.rowSecondary(context),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
-
-            // Personal Info Section
+            const SizedBox(height: NeoLayout.sectionGap),
             _buildSectionHeader('Personal Info'),
             const SizedBox(height: AppSpacing.sm),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-              ),
+            NeoGlassCard(
+              padding: EdgeInsets.zero,
               child: Column(
                 children: [
-                  // Display Name field
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,
@@ -127,21 +126,21 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           LucideIcons.user,
-                          size: 22,
-                          color: AppColors.textSecondary,
+                          size: NeoIconSizes.xl,
+                          color: _palette.textSecondary,
                         ),
                         const SizedBox(width: AppSpacing.md),
                         Expanded(
                           child: TextFormField(
                             controller: _nameController,
                             style: AppTypography.bodyLarge.copyWith(
-                              color: AppColors.textPrimary,
+                              color: _palette.textPrimary,
                             ),
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: 'Display Name',
-                              labelStyle: TextStyle(color: AppColors.textMuted),
+                              labelStyle: TextStyle(color: _palette.textMuted),
                               border: InputBorder.none,
                               contentPadding: EdgeInsets.zero,
                             ),
@@ -150,8 +149,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       ],
                     ),
                   ),
-                  const Divider(height: 1, color: AppColors.border),
-                  // Email (read-only)
+                  Divider(
+                      height: 1,
+                      color: _palette.stroke.withValues(alpha: 0.85)),
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,
@@ -159,37 +159,32 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           LucideIcons.mail,
-                          size: 22,
-                          color: AppColors.textSecondary,
+                          size: NeoIconSizes.xl,
+                          color: _palette.textSecondary,
                         ),
                         const SizedBox(width: AppSpacing.md),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Email',
-                                style: TextStyle(
-                                  color: AppColors.textMuted,
-                                  fontSize: 12,
-                                ),
+                                style: NeoTypography.rowSecondary(context),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 email,
-                                style: AppTypography.bodyLarge.copyWith(
-                                  color: AppColors.textPrimary,
-                                ),
+                                style: NeoTypography.rowTitle(context),
                               ),
                             ],
                           ),
                         ),
-                        const Icon(
+                        Icon(
                           LucideIcons.lock,
-                          size: 16,
-                          color: AppColors.textMuted,
+                          size: NeoIconSizes.sm,
+                          color: _palette.textMuted,
                         ),
                       ],
                     ),
@@ -197,19 +192,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
-
-            // Account Section
+            const SizedBox(height: NeoLayout.sectionGap),
             _buildSectionHeader('Account'),
             const SizedBox(height: AppSpacing.sm),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-              ),
+            NeoGlassCard(
+              padding: EdgeInsets.zero,
               child: Column(
                 children: [
-                  // Member since
                   Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,
@@ -217,38 +206,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           LucideIcons.calendarDays,
-                          size: 22,
-                          color: AppColors.textSecondary,
+                          size: NeoIconSizes.xl,
+                          color: _palette.textSecondary,
                         ),
                         const SizedBox(width: AppSpacing.md),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Member since',
-                                style: AppTypography.bodyLarge.copyWith(
-                                  color: AppColors.textPrimary,
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            'Member since',
+                            style: NeoTypography.rowTitle(context),
                           ),
                         ),
                         Text(
                           memberSince != null
                               ? DateFormat('MMMM yyyy').format(memberSince)
                               : '-',
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
-                          ),
+                          style: NeoTypography.rowSecondary(context),
                         ),
                       ],
                     ),
                   ),
-                  const Divider(height: 1, color: AppColors.border),
-                  // Currency
+                  Divider(
+                      height: 1,
+                      color: _palette.stroke.withValues(alpha: 0.85)),
                   Material(
                     color: Colors.transparent,
                     child: InkWell(
@@ -271,31 +252,27 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               LucideIcons.poundSterling,
-                              size: 22,
-                              color: AppColors.textSecondary,
+                              size: NeoIconSizes.xl,
+                              color: _palette.textSecondary,
                             ),
                             const SizedBox(width: AppSpacing.md),
                             Expanded(
                               child: Text(
                                 'Currency',
-                                style: AppTypography.bodyLarge.copyWith(
-                                  color: AppColors.textPrimary,
-                                ),
+                                style: NeoTypography.rowTitle(context),
                               ),
                             ),
                             Text(
                               '$currentSymbol $currentCurrency',
-                              style: const TextStyle(
-                                color: AppColors.textSecondary,
-                              ),
+                              style: NeoTypography.rowSecondary(context),
                             ),
                             const SizedBox(width: AppSpacing.sm),
-                            const Icon(
+                            Icon(
                               LucideIcons.chevronRight,
-                              size: 20,
-                              color: AppColors.textMuted,
+                              size: NeoIconSizes.lg,
+                              color: _palette.textMuted,
                             ),
                           ],
                         ),
@@ -305,18 +282,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: AppSpacing.xl),
-
-            // Save Button
+            const SizedBox(height: NeoLayout.sectionGap),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _hasChanges && !_isLoading ? _saveProfile : null,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.savings,
-                  disabledBackgroundColor: AppColors.savings.withValues(alpha: 0.3),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  backgroundColor: _palette.accent,
+                  disabledBackgroundColor:
+                      _palette.accent.withValues(alpha: 0.3),
+                  foregroundColor: NeoTheme.isLight(context)
+                      ? _palette.textPrimary
+                      : _palette.surface1,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                   ),
@@ -334,12 +312,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         'Save Changes',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          fontSize: 16,
+                          fontSize: 15,
                         ),
                       ),
               ),
             ),
-            const SizedBox(height: AppSpacing.lg),
           ],
         ),
       ),
@@ -349,9 +326,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: AppTypography.labelMedium.copyWith(
-        color: AppColors.textMuted,
-        fontWeight: FontWeight.w600,
+      style: NeoTypography.sectionAction(context).copyWith(
+        color: _palette.textMuted,
       ),
     );
   }
@@ -369,8 +345,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     try {
       await ref.read(profileNotifierProvider.notifier).updateProfile(
-        displayName: name,
-      );
+            displayName: name,
+          );
       ref.invalidate(userProfileProvider);
 
       if (mounted) {
@@ -389,7 +365,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error updating profile: $e'),
-            backgroundColor: AppColors.error,
+            backgroundColor: NeoTheme.negativeValue(context),
           ),
         );
       }

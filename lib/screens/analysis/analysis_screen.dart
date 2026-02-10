@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
 import '../../models/category.dart';
@@ -12,6 +13,7 @@ import '../../models/income_source.dart';
 import '../../models/month.dart';
 import '../../models/transaction.dart';
 import '../../providers/providers.dart';
+import '../../utils/app_icon_registry.dart';
 import '../../widgets/charts/donut_chart.dart';
 
 class AnalysisScreen extends ConsumerStatefulWidget {
@@ -499,6 +501,10 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
               final amount = selected?.totalActual ?? total;
               final label = selected?.name ?? 'Total spending';
               return _ChartCenter(
+                icon: selected != null
+                    ? _categoryIcon(selected.icon)
+                    : LucideIcons.pieChart,
+                iconColor: selected?.colorValue ?? AppColors.savings,
                 amount: '$currency${_money(amount)}',
                 label: label,
                 meta: selected == null
@@ -521,6 +527,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
             title: c.name,
             subtitle: '${counts[c.id] ?? 0} transactions',
             leadingColor: c.colorValue,
+            leadingIcon: _categoryIcon(c.icon),
             amount: '$currency${_money(amount)}',
             meta: '${pct.toStringAsFixed(0)}%',
             onTap: () => context.push('/budget/category/${c.id}'),
@@ -572,6 +579,11 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
               final selected = i != null && i < list.length ? list[i] : null;
               final amount = selected?.actual ?? total;
               return _ChartCenter(
+                icon: LucideIcons.banknote,
+                iconColor: selected == null
+                    ? AppColors.savings
+                    : AppColors
+                        .categoryColors[i! % AppColors.categoryColors.length],
                 amount: '$currency${_money(amount)}',
                 label: selected?.name ?? 'Total income',
                 meta: selected == null
@@ -595,6 +607,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
             subtitle: '${counts[s.id] ?? 0} transactions',
             leadingColor: AppColors
                 .categoryColors[e.key % AppColors.categoryColors.length],
+            leadingIcon: LucideIcons.banknote,
             amount: '$currency${_money(s.actual)}',
             meta: '${pct.toStringAsFixed(0)}%',
             onTap: () => context.push('/transactions'),
@@ -768,12 +781,17 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
     }
     return NumberFormat('#,##0.##').format(amount);
   }
+
+  IconData _categoryIcon(String iconName) {
+    return resolveAppIcon(iconName, fallback: LucideIcons.wallet);
+  }
 }
 
 class _RowCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final Color leadingColor;
+  final IconData? leadingIcon;
   final String amount;
   final String meta;
   final VoidCallback onTap;
@@ -782,6 +800,7 @@ class _RowCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.leadingColor,
+    this.leadingIcon,
     required this.amount,
     required this.meta,
     required this.onTap,
@@ -819,14 +838,20 @@ class _RowCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Center(
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: leadingColor,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
+                    child: leadingIcon != null
+                        ? Icon(
+                            leadingIcon,
+                            size: 18,
+                            color: leadingColor,
+                          )
+                        : Container(
+                            width: 10,
+                            height: 10,
+                            decoration: BoxDecoration(
+                              color: leadingColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
@@ -886,11 +911,15 @@ class _RowCard extends StatelessWidget {
 }
 
 class _ChartCenter extends StatelessWidget {
+  final IconData? icon;
+  final Color? iconColor;
   final String amount;
   final String label;
   final String meta;
 
   const _ChartCenter({
+    this.icon,
+    this.iconColor,
     required this.amount,
     required this.label,
     required this.meta,
@@ -907,6 +936,14 @@ class _ChartCenter extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (icon != null) ...[
+            Icon(
+              icon,
+              size: 18,
+              color: iconColor ?? textPrimary,
+            ),
+            const SizedBox(height: 6),
+          ],
           Text(
             amount,
             style: AppTypography.amountSmall.copyWith(
