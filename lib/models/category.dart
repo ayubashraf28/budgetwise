@@ -10,6 +10,7 @@ class Category {
   final String icon;
   final String color;
   final bool isBudgeted;
+  final double? budgetAmount;
   final int sortOrder;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -25,6 +26,7 @@ class Category {
     this.icon = 'wallet',
     this.color = '#6366f1',
     this.isBudgeted = true,
+    this.budgetAmount,
     this.sortOrder = 0,
     required this.createdAt,
     required this.updatedAt,
@@ -47,6 +49,7 @@ class Category {
       icon: json['icon'] as String? ?? 'wallet',
       color: json['color'] as String? ?? '#6366f1',
       isBudgeted: json['is_budgeted'] as bool? ?? true,
+      budgetAmount: (json['budget_amount'] as num?)?.toDouble(),
       sortOrder: json['sort_order'] as int? ?? 0,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
@@ -63,6 +66,7 @@ class Category {
       'icon': icon,
       'color': color,
       'is_budgeted': isBudgeted,
+      'budget_amount': budgetAmount,
       'sort_order': sortOrder,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -77,6 +81,7 @@ class Category {
     String? icon,
     String? color,
     bool? isBudgeted,
+    double? budgetAmount,
     int? sortOrder,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -90,6 +95,7 @@ class Category {
       icon: icon ?? this.icon,
       color: color ?? this.color,
       isBudgeted: isBudgeted ?? this.isBudgeted,
+      budgetAmount: budgetAmount ?? this.budgetAmount,
       sortOrder: sortOrder ?? this.sortOrder,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -107,13 +113,14 @@ class Category {
     }
   }
 
-  /// Total projected amount for budgeted items only.
-  /// Non-budgeted items' projected values are excluded from the total.
+  /// Total projected amount for the category.
+  /// Uses explicit category budget when set, otherwise falls back to
+  /// summing item projected values for backward compatibility.
   double get totalProjected {
+    if (!isBudgeted) return 0;
+    if (budgetAmount != null) return budgetAmount!;
     if (items == null || items!.isEmpty) return 0;
-    return items!
-        .where((item) => item.isBudgeted)
-        .fold(0.0, (sum, item) => sum + item.projected);
+    return items!.fold(0.0, (sum, item) => sum + item.projected);
   }
 
   /// Total actual amount for all items
@@ -126,7 +133,8 @@ class Category {
   double get difference => totalProjected - totalActual;
 
   /// Whether category is over budget (only applies to budgeted categories)
-  bool get isOverBudget => isBudgeted && totalActual > totalProjected && totalProjected > 0;
+  bool get isOverBudget =>
+      isBudgeted && totalActual > totalProjected && totalProjected > 0;
 
   /// Whether category is exactly on budget
   bool get isOnBudget => totalActual == totalProjected;
@@ -151,10 +159,7 @@ class Category {
   bool get hasBudget => isBudgeted && totalProjected > 0;
 
   /// Number of budgeted items that are over budget
-  int get overBudgetItemCount {
-    if (items == null) return 0;
-    return items!.where((item) => item.isBudgeted && item.isOverBudget).length;
-  }
+  int get overBudgetItemCount => 0;
 
   @override
   bool operator ==(Object other) {

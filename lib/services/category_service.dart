@@ -57,6 +57,7 @@ class CategoryService {
     String icon = 'wallet',
     String color = '#6366f1',
     bool isBudgeted = true,
+    double? budgetAmount,
     int? sortOrder,
     bool allowReservedName = false,
   }) async {
@@ -84,6 +85,7 @@ class CategoryService {
       icon: icon,
       color: color,
       isBudgeted: isBudgeted,
+      budgetAmount: budgetAmount,
       sortOrder: sortOrder,
       createdAt: now,
       updatedAt: now,
@@ -105,6 +107,7 @@ class CategoryService {
     String? icon,
     String? color,
     bool? isBudgeted,
+    double? budgetAmount,
     int? sortOrder,
   }) async {
     final current = await getCategoryById(categoryId);
@@ -129,6 +132,7 @@ class CategoryService {
     if (icon != null) updates['icon'] = icon;
     if (color != null) updates['color'] = color;
     if (isBudgeted != null) updates['is_budgeted'] = isBudgeted;
+    if (budgetAmount != null) updates['budget_amount'] = budgetAmount;
     if (sortOrder != null) updates['sort_order'] = sortOrder;
 
     if (updates.isEmpty) {
@@ -186,6 +190,7 @@ class CategoryService {
         icon: source.icon,
         color: source.color,
         isBudgeted: source.isBudgeted,
+        budgetAmount: source.budgetAmount,
         sortOrder: source.sortOrder,
       );
 
@@ -261,6 +266,7 @@ class CategoryService {
           icon: category.icon,
           color: category.color,
           isBudgeted: category.isBudgeted,
+          budgetAmount: category.budgetAmount,
           sortOrder: category.sortOrder,
         );
       }
@@ -288,6 +294,7 @@ class CategoryService {
         icon: 'repeat',
         color: '#8b5cf6',
         isBudgeted: true,
+        budgetAmount: subsCat.budgetAmount,
       );
     }
 
@@ -297,6 +304,7 @@ class CategoryService {
       icon: 'repeat',
       color: '#8b5cf6',
       isBudgeted: true,
+      budgetAmount: 0,
       allowReservedName: true,
     );
   }

@@ -47,7 +47,7 @@ class EmptyState extends StatelessWidget {
     return EmptyState(
       icon: LucideIcons.listTodo,
       title: 'No items yet',
-      message: 'Add budget items to track your spending',
+      message: 'Add items to track your spending',
       actionLabel: 'Add Item',
       onAction: onAdd,
     );

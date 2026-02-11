@@ -163,6 +163,7 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
     String icon = 'wallet',
     String color = '#6366f1',
     bool isBudgeted = true,
+    double? budgetAmount,
   }) async {
     final user = ref.read(currentUserProvider);
     final month = ref.read(activeMonthProvider).value;
@@ -174,6 +175,7 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
       icon: icon,
       color: color,
       isBudgeted: isBudgeted,
+      budgetAmount: budgetAmount,
     );
 
     // Sync to all other months in the year
@@ -201,6 +203,7 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
     String? icon,
     String? color,
     bool? isBudgeted,
+    double? budgetAmount,
   }) async {
     final category = await _service.updateCategory(
       categoryId: categoryId,
@@ -208,6 +211,7 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
       icon: icon,
       color: color,
       isBudgeted: isBudgeted,
+      budgetAmount: budgetAmount,
     );
 
     ref.invalidateSelf();

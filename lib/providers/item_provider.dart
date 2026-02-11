@@ -38,7 +38,6 @@ class ItemNotifier extends FamilyAsyncNotifier<List<Item>, String> {
   Future<Item> addItem({
     required String name,
     double projected = 0,
-    bool isBudgeted = true,
     bool isRecurring = false,
     String? notes,
   }) async {
@@ -49,7 +48,7 @@ class ItemNotifier extends FamilyAsyncNotifier<List<Item>, String> {
       categoryId: arg,
       name: name,
       projected: projected,
-      isBudgeted: isBudgeted,
+      isBudgeted: true,
       isRecurring: isRecurring,
       notes: notes,
     );
@@ -65,7 +64,6 @@ class ItemNotifier extends FamilyAsyncNotifier<List<Item>, String> {
     required String itemId,
     String? name,
     double? projected,
-    bool? isBudgeted,
     bool? isRecurring,
     String? notes,
   }) async {
@@ -73,7 +71,7 @@ class ItemNotifier extends FamilyAsyncNotifier<List<Item>, String> {
       itemId: itemId,
       name: name,
       projected: projected,
-      isBudgeted: isBudgeted,
+      isBudgeted: true,
       isRecurring: isRecurring,
       notes: notes,
     );

@@ -646,14 +646,10 @@ class CategoryDetailScreen extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.md),
           decoration: BoxDecoration(
-            color: (item.isOverBudget)
-                ? NeoTheme.negativeValue(context).withValues(alpha: 0.08)
-                : palette.surface1,
+            color: palette.surface1,
             borderRadius: BorderRadius.circular(AppSizing.radiusLg),
             border: Border.all(
-              color: (item.isOverBudget)
-                  ? NeoTheme.negativeValue(context).withValues(alpha: 0.2)
-                  : palette.stroke.withValues(alpha: 0.7),
+              color: palette.stroke.withValues(alpha: 0.7),
             ),
             boxShadow: [
               BoxShadow(
@@ -698,7 +694,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                             ),
                           ),
                         ),
-                        _buildItemStatusBadge(context, item, currencySymbol),
+                        _buildItemStatusBadge(context, item),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -715,39 +711,27 @@ class CategoryDetailScreen extends ConsumerWidget {
                             letterSpacing: -0.3,
                           ),
                         ),
-                        if (category.isBudgeted && item.isBudgeted) ...[
-                          const SizedBox(width: 4),
-                          Text(
-                            '/ $currencySymbol${item.projected.toStringAsFixed(0)}',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: palette.textSecondary,
-                              letterSpacing: -0.2,
-                            ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'spent',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: palette.textSecondary,
+                            letterSpacing: -0.2,
                           ),
-                        ],
-                        if (!item.isBudgeted && category.isBudgeted) ...[
-                          const SizedBox(width: 4),
-                          Text(
-                            'spending only',
-                            style: TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: palette.textMuted,
-                            ),
-                          ),
-                        ],
+                        ),
                       ],
                     ),
-                    if (category.isBudgeted && item.isBudgeted) ...[
-                      const SizedBox(height: 8),
-                      BudgetProgressBar(
-                        projected: item.projected,
-                        actual: item.actual,
-                        color: color,
+                    const SizedBox(height: 2),
+                    Text(
+                      '${item.actual.toStringAsFixed(0)} total spent',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: palette.textMuted,
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ),
@@ -765,31 +749,11 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildItemStatusBadge(
-      BuildContext context, Item item, String currencySymbol) {
+  Widget _buildItemStatusBadge(BuildContext context, Item item) {
     final palette = NeoTheme.of(context);
-    String label;
-    Color color;
-
-    if (!item.isBudgeted || item.projected <= 0) {
-      label = item.actual > 0
-          ? '${item.actual.toStringAsFixed(0)} spent'
-          : 'No spending';
-      color = palette.textMuted;
-    } else if (item.isOverBudget) {
-      label =
-          '+$currencySymbol${(item.actual - item.projected).toStringAsFixed(0)}';
-      color = NeoTheme.negativeValue(context);
-    } else if (item.actual == item.projected) {
-      label = 'On budget';
-      color = NeoTheme.positiveValue(context);
-    } else if (item.actual == 0) {
-      label = 'Pending';
-      color = palette.textMuted;
-    } else {
-      label = 'Under budget';
-      color = NeoTheme.positiveValue(context);
-    }
+    final label = item.actual > 0 ? 'Spent' : 'No spending';
+    final color =
+        item.actual > 0 ? NeoTheme.warningValue(context) : palette.textMuted;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -927,7 +891,7 @@ class CategoryDetailScreen extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Add budget items to track your spending in this category',
+            'Add items to track spending in this category',
             style: TextStyle(
               fontSize: 13,
               color: palette.textSecondary,
@@ -1007,7 +971,6 @@ class CategoryDetailScreen extends ConsumerWidget {
       backgroundColor: Colors.transparent,
       builder: (context) => ItemFormSheet(
         categoryId: category.id,
-        categoryIsBudgeted: category.isBudgeted,
       ),
     );
     // Refresh the category data after adding item

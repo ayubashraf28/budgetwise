@@ -11,15 +11,10 @@ class ItemFormSheet extends ConsumerStatefulWidget {
   final String categoryId;
   final Item? item;
 
-  /// Whether the PARENT category has budgeting enabled.
-  /// When false, item-level budgeting is overridden (disabled).
-  final bool categoryIsBudgeted;
-
   const ItemFormSheet({
     super.key,
     required this.categoryId,
     this.item,
-    this.categoryIsBudgeted = true,
   });
 
   @override
@@ -32,13 +27,9 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
   late final TextEditingController _projectedController;
   late final TextEditingController _notesController;
   late bool _isRecurring;
-  late bool _isBudgeted; // Item-level budget toggle
   bool _isLoading = false;
 
   bool get isEditing => widget.item != null;
-
-  /// Effective budgeting: both category AND item must be budgeted
-  bool get _effectiveBudgeted => widget.categoryIsBudgeted && _isBudgeted;
 
   @override
   void initState() {
@@ -49,7 +40,6 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
     );
     _notesController = TextEditingController(text: widget.item?.notes ?? '');
     _isRecurring = widget.item?.isRecurring ?? false;
-    _isBudgeted = widget.item?.isBudgeted ?? true;
   }
 
   @override
@@ -69,7 +59,8 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
       decoration: BoxDecoration(
         color: palette.surface1,
         borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(AppSizing.radiusXl)),
+          top: Radius.circular(AppSizing.radiusXl),
+        ),
       ),
       child: Padding(
         padding: EdgeInsets.only(
@@ -84,7 +75,6 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Handle
                   Center(
                     child: Container(
                       width: 40,
@@ -96,8 +86,6 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
-
-                  // Header
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -114,8 +102,6 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                     ],
                   ),
                   const SizedBox(height: AppSpacing.lg),
-
-                  // Name Field
                   _buildLabel('Name'),
                   const SizedBox(height: AppSpacing.sm),
                   TextFormField(
@@ -132,108 +118,33 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                     },
                   ),
                   const SizedBox(height: AppSpacing.lg),
-
-                  // ── Enable Budgeting Toggle ──
-                  Opacity(
-                    opacity: widget.categoryIsBudgeted ? 1.0 : 0.4,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.md,
-                        vertical: AppSpacing.sm,
-                      ),
-                      decoration: BoxDecoration(
-                        color: palette.surface2,
-                        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(LucideIcons.target,
-                                      size: 20, color: palette.textSecondary),
-                                  SizedBox(width: AppSpacing.sm),
-                                  Text(
-                                    'Enable budgeting',
-                                    style: AppTypography.bodyLarge.copyWith(
-                                      color: palette.textPrimary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              Switch(
-                                value: _isBudgeted,
-                                onChanged: widget.categoryIsBudgeted
-                                    ? (value) =>
-                                        setState(() => _isBudgeted = value)
-                                    : null,
-                                activeTrackColor: palette.accent,
-                              ),
-                            ],
-                          ),
-                          if (!widget.categoryIsBudgeted)
-                            Padding(
-                              padding: EdgeInsets.only(
-                                  left: 28, bottom: AppSpacing.xs),
-                              child: Text(
-                                'Category budgeting is off — enable it on the category first',
-                                style: TextStyle(
-                                  color: palette.textMuted,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.lg),
-
-                  // Budget Amount Field
-                  _buildLabel('Budget Amount'),
+                  _buildLabel('Planned Amount'),
                   const SizedBox(height: AppSpacing.sm),
-                  Opacity(
-                    opacity: _effectiveBudgeted ? 1.0 : 0.4,
-                    child: TextFormField(
-                      controller: _projectedController,
-                      enabled: _effectiveBudgeted,
-                      decoration: InputDecoration(
-                        hintText: '0.00',
-                        prefixText: '$currencySymbol ',
-                        helperText: !_effectiveBudgeted
-                            ? 'Budgeting is disabled for this item'
-                            : null,
-                        helperStyle: TextStyle(
-                          color: palette.textMuted,
-                          fontSize: 12,
-                        ),
-                      ),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d*\.?\d{0,2}')),
-                      ],
-                      validator: _effectiveBudgeted
-                          ? (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter an amount';
-                              }
-                              final amount = double.tryParse(value);
-                              if (amount == null || amount < 0) {
-                                return 'Please enter a valid amount';
-                              }
-                              return null;
-                            }
-                          : null,
+                  TextFormField(
+                    controller: _projectedController,
+                    decoration: InputDecoration(
+                      hintText: '0.00',
+                      prefixText: '$currencySymbol ',
                     ),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(
+                        RegExp(r'^\d*\.?\d{0,2}'),
+                      ),
+                    ],
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Please enter an amount';
+                      }
+                      final amount = double.tryParse(value);
+                      if (amount == null || amount < 0) {
+                        return 'Please enter a valid amount';
+                      }
+                      return null;
+                    },
                   ),
                   const SizedBox(height: AppSpacing.lg),
-
-                  // Recurring Toggle
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.md,
@@ -248,9 +159,12 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                       children: [
                         Row(
                           children: [
-                            Icon(LucideIcons.repeat,
-                                size: 20, color: palette.textSecondary),
-                            SizedBox(width: AppSpacing.sm),
+                            Icon(
+                              LucideIcons.repeat,
+                              size: 20,
+                              color: palette.textSecondary,
+                            ),
+                            const SizedBox(width: AppSpacing.sm),
                             Text(
                               'Recurring expense',
                               style: AppTypography.bodyLarge.copyWith(
@@ -269,8 +183,6 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
-
-                  // Notes Field
                   _buildLabel('Notes (optional)'),
                   const SizedBox(height: AppSpacing.sm),
                   TextFormField(
@@ -281,8 +193,6 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                     maxLines: 2,
                   ),
                   const SizedBox(height: AppSpacing.xl),
-
-                  // Submit Button
                   SizedBox(
                     width: double.infinity,
                     height: AppSizing.buttonHeight,
@@ -328,8 +238,7 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
       final notifier =
           ref.read(itemNotifierProvider(widget.categoryId).notifier);
       final name = _nameController.text.trim();
-      // Preserve the projected value even when budgeting is off (reversible)
-      final projected = double.tryParse(_projectedController.text) ?? 0;
+      final projected = double.tryParse(_projectedController.text.trim()) ?? 0;
       final notes = _notesController.text.trim();
 
       if (isEditing) {
@@ -337,7 +246,6 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
           itemId: widget.item!.id,
           name: name,
           projected: projected,
-          isBudgeted: _isBudgeted,
           isRecurring: _isRecurring,
           notes: notes.isEmpty ? null : notes,
         );
@@ -350,14 +258,12 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
       } else {
         final newItem = await notifier.addItem(
           name: name,
-          projected: _effectiveBudgeted ? projected : 0,
-          isBudgeted: _isBudgeted,
+          projected: projected,
           isRecurring: _isRecurring,
           notes: notes.isEmpty ? null : notes,
         );
         if (mounted) {
-          Navigator.of(context)
-              .pop(newItem.id); // Return ID for transaction form
+          Navigator.of(context).pop(newItem.id);
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Item added')),
           );

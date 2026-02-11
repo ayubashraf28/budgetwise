@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
@@ -24,6 +25,7 @@ class CategoryFormSheet extends ConsumerStatefulWidget {
 class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
+  late final TextEditingController _budgetAmountController;
   late String _selectedIcon;
   late String _selectedColor;
   late bool _isBudgeted;
@@ -49,7 +51,12 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
   @override
   void initState() {
     super.initState();
+    final existingBudget =
+        widget.category?.budgetAmount ?? widget.category?.totalProjected ?? 0;
     _nameController = TextEditingController(text: widget.category?.name ?? '');
+    _budgetAmountController = TextEditingController(
+      text: existingBudget > 0 ? _formatAmountForInput(existingBudget) : '',
+    );
     _selectedIcon = widget.category?.icon ?? 'wallet';
     _selectedColor = widget.category?.color ?? '#6366F1';
     _isBudgeted = widget.category?.isBudgeted ?? true;
@@ -58,12 +65,14 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
   @override
   void dispose() {
     _nameController.dispose();
+    _budgetAmountController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
+    final currencySymbol = ref.watch(currencySymbolProvider);
     return Container(
       decoration: BoxDecoration(
         color: palette.surface1,
@@ -189,8 +198,8 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                         const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
                     child: Text(
                       _isBudgeted
-                          ? 'Track spending against a budget for each item'
-                          : 'Track spending only — no budget targets',
+                          ? 'Track spending against your category limit'
+                          : 'Track spending only - no budget targets',
                       style: TextStyle(
                         color: palette.textMuted,
                         fontSize: 12,
@@ -198,6 +207,37 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
+
+                  if (_isBudgeted) ...[
+                    _buildLabel('Budget Amount'),
+                    const SizedBox(height: AppSpacing.sm),
+                    TextFormField(
+                      controller: _budgetAmountController,
+                      decoration: InputDecoration(
+                        hintText: '0.00',
+                        prefixText: '$currencySymbol ',
+                      ),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d{0,2}'),
+                        ),
+                      ],
+                      validator: (value) {
+                        if (!_isBudgeted) return null;
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Please enter a budget amount';
+                        }
+                        final amount = double.tryParse(value.trim());
+                        if (amount == null || amount < 0) {
+                          return 'Please enter a valid amount';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.lg),
+                  ],
 
                   // Icon Selector
                   _buildLabel('Icon'),
@@ -382,6 +422,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
     try {
       final notifier = ref.read(categoryNotifierProvider.notifier);
       final name = _nameController.text.trim();
+      final budgetAmount = _parseBudgetAmount();
 
       if (isEditing) {
         await notifier.updateCategory(
@@ -390,6 +431,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
           icon: _selectedIcon,
           color: _selectedColor,
           isBudgeted: _isBudgeted,
+          budgetAmount: budgetAmount,
         );
         if (mounted) {
           Navigator.of(context).pop();
@@ -403,6 +445,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
           icon: _selectedIcon,
           color: _selectedColor,
           isBudgeted: _isBudgeted,
+          budgetAmount: budgetAmount,
         );
         if (mounted) {
           Navigator.of(context)
@@ -426,5 +469,18 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
         setState(() => _isLoading = false);
       }
     }
+  }
+
+  double _parseBudgetAmount() {
+    final raw = _budgetAmountController.text.trim();
+    if (raw.isEmpty) return 0;
+    return double.tryParse(raw) ?? 0;
+  }
+
+  String _formatAmountForInput(double amount) {
+    if (amount == amount.roundToDouble()) {
+      return amount.toStringAsFixed(0);
+    }
+    return amount.toStringAsFixed(2);
   }
 }

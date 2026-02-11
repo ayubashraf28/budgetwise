@@ -153,10 +153,16 @@ CREATE TABLE IF NOT EXISTS public.categories (
     icon TEXT NOT NULL DEFAULT 'wallet',
     color TEXT NOT NULL DEFAULT '#6366f1',
     is_budgeted BOOLEAN DEFAULT TRUE,
+    budget_amount DECIMAL(12,2),
     sort_order INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Backward-compat: existing DBs created before category amount budgeting
+-- need this column added explicitly.
+ALTER TABLE public.categories
+ADD COLUMN IF NOT EXISTS budget_amount DECIMAL(12,2);
 
 -- Enable RLS
 ALTER TABLE public.categories ENABLE ROW LEVEL SECURITY;

@@ -948,17 +948,12 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     BuildContext context, {
     required String categoryId,
   }) async {
-    final categories = ref.read(categoriesProvider).value ?? <Category>[];
-    final parentCategory =
-        categories.where((c) => c.id == categoryId).firstOrNull;
-
     final newItemId = await showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => ItemFormSheet(
         categoryId: categoryId,
-        categoryIsBudgeted: parentCategory?.isBudgeted ?? true,
       ),
     );
 

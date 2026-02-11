@@ -80,8 +80,7 @@ final selectedYearProvider = Provider<int>((ref) {
   final budgetMonthId = ref.watch(budgetSelectedMonthIdProvider);
   if (budgetMonthId != null) {
     final months = ref.watch(userMonthsProvider).value ?? [];
-    final budgetMonth =
-        months.where((m) => m.id == budgetMonthId).firstOrNull;
+    final budgetMonth = months.where((m) => m.id == budgetMonthId).firstOrNull;
     if (budgetMonth != null) return budgetMonth.startDate.year;
   }
 
@@ -105,9 +104,7 @@ final yearMonthsProvider = FutureProvider<List<Month>>((ref) async {
 
   final year = ref.watch(selectedYearProvider);
 
-  final yearMonths = allMonths
-      .where((m) => m.startDate.year == year)
-      .toList()
+  final yearMonths = allMonths.where((m) => m.startDate.year == year).toList()
     ..sort((a, b) => a.startDate.compareTo(b.startDate));
 
   return yearMonths;
@@ -128,8 +125,7 @@ final yearlyMonthlyExpensesProvider =
   // Get ALL transactions and categories for the year
   final allTransactions =
       await transactionService.getTransactionsForMonths(monthIds);
-  final allCategories =
-      await categoryService.getCategoriesForMonths(monthIds);
+  final allCategories = await categoryService.getCategoriesForMonths(monthIds);
 
   // Build category color map: categoryId -> color
   final categoryColorMap = <String, Color>{};
@@ -148,8 +144,7 @@ final yearlyMonthlyExpensesProvider =
           (expensesByMonth[tx.monthId] ?? 0) + tx.amount;
 
       if (tx.categoryId != null) {
-        expensesByMonthCategory
-            .putIfAbsent(tx.monthId, () => {});
+        expensesByMonthCategory.putIfAbsent(tx.monthId, () => {});
         expensesByMonthCategory[tx.monthId]![tx.categoryId!] =
             (expensesByMonthCategory[tx.monthId]![tx.categoryId!] ?? 0) +
                 tx.amount;
@@ -202,8 +197,7 @@ final yearlyCategorySummariesProvider =
   final monthIds = yearMonths.map((m) => m.id).toList();
 
   // 2 DB queries total: all categories + all transactions for the year
-  final allCategories =
-      await categoryService.getCategoriesForMonths(monthIds);
+  final allCategories = await categoryService.getCategoriesForMonths(monthIds);
   final allTransactions =
       await transactionService.getTransactionsForMonths(monthIds);
 
@@ -356,4 +350,3 @@ class _CategoryAccumulator {
     required this.color,
   });
 }
-

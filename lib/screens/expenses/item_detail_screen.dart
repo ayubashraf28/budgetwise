@@ -7,7 +7,7 @@ import '../../config/theme.dart';
 import '../../models/item.dart';
 import '../../models/transaction.dart';
 import '../../providers/providers.dart';
-import '../../widgets/budget/budget_widgets.dart';
+import '../../widgets/budget/transaction_list_item.dart';
 import '../../widgets/common/neo_page_components.dart';
 import '../transactions/transaction_form_sheet.dart';
 import 'item_form_sheet.dart';
@@ -49,10 +49,6 @@ class ItemDetailScreen extends ConsumerWidget {
             categoryAsync.value?.colorValue ?? NeoTheme.of(context).accent;
         final transactions = transactionsAsync.value ?? const <Transaction>[];
 
-        final categoryIsBudgeted = categoryAsync.value?.isBudgeted ?? true;
-        // Effective budgeting: both category AND item must be budgeted
-        final isBudgeted = categoryIsBudgeted && item.isBudgeted;
-
         return _ItemDetailScaffold(
           categoryId: categoryId,
           itemId: itemId,
@@ -60,8 +56,6 @@ class ItemDetailScreen extends ConsumerWidget {
           transactions: transactions,
           categoryColor: categoryColor,
           currencySymbol: currencySymbol,
-          isBudgeted: isBudgeted,
-          categoryIsBudgeted: categoryIsBudgeted,
         );
       },
       loading: () => Scaffold(
@@ -97,8 +91,6 @@ class _ItemDetailScaffold extends ConsumerWidget {
   final List<Transaction> transactions;
   final Color categoryColor;
   final String currencySymbol;
-  final bool isBudgeted; // Effective: category.isBudgeted && item.isBudgeted
-  final bool categoryIsBudgeted; // For passing to the edit form
 
   const _ItemDetailScaffold({
     required this.categoryId,
@@ -107,8 +99,6 @@ class _ItemDetailScaffold extends ConsumerWidget {
     required this.transactions,
     required this.categoryColor,
     required this.currencySymbol,
-    this.isBudgeted = true,
-    this.categoryIsBudgeted = true,
   });
 
   @override
@@ -307,50 +297,25 @@ class _ItemDetailScaffold extends ConsumerWidget {
                   style:
                       AppTypography.amountMedium.copyWith(color: accentColor),
                 ),
-                if (isBudgeted)
-                  Text(
-                    ' / $currencySymbol${item.projected.toStringAsFixed(0)}',
-                    style: TextStyle(
-                      color: accentColor.withValues(alpha: 0.7),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
+                Text(
+                  ' spent',
+                  style: TextStyle(
+                    color: accentColor.withValues(alpha: 0.7),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
                   ),
-                if (!isBudgeted)
-                  Text(
-                    ' spent',
-                    style: TextStyle(
-                      color: accentColor.withValues(alpha: 0.7),
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                ),
               ],
             ),
-            if (isBudgeted) ...[
-              const SizedBox(height: AppSpacing.sm),
-              // Progress bar
-              BudgetProgressBar(
-                projected: item.projected,
-                actual: item.actual,
-                color: accentColor,
-                backgroundColor: accentColor.withValues(alpha: 0.28),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '${transactions.length} ${transactions.length == 1 ? 'transaction' : 'transactions'}',
+              style: TextStyle(
+                fontSize: 12,
+                color: accentColor.withValues(alpha: 0.78),
+                fontWeight: FontWeight.w500,
               ),
-              const SizedBox(height: AppSpacing.xs),
-              // Status text
-              Text(
-                item.isOverBudget
-                    ? '$currencySymbol${(item.actual - item.projected).toStringAsFixed(0)} over budget'
-                    : '$currencySymbol${item.remaining.toStringAsFixed(0)} remaining',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: item.isOverBudget
-                      ? NeoTheme.negativeValue(context)
-                      : accentColor.withValues(alpha: 0.78),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+            ),
           ],
         ),
       ),
@@ -359,19 +324,9 @@ class _ItemDetailScaffold extends ConsumerWidget {
 
   Widget _buildStatusBadge(BuildContext context, Item item) {
     final palette = NeoTheme.of(context);
-    final label = item.status;
-    final Color badgeColor;
-    switch (label) {
-      case 'Over budget':
-        badgeColor = NeoTheme.negativeValue(context);
-      case 'On budget':
-      case 'Under budget':
-        badgeColor = NeoTheme.positiveValue(context);
-      case 'Not started':
-      case 'No budget':
-      default:
-        badgeColor = palette.textMuted;
-    }
+    final label = item.actual > 0 ? 'Spent' : 'No spending';
+    final badgeColor =
+        item.actual > 0 ? NeoTheme.warningValue(context) : palette.textMuted;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -554,7 +509,6 @@ class _ItemDetailScaffold extends ConsumerWidget {
       builder: (context) => ItemFormSheet(
         categoryId: categoryId,
         item: item,
-        categoryIsBudgeted: categoryIsBudgeted,
       ),
     ).then((_) {
       ref.invalidate(itemByIdProvider(itemId));
