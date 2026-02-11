@@ -200,13 +200,20 @@ class _ItemDetailScaffold extends ConsumerWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Transactions',
-                        style: NeoTypography.sectionTitle(context),
+                      const Expanded(
+                        child: AdaptiveHeadingText(
+                          text: 'Transactions',
+                        ),
                       ),
-                      Text(
-                        '${transactions.length} ${transactions.length == 1 ? 'transaction' : 'transactions'}',
-                        style: NeoTypography.rowSecondary(context),
+                      const SizedBox(width: AppSpacing.sm),
+                      Flexible(
+                        child: Text(
+                          '${transactions.length} ${transactions.length == 1 ? 'transaction' : 'transactions'}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.end,
+                          style: NeoTypography.rowSecondary(context),
+                        ),
                       ),
                     ],
                   ),
@@ -508,10 +515,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
                 color: palette.textMuted,
               ),
               const SizedBox(height: AppSpacing.md),
-              Text(
-                'No transactions yet',
-                style: NeoTypography.sectionTitle(context),
-              ),
+              const AdaptiveHeadingText(text: 'No transactions yet'),
               const SizedBox(height: AppSpacing.sm),
               Text(
                 'Add a transaction to start tracking spending for this item',

@@ -52,10 +52,12 @@ class CurrencyPickerSheet extends ConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Select Currency',
-                    style: NeoTypography.sectionTitle(context),
+                  const Expanded(
+                    child: AdaptiveHeadingText(
+                      text: 'Select Currency',
+                    ),
                   ),
+                  const SizedBox(width: AppSpacing.sm),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),
                     icon: const Icon(LucideIcons.x),

@@ -65,41 +65,44 @@ class _DonutChartState extends State<DonutChart> {
       return SizedBox(height: widget.height);
     }
 
-    return SizedBox(
-      width: double.infinity,
-      height: widget.height,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final size =
-              math.min(constraints.maxWidth, constraints.maxHeight).toDouble();
-          final segmentTotal =
-              widget.segments.fold<double>(0, (sum, s) => sum + s.value);
+    return MediaQuery.withNoTextScaling(
+      child: SizedBox(
+        width: double.infinity,
+        height: widget.height,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final size = math
+                .min(constraints.maxWidth, constraints.maxHeight)
+                .toDouble();
+            final segmentTotal =
+                widget.segments.fold<double>(0, (sum, s) => sum + s.value);
 
-          return Stack(
-            alignment: Alignment.center,
-            children: [
-              GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTapDown: (details) {
-                  _handleChartTap(details, size, segmentTotal);
-                },
-                child: CustomPaint(
-                  size: Size(size, size),
-                  painter: _DonutChartPainter(
-                    segments: widget.segments,
-                    strokeWidth: widget.strokeWidth,
-                    gapDegrees: widget.gapDegrees,
-                    selectedIndex: _selectedIndex,
-                    selectedStrokeWidth: widget.selectedStrokeWidth,
+            return Stack(
+              alignment: Alignment.center,
+              children: [
+                GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTapDown: (details) {
+                    _handleChartTap(details, size, segmentTotal);
+                  },
+                  child: CustomPaint(
+                    size: Size(size, size),
+                    painter: _DonutChartPainter(
+                      segments: widget.segments,
+                      strokeWidth: widget.strokeWidth,
+                      gapDegrees: widget.gapDegrees,
+                      selectedIndex: _selectedIndex,
+                      selectedStrokeWidth: widget.selectedStrokeWidth,
+                    ),
                   ),
                 ),
-              ),
-              IgnorePointer(
-                child: widget.centerBuilder(_selectedIndex),
-              ),
-            ],
-          );
-        },
+                IgnorePointer(
+                  child: widget.centerBuilder(_selectedIndex),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

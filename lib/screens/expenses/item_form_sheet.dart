@@ -101,10 +101,12 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        isEditing ? 'Edit Item' : 'Add Item',
-                        style: NeoTypography.sectionTitle(context),
+                      Expanded(
+                        child: AdaptiveHeadingText(
+                          text: isEditing ? 'Edit Item' : 'Add Item',
+                        ),
                       ),
+                      const SizedBox(width: AppSpacing.sm),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
                         icon: const Icon(LucideIcons.x),

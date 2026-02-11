@@ -51,7 +51,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   static const double _homeCardRadius = 16;
   static const double _homeHorizontalPadding = AppSpacing.md;
   static const double _homeSectionSpacing = 14;
-  static const double _homeHeaderActionHeight = 34;
   static const double _homeRowVerticalPadding = 6;
 
   TextStyle get _sectionTitleStyle => NeoTypography.sectionTitle(context);
@@ -357,6 +356,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     String monthScopeLabel,
     bool isAmountsVisible,
   ) {
+    final textScale =
+        MediaQuery.textScalerOf(context).scale(1.0).clamp(0.85, 1.3).toDouble();
     final monthlyCashflow = summary?.actualBalance ?? 0.0;
     final monthScopeText = monthScopeLabel;
     final cashflowIsPositive = monthlyCashflow >= 0;
@@ -384,17 +385,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final cardWidth = (constraints.maxWidth - AppSpacing.sm) / 2;
-          final cardHeight = (cardWidth * 0.80).clamp(118.0, 136.0);
+          final cardHeight = (cardWidth * (0.80 + (textScale - 1.0) * 0.20))
+              .clamp(118.0, 158.0);
           final amountFontSize = (cardWidth * 0.26).clamp(32.0, 42.0);
-          final headerHeight = (cardHeight * 0.34).clamp(36.0, 44.0);
-          final footerHeight = (cardHeight * 0.19).clamp(18.0, 24.0);
+          final headerHeight = (cardHeight * 0.36).clamp(38.0, 56.0);
+          final footerHeight = (cardHeight * 0.22).clamp(20.0, 32.0);
 
           return Column(
             children: [
               Row(
                 children: [
-                  Text('Overview', style: _sectionTitleStyle),
-                  const Spacer(),
+                  Expanded(
+                    child: AdaptiveHeadingText(
+                      text: 'Overview',
+                      style: _sectionTitleStyle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   InkWell(
                     onTap: () {
                       ref
@@ -558,8 +565,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           children: [
             Row(
               children: [
-                Text('Accounts', style: _sectionTitleStyle),
-                const Spacer(),
+                Expanded(
+                  child: AdaptiveHeadingText(
+                    text: 'Accounts',
+                    style: _sectionTitleStyle,
+                  ),
+                ),
+                const SizedBox(width: 8),
                 _buildSectionActionButton(
                   label: 'Manage',
                   icon: LucideIcons.settings2,
@@ -674,8 +686,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final footerColor = isLight
         ? textColor.withValues(alpha: 0.95)
         : textColor.withValues(alpha: 0.88);
+    final textScale =
+        MediaQuery.textScalerOf(context).scale(1.0).clamp(0.85, 1.3).toDouble();
     final cornerText = cornerLabel?.trim() ?? '';
     final hasCornerLabel = cornerText.isNotEmpty;
+    final showCornerLabel = hasCornerLabel && textScale < 1.1;
     final chipBorderColor = isLight
         ? textColor.withValues(alpha: 0.42)
         : textColor.withValues(alpha: 0.34);
@@ -734,9 +749,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                       const SizedBox(width: 6),
                       Expanded(
-                        child: Text(
-                          title,
+                        child: AdaptiveHeadingText(
+                          text: title,
                           maxLines: 2,
+                          softWrap: false,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: textColor,
@@ -746,7 +762,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                         ),
                       ),
-                      if (hasCornerLabel) ...[
+                      if (showCornerLabel) ...[
                         const SizedBox(width: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -761,6 +777,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           ),
                           child: Text(
                             cornerText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: _rowSecondaryStyle.copyWith(
                               color: footerColor.withValues(alpha: 0.9),
                               fontSize: 9.5,
@@ -801,7 +819,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       Expanded(
                         child: Text(
                           footerLabel,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: footerColor,
@@ -828,14 +846,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     required VoidCallback onPressed,
   }) {
     final isLight = _isLightMode(context);
+    final textScale =
+        MediaQuery.textScalerOf(context).scale(1.0).clamp(0.85, 1.3).toDouble();
+    final horizontalPadding =
+        (12.0 - (textScale - 1.0) * 4.0).clamp(8.0, 12.0).toDouble();
+    final verticalPadding =
+        (8.0 + (textScale - 1.0) * 3.0).clamp(8.0, 11.0).toDouble();
+    final minHeight = (34.0 + (textScale - 1.0) * 8.0).clamp(34.0, 40.0);
     return OutlinedButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, size: NeoIconSizes.sm, color: _neoLime),
       label: Text(label, style: _sectionActionStyle),
       style: OutlinedButton.styleFrom(
         foregroundColor: _neoLime,
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        minimumSize: const Size(0, _homeHeaderActionHeight),
+        padding: EdgeInsets.symmetric(
+          horizontal: horizontalPadding,
+          vertical: verticalPadding,
+        ),
+        minimumSize: Size(0, minHeight),
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         visualDensity: VisualDensity.compact,
         backgroundColor:
@@ -902,8 +930,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 Row(
                   children: [
-                    Text('Upcoming payments', style: _sectionTitleStyle),
-                    const Spacer(),
+                    Expanded(
+                      child: AdaptiveHeadingText(
+                        text: 'Upcoming payments',
+                        style: _sectionTitleStyle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     _buildSectionActionButton(
                       label: 'View all',
                       icon: LucideIcons.calendarRange,
@@ -941,11 +974,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         padding: const EdgeInsets.only(top: 8),
                         child: Row(
                           children: [
-                            Text(
-                              '+${sorted.length - visible.length} more upcoming',
-                              style: _rowSecondaryStyle,
+                            Expanded(
+                              child: Text(
+                                '+${sorted.length - visible.length} more upcoming',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: _rowSecondaryStyle,
+                              ),
                             ),
-                            const Spacer(),
+                            const SizedBox(width: 8),
                             TextButton(
                               onPressed: () => context.push('/subscriptions'),
                               style: TextButton.styleFrom(
@@ -1462,8 +1499,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               children: [
                 Row(
                   children: [
-                    Text('Recent transactions', style: _sectionTitleStyle),
-                    const Spacer(),
+                    Expanded(
+                      child: AdaptiveHeadingText(
+                        text: 'Recent transactions',
+                        style: _sectionTitleStyle,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
                     _buildSectionActionButton(
                       label: 'View all',
                       icon: LucideIcons.list,

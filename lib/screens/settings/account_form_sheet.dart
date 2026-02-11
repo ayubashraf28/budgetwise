@@ -95,10 +95,12 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        isEditing ? 'Edit Account' : 'Add Account',
-                        style: NeoTypography.sectionTitle(context),
+                      Expanded(
+                        child: AdaptiveHeadingText(
+                          text: isEditing ? 'Edit Account' : 'Add Account',
+                        ),
                       ),
+                      const SizedBox(width: AppSpacing.sm),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
                         icon: const Icon(LucideIcons.x),

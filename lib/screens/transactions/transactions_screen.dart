@@ -315,9 +315,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  Text(
-                    'Filter transactions',
-                    style: NeoTypography.sectionTitle(context),
+                  const AdaptiveHeadingText(
+                    text: 'Filter transactions',
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   Text('By type', style: NeoTypography.cardTitle(context)),
@@ -522,11 +521,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       ),
       child: Row(
         children: [
-          Text('All transactions', style: NeoTypography.sectionTitle(context)),
-          const Spacer(),
-          Text(
-            '$count ${count == 1 ? 'transaction' : 'transactions'}',
-            style: NeoTypography.rowSecondary(context),
+          const Expanded(
+            child: AdaptiveHeadingText(
+              text: 'All transactions',
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Flexible(
+            child: Text(
+              '$count ${count == 1 ? 'transaction' : 'transactions'}',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end,
+              style: NeoTypography.rowSecondary(context),
+            ),
           ),
         ],
       ),

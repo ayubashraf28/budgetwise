@@ -490,10 +490,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
           ),
         ),
         const SizedBox(height: _sectionGap),
-        Text(
-          'Top categories',
-          style: NeoTypography.sectionTitle(context),
-        ),
+        const AdaptiveHeadingText(text: 'Top categories'),
         const SizedBox(height: 8),
         ...list.map((c) {
           final amount = c.totalActual;
@@ -569,10 +566,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
           ),
         ),
         const SizedBox(height: _sectionGap),
-        Text(
-          'Top income sources',
-          style: NeoTypography.sectionTitle(context),
-        ),
+        const AdaptiveHeadingText(text: 'Top income sources'),
         const SizedBox(height: 8),
         ...list.asMap().entries.map((e) {
           final s = e.value;
@@ -626,10 +620,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
           ),
         ),
         const SizedBox(height: _sectionGap),
-        Text(
-          'Account breakdown',
-          style: NeoTypography.sectionTitle(context),
-        ),
+        const AdaptiveHeadingText(text: 'Account breakdown'),
         const SizedBox(height: 8),
         ...rows.map((r) {
           final netPositive = r.net >= 0;
@@ -677,10 +668,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
               _TrendChart(points: points, metric: metric, currency: currency),
         ),
         const SizedBox(height: AppSpacing.md),
-        Text(
-          'Insights',
-          style: NeoTypography.sectionTitle(context),
-        ),
+        const AdaptiveHeadingText(text: 'Insights'),
         const SizedBox(height: 8),
         Wrap(
           spacing: AppSpacing.sm,

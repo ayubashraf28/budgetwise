@@ -127,11 +127,8 @@ class _ManageScreenState extends ConsumerState<ManageScreen> {
           Row(
             children: [
               Expanded(
-                child: Text(
-                  title,
-                  style: NeoTypography.sectionTitle(context),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: AdaptiveHeadingText(
+                  text: title,
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),

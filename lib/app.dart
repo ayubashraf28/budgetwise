@@ -13,6 +13,7 @@ class BudgetWiseApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
+    final appFontSize = ref.watch(appFontSizeProvider);
 
     return MaterialApp.router(
       title: AppConstants.appName,
@@ -21,6 +22,17 @@ class BudgetWiseApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
       routerConfig: router,
+      builder: (context, child) {
+        if (child == null) {
+          return const SizedBox.shrink();
+        }
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(appFontSize.scaleFactor),
+          ),
+          child: child,
+        );
+      },
     );
   }
 }

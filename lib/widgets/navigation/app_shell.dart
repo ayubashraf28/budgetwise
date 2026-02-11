@@ -31,12 +31,13 @@ class _BottomNavBar extends StatelessWidget {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
     final width = MediaQuery.sizeOf(context).width;
     final textScale =
-        MediaQuery.textScalerOf(context).scale(1.0).clamp(1.0, 1.15).toDouble();
+        MediaQuery.textScalerOf(context).scale(1.0).clamp(0.85, 1.3).toDouble();
 
     final centerGap = (width * 0.19).clamp(74.0, 86.0).toDouble();
     final iconSize = width < 360 ? 22.0 : 24.0;
-    final labelSize = (width < 360 ? 11.0 : 12.0) * textScale;
-    final barCoreHeight = (60.0 + (textScale - 1.0) * 10.0).clamp(60.0, 66.0);
+    final labelSize = width < 360 ? 11.0 : 12.0;
+    final navItemHeight = (42.0 + (textScale - 1.0) * 16.0).clamp(42.0, 52.0);
+    final barCoreHeight = (60.0 + (textScale - 1.0) * 22.0).clamp(60.0, 72.0);
     final totalHeight = barCoreHeight + bottomInset;
     final navBg = palette.surface1;
     final navStroke = palette.stroke;
@@ -53,7 +54,7 @@ class _BottomNavBar extends StatelessWidget {
             bottom: 0,
             child: Container(
               height: barCoreHeight + bottomInset,
-              padding: EdgeInsets.fromLTRB(12, 10, 12, 8 + bottomInset),
+              padding: EdgeInsets.fromLTRB(12, 8, 12, 6 + bottomInset),
               decoration: BoxDecoration(
                 color: navBg,
                 borderRadius: const BorderRadius.only(
@@ -83,6 +84,7 @@ class _BottomNavBar extends StatelessWidget {
                             label: 'Home',
                             iconSize: iconSize,
                             labelSize: labelSize,
+                            itemHeight: navItemHeight,
                             isSelected: location == '/home',
                             onTap: () {
                               HapticFeedback.selectionClick();
@@ -96,6 +98,7 @@ class _BottomNavBar extends StatelessWidget {
                             label: 'Analysis',
                             iconSize: iconSize,
                             labelSize: labelSize,
+                            itemHeight: navItemHeight,
                             isSelected: location.startsWith('/analysis') ||
                                 location.startsWith('/budget') ||
                                 location.startsWith('/expenses'),
@@ -118,6 +121,7 @@ class _BottomNavBar extends StatelessWidget {
                             label: 'Categories',
                             iconSize: iconSize,
                             labelSize: labelSize,
+                            itemHeight: navItemHeight,
                             isSelected: location.startsWith('/categories') ||
                                 location.startsWith('/income'),
                             onTap: () {
@@ -132,6 +136,7 @@ class _BottomNavBar extends StatelessWidget {
                             label: 'Manage',
                             iconSize: iconSize,
                             labelSize: labelSize,
+                            itemHeight: navItemHeight,
                             isSelected: location.startsWith('/manage') ||
                                 location.startsWith('/subscriptions') ||
                                 location.startsWith('/settings/accounts'),
@@ -212,6 +217,7 @@ class _NavItem extends StatelessWidget {
   final String label;
   final double iconSize;
   final double labelSize;
+  final double itemHeight;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -220,6 +226,7 @@ class _NavItem extends StatelessWidget {
     required this.label,
     required this.iconSize,
     required this.labelSize,
+    required this.itemHeight,
     required this.isSelected,
     required this.onTap,
   });
@@ -238,7 +245,7 @@ class _NavItem extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
         child: SizedBox(
-          height: 42,
+          height: itemHeight,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,

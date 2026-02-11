@@ -133,13 +133,17 @@ class NeoSectionActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
     final isLight = NeoTheme.isLight(context);
+    final textScale =
+        MediaQuery.textScalerOf(context).scale(1.0).clamp(0.85, 1.3).toDouble();
+    final minHeight = (34.0 + (textScale - 1.0) * 10.0).clamp(34.0, 44.0);
+    final verticalPadding = (8.0 + (textScale - 1.0) * 4.0).clamp(8.0, 12.0);
     final style = OutlinedButton.styleFrom(
       foregroundColor: palette.accent,
       padding: EdgeInsets.symmetric(
         horizontal: icon == null ? 10 : 12,
-        vertical: 8,
+        vertical: verticalPadding,
       ),
-      minimumSize: const Size(0, 34),
+      minimumSize: Size(0, minHeight),
       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       visualDensity: VisualDensity.compact,
       backgroundColor:

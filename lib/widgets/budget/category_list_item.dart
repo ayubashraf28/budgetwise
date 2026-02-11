@@ -80,23 +80,32 @@ class CategoryListItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          category.name,
-                          style: TextStyle(
-                            color: palette.textPrimary,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                        Expanded(
+                          child: Text(
+                            category.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: palette.textPrimary,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                        Text(
-                          category.isBudgeted
-                              ? '$currencySymbol${category.totalActual.toStringAsFixed(0)} / $currencySymbol${category.totalProjected.toStringAsFixed(0)}'
-                              : '$currencySymbol${category.totalActual.toStringAsFixed(0)}',
-                          style: TextStyle(
-                            color: palette.textPrimary,
-                            fontSize: 14,
+                        const SizedBox(width: AppSpacing.sm),
+                        Flexible(
+                          child: Text(
+                            category.isBudgeted
+                                ? '$currencySymbol${category.totalActual.toStringAsFixed(0)} / $currencySymbol${category.totalProjected.toStringAsFixed(0)}'
+                                : '$currencySymbol${category.totalActual.toStringAsFixed(0)}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: TextStyle(
+                              color: palette.textPrimary,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
                       ],

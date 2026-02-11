@@ -100,10 +100,12 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        isEditing ? 'Edit Category' : 'Add Category',
-                        style: NeoTypography.sectionTitle(context),
+                      Expanded(
+                        child: AdaptiveHeadingText(
+                          text: isEditing ? 'Edit Category' : 'Add Category',
+                        ),
                       ),
+                      const SizedBox(width: AppSpacing.sm),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
                         icon: const Icon(LucideIcons.x),

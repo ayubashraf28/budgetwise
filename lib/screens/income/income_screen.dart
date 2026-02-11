@@ -59,9 +59,8 @@ class IncomeScreen extends ConsumerWidget {
                     NeoLayout.screenPadding,
                     AppSpacing.sm,
                   ),
-                  child: Text(
-                    'Income Sources',
-                    style: NeoTypography.sectionTitle(context),
+                  child: const AdaptiveHeadingText(
+                    text: 'Income Sources',
                   ),
                 ),
               ),
@@ -285,6 +284,8 @@ class IncomeScreen extends ConsumerWidget {
                     child: Text(
                       source.name,
                       style: NeoTypography.rowTitle(context),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   _buildStatusBadge(context, source),
@@ -296,6 +297,8 @@ class IncomeScreen extends ConsumerWidget {
                     ? '$currencySymbol${_formatAmount(source.actual)} / $currencySymbol${_formatAmount(source.projected)}'
                     : '$currencySymbol${_formatAmount(source.actual)}',
                 style: NeoTypography.rowSecondary(context),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
               if (source.isRecurring) ...[
                 const SizedBox(height: AppSpacing.sm),

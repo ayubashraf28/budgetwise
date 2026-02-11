@@ -169,10 +169,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                         AppSpacing.md,
                         AppSpacing.xs,
                       ),
-                      child: Text(
-                        'Items',
-                        style: NeoTypography.sectionTitle(context),
-                      ),
+                      child: const AdaptiveHeadingText(text: 'Items'),
                     ),
                   ),
                   SliverList(
@@ -232,9 +229,8 @@ class CategoryDetailScreen extends ConsumerWidget {
                       AppSpacing.md,
                       AppSpacing.xs,
                     ),
-                    child: Text(
-                      'Transactions (${transactions.length})',
-                      style: NeoTypography.sectionTitle(context),
+                    child: AdaptiveHeadingText(
+                      text: 'Transactions (${transactions.length})',
                     ),
                   ),
                 ),
@@ -425,13 +421,20 @@ class CategoryDetailScreen extends ConsumerWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Items',
-                        style: NeoTypography.sectionTitle(context),
+                      const Expanded(
+                        child: AdaptiveHeadingText(
+                          text: 'Items',
+                        ),
                       ),
-                      Text(
-                        '${items.length} ${items.length == 1 ? 'item' : 'items'}',
-                        style: NeoTypography.rowSecondary(context),
+                      const SizedBox(width: AppSpacing.sm),
+                      Flexible(
+                        child: Text(
+                          '${items.length} ${items.length == 1 ? 'item' : 'items'}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.end,
+                          style: NeoTypography.rowSecondary(context),
+                        ),
                       ),
                     ],
                   ),

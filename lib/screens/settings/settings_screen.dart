@@ -21,6 +21,7 @@ class SettingsScreen extends ConsumerWidget {
     final currentCurrency = ref.watch(currencyProvider);
     final currentSymbol = ref.watch(currencySymbolProvider);
     final currentThemeMode = ref.watch(themeModeProvider);
+    final currentAppFontSize = ref.watch(appFontSizeProvider);
 
     return Scaffold(
       backgroundColor: palette.appBg,
@@ -101,6 +102,19 @@ class SettingsScreen extends ConsumerWidget {
                   onTap: () {
                     HapticFeedback.selectionClick();
                     _showThemeModeSheet(context, ref, currentThemeMode);
+                  },
+                ),
+                _SettingsTile(
+                  icon: LucideIcons.type,
+                  title: 'Text Size',
+                  subtitle: 'Small, medium, large, or extra large',
+                  trailing: Text(
+                    appFontSizeLabel(currentAppFontSize),
+                    style: NeoTypography.rowSecondary(context),
+                  ),
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    _showTextSizeSheet(context, ref, currentAppFontSize);
                   },
                 ),
               ],
@@ -270,6 +284,77 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  void _showTextSizeSheet(
+    BuildContext context,
+    WidgetRef ref,
+    AppFontSize currentSize,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final palette = NeoTheme.of(sheetContext);
+
+        Future<void> setSize(AppFontSize size) async {
+          await ref.read(uiPreferencesProvider.notifier).setAppFontSize(size);
+          if (sheetContext.mounted) {
+            Navigator.of(sheetContext).pop();
+          }
+        }
+
+        Widget option(AppFontSize size) {
+          final isSelected = currentSize == size;
+          return ListTile(
+            onTap: () => setSize(size),
+            leading: Icon(
+              isSelected ? LucideIcons.checkCircle2 : LucideIcons.circle,
+              color: isSelected ? palette.accent : palette.textMuted,
+            ),
+            title: Text(
+              appFontSizeLabel(size),
+              style: AppTypography.bodyLarge.copyWith(
+                color: isSelected ? palette.textPrimary : palette.textSecondary,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+            subtitle: MediaQuery(
+              data: MediaQuery.of(sheetContext).copyWith(
+                textScaler: TextScaler.linear(size.scaleFactor),
+              ),
+              child: Text(
+                'The quick brown fox jumps over the lazy dog.',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.bodySmall.copyWith(
+                  color: palette.textMuted,
+                ),
+              ),
+            ),
+          );
+        }
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: NeoGlassCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Text size',
+                    style: NeoTypography.sectionTitle(sheetContext),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  for (final size in AppFontSize.values) option(size),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _handleSignOut(BuildContext context, WidgetRef ref) async {
     HapticFeedback.mediumImpact();
     final palette = NeoTheme.of(context);
@@ -373,11 +458,15 @@ class _SettingsTile extends StatelessWidget {
                       style: NeoTypography.rowTitle(context).copyWith(
                         color: titleColor ?? palette.textPrimary,
                       ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     if (subtitle != null)
                       Text(
                         subtitle!,
                         style: NeoTypography.rowSecondary(context),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                   ],
                 ),

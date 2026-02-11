@@ -448,6 +448,144 @@ class NeoTypography {
       );
 }
 
+/// Adaptive heading text that wraps at word boundaries when width is tight.
+///
+/// Use this for section/page headings so they scale across all text sizes
+/// without forcing one-line truncation.
+class AdaptiveHeadingText extends StatelessWidget {
+  final String text;
+  final TextStyle? style;
+  final int maxLines;
+  final TextOverflow overflow;
+  final TextAlign? textAlign;
+  final bool softWrap;
+
+  const AdaptiveHeadingText({
+    super.key,
+    required this.text,
+    this.style,
+    this.maxLines = 2,
+    this.overflow = TextOverflow.ellipsis,
+    this.textAlign,
+    this.softWrap = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedStyle = style ?? NeoTypography.sectionTitle(context);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final displayText = _adaptiveHeadingText(
+          context: context,
+          text: text,
+          style: resolvedStyle,
+          maxWidth: constraints.maxWidth,
+          maxLines: maxLines,
+        );
+
+        return Text(
+          displayText,
+          maxLines: maxLines,
+          overflow: overflow,
+          textAlign: textAlign,
+          softWrap: softWrap,
+          style: resolvedStyle,
+        );
+      },
+    );
+  }
+}
+
+String _adaptiveHeadingText({
+  required BuildContext context,
+  required String text,
+  required TextStyle style,
+  required double maxWidth,
+  required int maxLines,
+}) {
+  final trimmed = text.trim();
+  if (trimmed.isEmpty) return trimmed;
+  if (maxLines <= 1) return trimmed;
+  if (maxWidth.isInfinite || maxWidth <= 0) return trimmed;
+  if (trimmed.contains('\n') || !trimmed.contains(' ')) return trimmed;
+
+  if (!_doesOverflowSingleLine(
+    context: context,
+    text: trimmed,
+    style: style,
+    maxWidth: maxWidth,
+  )) {
+    return trimmed;
+  }
+
+  final words = trimmed.split(RegExp(r'\s+'));
+  if (words.length < 2) return trimmed;
+  if (words.length == 2) return '${words.first}\n${words.last}';
+
+  var bestSplit = 1;
+  var bestScore = double.infinity;
+
+  for (var split = 1; split < words.length; split++) {
+    final firstLine = words.take(split).join(' ');
+    final secondLine = words.skip(split).join(' ');
+    final firstWidth = _measureTextWidth(
+      context: context,
+      text: firstLine,
+      style: style,
+    );
+    final secondWidth = _measureTextWidth(
+      context: context,
+      text: secondLine,
+      style: style,
+    );
+
+    final overflowPenalty =
+        (firstWidth > maxWidth ? firstWidth - maxWidth : 0) +
+            (secondWidth > maxWidth ? secondWidth - maxWidth : 0);
+    final balancePenalty = (firstWidth - secondWidth).abs() * 0.5;
+    final score = overflowPenalty * 4 + balancePenalty;
+
+    if (score < bestScore) {
+      bestScore = score;
+      bestSplit = split;
+    }
+  }
+
+  final firstLine = words.take(bestSplit).join(' ');
+  final secondLine = words.skip(bestSplit).join(' ');
+  return '$firstLine\n$secondLine';
+}
+
+bool _doesOverflowSingleLine({
+  required BuildContext context,
+  required String text,
+  required TextStyle style,
+  required double maxWidth,
+}) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout(maxWidth: maxWidth);
+  return painter.didExceedMaxLines;
+}
+
+double _measureTextWidth({
+  required BuildContext context,
+  required String text,
+  required TextStyle style,
+}) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout();
+  return painter.width;
+}
+
 class NeoIconSizes {
   NeoIconSizes._();
 

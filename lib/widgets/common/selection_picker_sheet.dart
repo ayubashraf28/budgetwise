@@ -76,9 +76,8 @@ class SelectionPickerSheet<T> extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(
-                      title,
-                      style: NeoTypography.sectionTitle(context),
+                    child: AdaptiveHeadingText(
+                      text: title,
                     ),
                   ),
                   IconButton(

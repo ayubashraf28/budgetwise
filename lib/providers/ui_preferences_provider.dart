@@ -16,6 +16,26 @@ enum BudgetViewMode {
   year,
 }
 
+enum AppFontSize {
+  small,
+  medium,
+  large,
+  extraLarge;
+
+  double get scaleFactor {
+    switch (this) {
+      case AppFontSize.small:
+        return 0.85;
+      case AppFontSize.medium:
+        return 1.0;
+      case AppFontSize.large:
+        return 1.15;
+      case AppFontSize.extraLarge:
+        return 1.3;
+    }
+  }
+}
+
 class UiSectionKeys {
   static const String homeAccounts = 'home.accounts';
   static const String homeUpcoming = 'home.upcoming';
@@ -43,6 +63,7 @@ class UiPreferencesState {
   final int schemaVersion;
   final bool isLoaded;
   final ThemeMode themeMode;
+  final AppFontSize appFontSize;
   final bool hideSensitiveAmounts;
   final BudgetViewMode budgetViewMode;
   final Map<String, bool> expandedSections;
@@ -51,6 +72,7 @@ class UiPreferencesState {
     required this.schemaVersion,
     required this.isLoaded,
     required this.themeMode,
+    required this.appFontSize,
     required this.hideSensitiveAmounts,
     required this.budgetViewMode,
     required this.expandedSections,
@@ -63,6 +85,7 @@ class UiPreferencesState {
       schemaVersion: _uiPreferencesSchemaVersion,
       isLoaded: false,
       themeMode: themeMode,
+      appFontSize: AppFontSize.medium,
       hideSensitiveAmounts: false,
       budgetViewMode: BudgetViewMode.month,
       expandedSections: Map<String, bool>.from(_defaultExpandedSections),
@@ -73,6 +96,7 @@ class UiPreferencesState {
     int? schemaVersion,
     bool? isLoaded,
     ThemeMode? themeMode,
+    AppFontSize? appFontSize,
     bool? hideSensitiveAmounts,
     BudgetViewMode? budgetViewMode,
     Map<String, bool>? expandedSections,
@@ -81,6 +105,7 @@ class UiPreferencesState {
       schemaVersion: schemaVersion ?? this.schemaVersion,
       isLoaded: isLoaded ?? this.isLoaded,
       themeMode: themeMode ?? this.themeMode,
+      appFontSize: appFontSize ?? this.appFontSize,
       hideSensitiveAmounts: hideSensitiveAmounts ?? this.hideSensitiveAmounts,
       budgetViewMode: budgetViewMode ?? this.budgetViewMode,
       expandedSections: expandedSections ?? this.expandedSections,
@@ -102,6 +127,7 @@ class UiPreferencesState {
     return <String, dynamic>{
       'version': _uiPreferencesSchemaVersion,
       'themeMode': _themeModeToStoredValue(themeMode),
+      'appFontSize': _appFontSizeToStoredValue(appFontSize),
       'hideSensitiveAmounts': hideSensitiveAmounts,
       'budgetViewMode': _budgetViewModeToStoredValue(budgetViewMode),
       'expandedSections': persistedSections,
@@ -133,6 +159,9 @@ class UiPreferencesState {
       isLoaded: false,
       themeMode: _themeModeFromStoredValue(json['themeMode'] as String?) ??
           fallbackThemeMode,
+      appFontSize:
+          _appFontSizeFromStoredValue(json['appFontSize'] as String?) ??
+              AppFontSize.medium,
       hideSensitiveAmounts: json['hideSensitiveAmounts'] as bool? ?? false,
       budgetViewMode:
           _budgetViewModeFromStoredValue(json['budgetViewMode'] as String?) ??
@@ -168,6 +197,10 @@ final uiSectionExpandedProvider = Provider.family<bool, String>((ref, section) {
 final budgetViewModeProvider = Provider<BudgetViewMode>((ref) {
   return ref
       .watch(uiPreferencesProvider.select((prefs) => prefs.budgetViewMode));
+});
+
+final appFontSizeProvider = Provider<AppFontSize>((ref) {
+  return ref.watch(uiPreferencesProvider.select((prefs) => prefs.appFontSize));
 });
 
 final budgetYearViewEnabledProvider = Provider<bool>((ref) {
@@ -216,6 +249,11 @@ class UiPreferencesNotifier extends StateNotifier<UiPreferencesState> {
   Future<void> setBudgetViewMode(BudgetViewMode mode) {
     if (state.budgetViewMode == mode) return Future<void>.value();
     return _updateAndPersist(state.copyWith(budgetViewMode: mode));
+  }
+
+  Future<void> setAppFontSize(AppFontSize size) {
+    if (state.appFontSize == size) return Future<void>.value();
+    return _updateAndPersist(state.copyWith(appFontSize: size));
   }
 
   Future<void> _loadForUser(String? userId) async {
@@ -325,5 +363,46 @@ String _budgetViewModeToStoredValue(BudgetViewMode mode) {
       return 'month';
     case BudgetViewMode.year:
       return 'year';
+  }
+}
+
+AppFontSize? _appFontSizeFromStoredValue(String? value) {
+  switch (value) {
+    case 'small':
+      return AppFontSize.small;
+    case 'medium':
+      return AppFontSize.medium;
+    case 'large':
+      return AppFontSize.large;
+    case 'extra_large':
+      return AppFontSize.extraLarge;
+    default:
+      return null;
+  }
+}
+
+String _appFontSizeToStoredValue(AppFontSize size) {
+  switch (size) {
+    case AppFontSize.small:
+      return 'small';
+    case AppFontSize.medium:
+      return 'medium';
+    case AppFontSize.large:
+      return 'large';
+    case AppFontSize.extraLarge:
+      return 'extra_large';
+  }
+}
+
+String appFontSizeLabel(AppFontSize size) {
+  switch (size) {
+    case AppFontSize.small:
+      return 'Small';
+    case AppFontSize.medium:
+      return 'Medium';
+    case AppFontSize.large:
+      return 'Large';
+    case AppFontSize.extraLarge:
+      return 'Extra Large';
   }
 }

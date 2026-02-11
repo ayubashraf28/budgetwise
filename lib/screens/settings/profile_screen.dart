@@ -177,6 +177,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               Text(
                                 email,
                                 style: NeoTypography.rowTitle(context),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
@@ -223,6 +225,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               ? DateFormat('MMMM yyyy').format(memberSince)
                               : '-',
                           style: NeoTypography.rowSecondary(context),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -267,6 +271,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             Text(
                               '$currentSymbol $currentCurrency',
                               style: NeoTypography.rowSecondary(context),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(width: AppSpacing.sm),
                             Icon(

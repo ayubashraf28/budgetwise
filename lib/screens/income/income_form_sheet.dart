@@ -96,10 +96,14 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        isEditing ? 'Edit Income Source' : 'Add Income Source',
-                        style: NeoTypography.sectionTitle(context),
+                      Expanded(
+                        child: AdaptiveHeadingText(
+                          text: isEditing
+                              ? 'Edit Income Source'
+                              : 'Add Income Source',
+                        ),
                       ),
+                      const SizedBox(width: AppSpacing.sm),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
                         icon: const Icon(LucideIcons.x),

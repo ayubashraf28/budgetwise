@@ -211,7 +211,7 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: NeoTypography.sectionTitle(context)),
+          AdaptiveHeadingText(text: title),
           const SizedBox(height: 2),
           Text(subtitle, style: NeoTypography.rowSecondary(context)),
           const SizedBox(height: AppSpacing.sm),

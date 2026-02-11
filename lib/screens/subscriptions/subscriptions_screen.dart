@@ -290,11 +290,20 @@ class SubscriptionsScreen extends ConsumerWidget {
   }) {
     return Row(
       children: [
-        Text(title, style: NeoTypography.sectionTitle(context)),
-        const Spacer(),
-        Text(
-          '$count ${count == 1 ? 'subscription' : 'subscriptions'}',
-          style: NeoTypography.rowSecondary(context),
+        Expanded(
+          child: AdaptiveHeadingText(
+            text: title,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Flexible(
+          child: Text(
+            '$count ${count == 1 ? 'subscription' : 'subscriptions'}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.end,
+            style: NeoTypography.rowSecondary(context),
+          ),
         ),
       ],
     );
@@ -365,6 +374,8 @@ class SubscriptionsScreen extends ConsumerWidget {
                   Text(
                     '$currencySymbol${_formatAmount(sub.amount)} / ${sub.billingCycleLabel.toLowerCase()}',
                     style: NeoTypography.rowSecondary(context),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
                   _buildDueDateChip(context, sub),
@@ -720,9 +731,8 @@ class SubscriptionsScreen extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: AppSpacing.md),
-                      Text(
-                        'Choose payment account',
-                        style: NeoTypography.sectionTitle(context),
+                      const AdaptiveHeadingText(
+                        text: 'Choose payment account',
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(

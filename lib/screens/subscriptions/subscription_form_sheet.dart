@@ -164,10 +164,14 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        isEditing ? 'Edit Subscription' : 'Add Subscription',
-                        style: NeoTypography.sectionTitle(context),
+                      Expanded(
+                        child: AdaptiveHeadingText(
+                          text: isEditing
+                              ? 'Edit Subscription'
+                              : 'Add Subscription',
+                        ),
                       ),
+                      const SizedBox(width: AppSpacing.sm),
                       IconButton(
                         onPressed: () => Navigator.of(context).pop(),
                         icon: const Icon(LucideIcons.x),
