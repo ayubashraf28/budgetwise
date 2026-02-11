@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
@@ -325,7 +326,7 @@ class ExpenseCategoriesScreen extends ConsumerWidget {
         );
       },
       child: InkWell(
-        onTap: () => _showEditSheet(context, category),
+        onTap: () => context.push('/budget/category/${category.id}'),
         borderRadius: BorderRadius.circular(NeoLayout.cardRadius),
         child: NeoGlassCard(
           child: Column(
@@ -520,15 +521,6 @@ class ExpenseCategoriesScreen extends ConsumerWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => const CategoryFormSheet(),
-    );
-  }
-
-  void _showEditSheet(BuildContext context, Category category) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => CategoryFormSheet(category: category),
     );
   }
 

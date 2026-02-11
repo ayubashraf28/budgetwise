@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
+import '../../models/account.dart';
 import '../../models/category.dart';
 import '../../models/income_source.dart';
 import '../../models/month.dart';
@@ -30,6 +31,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
   int? _selectedIncomeIndex;
 
   static const double _cardRadius = 16;
+  static const double _pillRadius = 16;
   static const double _sectionGap = 12;
   static const double _screenPadding = 16;
 
@@ -416,7 +418,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(NeoControlSizing.radius),
+        borderRadius: BorderRadius.circular(_pillRadius),
         child: Container(
           constraints: const BoxConstraints(
             minHeight: NeoControlSizing.minHeight,
@@ -425,7 +427,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
             color: isSelected ? selectedBg : idleBg,
-            borderRadius: BorderRadius.circular(NeoControlSizing.radius),
+            borderRadius: BorderRadius.circular(_pillRadius),
             border: Border.all(
               color: isSelected ? selectedBorder : idleBorder,
             ),
@@ -640,6 +642,7 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
           return _RowCard(
             title: r.accountName,
             subtitle: '${r.transactionCount} transactions',
+            leadingIcon: _accountTypeIcon(r.accountType, r.isUnassigned),
             leadingColor: netPositive
                 ? NeoTheme.positiveValue(context)
                 : NeoTheme.negativeValue(context),
@@ -769,6 +772,22 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
 
   IconData _categoryIcon(String iconName) {
     return resolveAppIcon(iconName, fallback: LucideIcons.wallet);
+  }
+
+  IconData _accountTypeIcon(AccountType type, bool isUnassigned) {
+    if (isUnassigned) return LucideIcons.wallet;
+    switch (type) {
+      case AccountType.cash:
+        return LucideIcons.wallet;
+      case AccountType.debit:
+        return LucideIcons.creditCard;
+      case AccountType.credit:
+        return LucideIcons.landmark;
+      case AccountType.savings:
+        return LucideIcons.piggyBank;
+      case AccountType.other:
+        return LucideIcons.circleDollarSign;
+    }
   }
 }
 

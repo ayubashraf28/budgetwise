@@ -16,11 +16,13 @@ import 'item_form_sheet.dart';
 class CategoryDetailScreen extends ConsumerWidget {
   final String categoryId;
   final bool yearMode;
+  final String routePrefix;
 
   const CategoryDetailScreen({
     super.key,
     required this.categoryId,
     this.yearMode = false,
+    this.routePrefix = '/budget',
   });
 
   @override
@@ -639,7 +641,7 @@ class CategoryDetailScreen extends ConsumerWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          context.push('/budget/category/${category.id}/item/${item.id}');
+          context.push('$routePrefix/category/${category.id}/item/${item.id}');
         },
         child: Container(
           padding: const EdgeInsets.all(AppSpacing.md),

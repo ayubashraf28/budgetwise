@@ -94,7 +94,7 @@ class _ManageScreenState extends ConsumerState<ManageScreen> {
                           UiSectionKeys.manageBudgets,
                           !isBudgetsExpanded,
                         ),
-                onViewAll: () => context.push('/budget'),
+                onViewAll: () => context.push('/budget-overview'),
                 onAdd: _showAddBudgetCategorySheet,
                 child: _buildBudgetsContent(
                   categoriesAsync: categoriesAsync,

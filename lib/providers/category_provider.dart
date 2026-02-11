@@ -190,6 +190,7 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
 
     ref.invalidateSelf();
     ref.invalidate(categoriesProvider);
+    ref.invalidate(categoriesForMonthProvider);
     return category;
   }
 
@@ -211,6 +212,7 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
 
     ref.invalidateSelf();
     ref.invalidate(categoriesProvider);
+    ref.invalidate(categoriesForMonthProvider);
     ref.invalidate(categoryByIdProvider(categoryId));
     return category;
   }
@@ -221,6 +223,7 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
 
     ref.invalidateSelf();
     ref.invalidate(categoriesProvider);
+    ref.invalidate(categoriesForMonthProvider);
   }
 
   /// Reorder categories
@@ -229,6 +232,7 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
 
     ref.invalidateSelf();
     ref.invalidate(categoriesProvider);
+    ref.invalidate(categoriesForMonthProvider);
   }
 
   /// Copy categories from another month
@@ -247,6 +251,7 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
 
     ref.invalidateSelf();
     ref.invalidate(categoriesProvider);
+    ref.invalidate(categoriesForMonthProvider);
     return categories;
   }
 }

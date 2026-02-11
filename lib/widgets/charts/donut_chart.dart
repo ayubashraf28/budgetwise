@@ -65,7 +65,12 @@ class _DonutChartState extends State<DonutChart> {
       return SizedBox(height: widget.height);
     }
 
-    return MediaQuery.withNoTextScaling(
+    final chartTextScale = _safeChartTextScale(context);
+
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        textScaler: TextScaler.linear(chartTextScale),
+      ),
       child: SizedBox(
         width: double.infinity,
         height: widget.height,
@@ -105,6 +110,14 @@ class _DonutChartState extends State<DonutChart> {
         ),
       ),
     );
+  }
+
+  // Charts should respect accessibility settings, but with a moderated scale
+  // to avoid clipping/overlap in constrained chart layouts.
+  double _safeChartTextScale(BuildContext context) {
+    final appScale = MediaQuery.textScalerOf(context).scale(1.0).toDouble();
+    final moderated = 1.0 + (appScale - 1.0) * 0.75;
+    return moderated.clamp(0.9, 1.22).toDouble();
   }
 
   void _handleChartTap(

@@ -71,6 +71,10 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
                     netWorth: netWorthAsync.value ?? 0,
                     currencySymbol: currencySymbol,
                   ),
+                  if (accounts.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    _buildAddAccountRow(onTap: _showCreateSheet),
+                  ],
                   const SizedBox(height: NeoLayout.sectionGap),
                   _buildSectionCard(
                     title: 'Active Accounts',
@@ -143,16 +147,6 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: NeoCircleIconButton(
-              icon: LucideIcons.plus,
-              onPressed: _showCreateSheet,
-              semanticLabel: 'Add account',
-              size: 36,
-            ),
-          ),
-          const SizedBox(width: 8),
           const Padding(
             padding: EdgeInsets.only(top: 4),
             child: NeoSettingsHeaderButton(),
@@ -203,6 +197,40 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAddAccountRow({required VoidCallback onTap}) {
+    final addColor = NeoTheme.positiveValue(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+        child: Container(
+          padding: AppSpacing.cardPadding,
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+            border: Border.all(color: _palette.stroke),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(LucideIcons.plus, color: addColor, size: NeoIconSizes.lg),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'Add Account',
+                style: AppTypography.bodyLarge.copyWith(
+                  color: addColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

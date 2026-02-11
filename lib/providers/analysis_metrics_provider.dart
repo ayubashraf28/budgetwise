@@ -13,6 +13,7 @@ import 'transaction_provider.dart';
 class AccountMovementSummary {
   final String accountId;
   final String accountName;
+  final AccountType accountType;
   final double income;
   final double expense;
   final int transactionCount;
@@ -21,6 +22,7 @@ class AccountMovementSummary {
   const AccountMovementSummary({
     required this.accountId,
     required this.accountName,
+    required this.accountType,
     required this.income,
     required this.expense,
     required this.transactionCount,
@@ -113,6 +115,7 @@ final analysisAccountMovementProvider =
         AccountMovementSummary(
           accountId: account.id,
           accountName: account.name,
+          accountType: account.type,
           income: 0,
           expense: 0,
           transactionCount: 0,
@@ -121,6 +124,7 @@ final analysisAccountMovementProvider =
     rows[account.id] = AccountMovementSummary(
       accountId: existing.accountId,
       accountName: existing.accountName,
+      accountType: existing.accountType,
       income:
           existing.income + (tx.type == TransactionType.income ? tx.amount : 0),
       expense: existing.expense +
@@ -135,6 +139,7 @@ final analysisAccountMovementProvider =
       AccountMovementSummary(
         accountId: '__unassigned__',
         accountName: 'Unassigned',
+        accountType: AccountType.other,
         income: unassignedIncome,
         expense: unassignedExpense,
         transactionCount: unassignedCount,

@@ -37,8 +37,12 @@ class StackedBarChart extends StatelessWidget {
 
     final maxExpense =
         monthlyData.map((d) => d.totalExpenses).reduce((a, b) => a > b ? a : b);
+    final chartTextScale = _safeChartTextScale(context);
 
-    return MediaQuery.withNoTextScaling(
+    return MediaQuery(
+      data: MediaQuery.of(context).copyWith(
+        textScaler: TextScaler.linear(chartTextScale),
+      ),
       child: SizedBox(
         height: height,
         child: BarChart(
@@ -187,6 +191,14 @@ class StackedBarChart extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // Charts should respect accessibility settings, but with a moderated scale
+  // to avoid clipping/overlap in constrained chart layouts.
+  double _safeChartTextScale(BuildContext context) {
+    final appScale = MediaQuery.textScalerOf(context).scale(1.0).toDouble();
+    final moderated = 1.0 + (appScale - 1.0) * 0.75;
+    return moderated.clamp(0.9, 1.22).toDouble();
   }
 
   String _formatAmount(double amount) {

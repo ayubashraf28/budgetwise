@@ -12,7 +12,9 @@ import '../screens/income/income_screen.dart';
 import '../screens/categories/categories_screen.dart';
 import '../screens/manage/manage_screen.dart';
 import '../screens/analysis/analysis_screen.dart';
+import '../screens/budget/budget_overview_screen.dart';
 import '../screens/expenses/expense_categories_screen.dart';
+import '../screens/expenses/expense_overview_screen.dart';
 import '../screens/expenses/category_detail_screen.dart';
 import '../screens/expenses/item_detail_screen.dart';
 import '../screens/transactions/transactions_screen.dart';
@@ -181,6 +183,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   return CategoryDetailScreen(
                     categoryId: id,
                     yearMode: yearMode,
+                    routePrefix: '/budget',
                   );
                 },
                 routes: [
@@ -200,11 +203,46 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          // Keep /expenses as alias for backwards compatibility
+          GoRoute(
+            path: '/budget-overview',
+            name: 'budget-overview',
+            builder: (context, state) => const BudgetOverviewScreen(),
+          ),
+          // Expense overview screen
           GoRoute(
             path: '/expenses',
             name: 'expenses',
-            redirect: (context, state) => '/budget',
+            builder: (context, state) => const ExpenseOverviewScreen(),
+            routes: [
+              GoRoute(
+                path: 'category/:id',
+                name: 'expense-category',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  final yearMode =
+                      state.uri.queryParameters['yearMode'] == 'true';
+                  return CategoryDetailScreen(
+                    categoryId: id,
+                    yearMode: yearMode,
+                    routePrefix: '/expenses',
+                  );
+                },
+                routes: [
+                  GoRoute(
+                    path: 'item/:itemId',
+                    name: 'expense-item-detail',
+                    builder: (context, state) {
+                      final categoryId = state.pathParameters['id']!;
+                      final itemId = state.pathParameters['itemId']!;
+                      return ItemDetailScreen(
+                        categoryId: categoryId,
+                        itemId: itemId,
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
           ),
           GoRoute(
             path: '/subscriptions',
