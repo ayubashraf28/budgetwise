@@ -1745,8 +1745,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       return LucideIcons.arrowDownLeft;
     }
 
-    final name =
-        (transaction.categoryName ?? transaction.displayName).toLowerCase();
+    final iconName = transaction.subscriptionIcon ?? transaction.categoryIcon;
+    if (iconName != null && iconName.trim().isNotEmpty) {
+      return resolveAppIcon(iconName, fallback: LucideIcons.receipt);
+    }
+
+    final name = (transaction.categoryName ??
+            transaction.subscriptionName ??
+            transaction.displayName)
+        .toLowerCase();
 
     if (name.contains('food') || name.contains('restaurant')) {
       return LucideIcons.utensils;
@@ -1768,6 +1775,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
     if (name.contains('gift')) {
       return LucideIcons.gift;
+    }
+    if (name.contains('subscription') || name.contains('membership')) {
+      return LucideIcons.repeat;
     }
 
     return LucideIcons.receipt;

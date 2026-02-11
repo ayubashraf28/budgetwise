@@ -12,7 +12,7 @@ class TransactionService {
 
   /// Select query with joins
   String get _selectWithJoins =>
-      '*, categories(name, color), items(name), subscriptions(name), income_sources(name), accounts(name, type)';
+      '*, categories(name, color, icon), items(name), subscriptions(name, icon), income_sources(name), accounts(name, type)';
 
   /// Get all transactions for a month
   Future<List<Transaction>> getTransactionsForMonth(String monthId) async {

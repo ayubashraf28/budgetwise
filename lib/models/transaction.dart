@@ -37,8 +37,10 @@ class Transaction {
   // Populated by joins (not stored in DB)
   final String? categoryName;
   final String? categoryColor;
+  final String? categoryIcon;
   final String? itemName;
   final String? subscriptionName;
+  final String? subscriptionIcon;
   final String? incomeSourceName;
   final String? accountName;
   final AccountType? accountType;
@@ -60,8 +62,10 @@ class Transaction {
     required this.updatedAt,
     this.categoryName,
     this.categoryColor,
+    this.categoryIcon,
     this.itemName,
     this.subscriptionName,
+    this.subscriptionIcon,
     this.incomeSourceName,
     this.accountName,
     this.accountType,
@@ -71,9 +75,11 @@ class Transaction {
     // Handle nested category data from joins
     String? categoryName;
     String? categoryColor;
+    String? categoryIcon;
     if (json['categories'] != null) {
       categoryName = json['categories']['name'] as String?;
       categoryColor = json['categories']['color'] as String?;
+      categoryIcon = json['categories']['icon'] as String?;
     }
 
     // Handle nested item data
@@ -90,8 +96,10 @@ class Transaction {
 
     // Handle nested subscription data
     String? subscriptionName;
+    String? subscriptionIcon;
     if (json['subscriptions'] != null) {
       subscriptionName = json['subscriptions']['name'] as String?;
+      subscriptionIcon = json['subscriptions']['icon'] as String?;
     }
 
     // Handle nested account data
@@ -122,9 +130,12 @@ class Transaction {
       updatedAt: DateTime.parse(json['updated_at'] as String),
       categoryName: categoryName ?? json['category_name'] as String?,
       categoryColor: categoryColor ?? json['category_color'] as String?,
+      categoryIcon: categoryIcon ?? json['category_icon'] as String?,
       itemName: itemName ?? json['item_name'] as String?,
       subscriptionName:
           subscriptionName ?? json['subscription_name'] as String?,
+      subscriptionIcon:
+          subscriptionIcon ?? json['subscription_icon'] as String?,
       incomeSourceName:
           incomeSourceName ?? json['income_source_name'] as String?,
       accountName: accountName ?? json['account_name'] as String?,
@@ -175,8 +186,10 @@ class Transaction {
     DateTime? updatedAt,
     String? categoryName,
     String? categoryColor,
+    String? categoryIcon,
     String? itemName,
     String? subscriptionName,
+    String? subscriptionIcon,
     String? incomeSourceName,
     String? accountName,
     AccountType? accountType,
@@ -198,8 +211,10 @@ class Transaction {
       updatedAt: updatedAt ?? this.updatedAt,
       categoryName: categoryName ?? this.categoryName,
       categoryColor: categoryColor ?? this.categoryColor,
+      categoryIcon: categoryIcon ?? this.categoryIcon,
       itemName: itemName ?? this.itemName,
       subscriptionName: subscriptionName ?? this.subscriptionName,
+      subscriptionIcon: subscriptionIcon ?? this.subscriptionIcon,
       incomeSourceName: incomeSourceName ?? this.incomeSourceName,
       accountName: accountName ?? this.accountName,
       accountType: accountType ?? this.accountType,
