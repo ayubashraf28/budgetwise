@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
@@ -51,29 +52,45 @@ class NeoPageBackground extends StatelessWidget {
 class NeoPageHeader extends StatelessWidget {
   final String title;
   final String subtitle;
+  final bool showSettingsAction;
 
   const NeoPageHeader({
     super.key,
     required this.title,
     required this.subtitle,
+    this.showSettingsAction = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return SafeArea(
       bottom: false,
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: NeoTypography.pageTitle(context),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: NeoTypography.pageTitle(context),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  subtitle,
+                  style: NeoTypography.pageContext(context),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            subtitle,
-            style: NeoTypography.pageContext(context),
-          ),
+          if (showSettingsAction) ...[
+            const SizedBox(width: AppSpacing.sm),
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: NeoSettingsHeaderButton(),
+            ),
+          ],
         ],
       ),
     );
@@ -229,6 +246,64 @@ class NeoCircleIconButton extends StatelessWidget {
       button: true,
       label: semanticLabel,
       child: button,
+    );
+  }
+}
+
+class NeoSettingsHeaderButton extends StatelessWidget {
+  final double size;
+
+  const NeoSettingsHeaderButton({
+    super.key,
+    this.size = 40,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = NeoTheme.of(context);
+
+    return Semantics(
+      button: true,
+      label: 'Open settings',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            final location = GoRouterState.of(context).matchedLocation;
+            if (location == '/settings') return;
+            context.push('/settings');
+          },
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: palette.surface2,
+              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+              border: Border.all(color: palette.stroke),
+            ),
+            child: Icon(
+              LucideIcons.settings,
+              size: NeoIconSizes.lg,
+              color: palette.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class NeoSettingsAppBarAction extends StatelessWidget {
+  const NeoSettingsAppBarAction({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.only(right: AppSpacing.xs),
+      child: Center(
+        child: NeoSettingsHeaderButton(size: 36),
+      ),
     );
   }
 }

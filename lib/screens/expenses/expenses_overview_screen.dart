@@ -180,6 +180,17 @@ class _ExpensesOverviewScreenState
                             ),
                     ),
                   ),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.md,
+                        0,
+                        AppSpacing.md,
+                        AppSpacing.sm,
+                      ),
+                      child: _buildAddButton(),
+                    ),
+                  ),
 
                   // ── MONTH VIEW: Category List (unchanged, conditionally shown) ──
                   if (!isYearView) ...[
@@ -226,14 +237,6 @@ class _ExpensesOverviewScreenState
                         ),
                       ),
                   ],
-
-                  // ── Add Category Button (unchanged) ──
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.all(AppSpacing.md),
-                      child: _buildAddButton(),
-                    ),
-                  ),
 
                   // ── Bottom Padding (unchanged) ──
                   const SliverToBoxAdapter(

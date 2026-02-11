@@ -16,6 +16,7 @@ import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
 import '../../widgets/charts/donut_chart.dart';
 import '../../widgets/common/neo_dropdown_form_field.dart';
+import '../../widgets/common/neo_page_components.dart';
 
 class AnalysisScreen extends ConsumerStatefulWidget {
   const AnalysisScreen({super.key});
@@ -163,17 +164,29 @@ class _AnalysisScreenState extends ConsumerState<AnalysisScreen> {
   Widget _header() {
     return SafeArea(
       bottom: false,
-      child: Column(
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Analysis',
-            style: NeoTypography.pageTitle(context),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Analysis',
+                  style: NeoTypography.pageTitle(context),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  'Spending, income, account movement, and trends in one place',
+                  style: NeoTypography.pageContext(context),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            'Spending, income, account movement, and trends in one place',
-            style: NeoTypography.pageContext(context),
+          const SizedBox(width: AppSpacing.sm),
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: NeoSettingsHeaderButton(),
           ),
         ],
       ),

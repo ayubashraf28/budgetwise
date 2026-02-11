@@ -4,21 +4,22 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
-import '../../models/income_source.dart';
+import '../../models/category.dart';
 import '../../providers/providers.dart';
+import '../../utils/app_icon_registry.dart';
 import '../../widgets/budget/budget_widgets.dart';
 import '../../widgets/common/neo_page_components.dart';
-import 'income_form_sheet.dart';
+import 'category_form_sheet.dart';
 
-class IncomeScreen extends ConsumerWidget {
-  const IncomeScreen({super.key});
+class ExpenseCategoriesScreen extends ConsumerWidget {
+  const ExpenseCategoriesScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = NeoTheme.of(context);
-    final incomeSources = ref.watch(incomeSourcesProvider);
-    final totalProjected = ref.watch(totalProjectedIncomeProvider);
-    final totalActual = ref.watch(totalActualIncomeProvider);
+    final categoriesAsync = ref.watch(categoriesProvider);
+    final totalProjected = ref.watch(totalProjectedExpensesProvider);
+    final totalActual = ref.watch(totalActualExpensesProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
 
     return Scaffold(
@@ -26,7 +27,7 @@ class IncomeScreen extends ConsumerWidget {
       body: NeoPageBackground(
         child: RefreshIndicator(
           onRefresh: () async {
-            ref.invalidate(incomeSourcesProvider);
+            ref.invalidate(categoriesProvider);
           },
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -48,7 +49,11 @@ class IncomeScreen extends ConsumerWidget {
                     horizontal: NeoLayout.screenPadding,
                   ),
                   child: _buildSummaryCard(
-                      context, totalProjected, totalActual, currencySymbol),
+                    context,
+                    totalProjected,
+                    totalActual,
+                    currencySymbol,
+                  ),
                 ),
               ),
               SliverToBoxAdapter(
@@ -60,13 +65,13 @@ class IncomeScreen extends ConsumerWidget {
                     AppSpacing.sm,
                   ),
                   child: const AdaptiveHeadingText(
-                    text: 'Income Sources',
+                    text: 'Expense Categories',
                   ),
                 ),
               ),
-              ...incomeSources.when(
-                data: (sources) {
-                  if (sources.isEmpty) {
+              ...categoriesAsync.when(
+                data: (categories) {
+                  if (categories.isEmpty) {
                     return <Widget>[
                       SliverToBoxAdapter(
                         child: Padding(
@@ -79,6 +84,9 @@ class IncomeScreen extends ConsumerWidget {
                     ];
                   }
 
+                  final sorted = [...categories]
+                    ..sort((a, b) => b.totalActual.compareTo(a.totalActual));
+
                   return <Widget>[
                     SliverToBoxAdapter(
                       child: Padding(
@@ -88,9 +96,9 @@ class IncomeScreen extends ConsumerWidget {
                           NeoLayout.screenPadding,
                           AppSpacing.sm,
                         ),
-                        child: _buildAddIncomeSourceRow(
+                        child: _buildAddExpenseCategoryRow(
                           context: context,
-                          onTap: () => _showAddSheet(context, ref),
+                          onTap: () => _showAddSheet(context),
                         ),
                       ),
                     ),
@@ -101,19 +109,19 @@ class IncomeScreen extends ConsumerWidget {
                       sliver: SliverList(
                         delegate: SliverChildBuilderDelegate(
                           (context, index) {
-                            final source = sources[index];
+                            final category = sorted[index];
                             return Padding(
                               padding:
                                   const EdgeInsets.only(bottom: AppSpacing.sm),
-                              child: _buildIncomeSourceItem(
+                              child: _buildCategoryCard(
                                 context,
                                 ref,
-                                source,
+                                category,
                                 currencySymbol,
                               ),
                             );
                           },
-                          childCount: sources.length,
+                          childCount: sorted.length,
                         ),
                       ),
                     ),
@@ -164,10 +172,13 @@ class IncomeScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Income', style: NeoTypography.pageTitle(context)),
+                Text(
+                  'Expense Categories',
+                  style: NeoTypography.pageTitle(context),
+                ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  'Track projected and actual income sources',
+                  'Track budgeted and actual spending by category',
                   style: NeoTypography.pageContext(context),
                 ),
               ],
@@ -183,7 +194,7 @@ class IncomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildAddIncomeSourceRow({
+  Widget _buildAddExpenseCategoryRow({
     required BuildContext context,
     required VoidCallback onTap,
   }) {
@@ -208,7 +219,7 @@ class IncomeScreen extends ConsumerWidget {
               Icon(LucideIcons.plus, color: addColor, size: NeoIconSizes.lg),
               const SizedBox(width: AppSpacing.sm),
               Text(
-                'Add Income Source',
+                'Add Expense Category',
                 style: AppTypography.bodyLarge.copyWith(
                   color: addColor,
                   fontWeight: FontWeight.w600,
@@ -227,9 +238,9 @@ class IncomeScreen extends ConsumerWidget {
     double totalActual,
     String currencySymbol,
   ) {
-    final difference = totalActual - totalProjected;
-    final isAhead = difference >= 0;
-    final deltaColor = isAhead
+    final difference = totalProjected - totalActual;
+    final isWithinBudget = difference >= 0;
+    final deltaColor = isWithinBudget
         ? NeoTheme.positiveValue(context)
         : NeoTheme.negativeValue(context);
 
@@ -241,7 +252,9 @@ class IncomeScreen extends ConsumerWidget {
           Text(
             '$currencySymbol${_formatAmount(amount)}',
             style: NeoTypography.rowAmount(
-                context, NeoTheme.of(context).textPrimary),
+              context,
+              NeoTheme.of(context).textPrimary,
+            ),
           ),
         ],
       );
@@ -250,9 +263,9 @@ class IncomeScreen extends ConsumerWidget {
     return NeoGlassCard(
       child: Column(
         children: [
-          summaryRow('Total projected', totalProjected),
+          summaryRow('Total budgeted', totalProjected),
           const SizedBox(height: AppSpacing.sm),
-          summaryRow('Total actual', totalActual),
+          summaryRow('Total spent', totalActual),
           Divider(
             height: AppSpacing.lg,
             color: NeoTheme.of(context).stroke.withValues(alpha: 0.85),
@@ -264,13 +277,15 @@ class IncomeScreen extends ConsumerWidget {
               Row(
                 children: [
                   Icon(
-                    isAhead ? LucideIcons.trendingUp : LucideIcons.trendingDown,
+                    isWithinBudget
+                        ? LucideIcons.trendingDown
+                        : LucideIcons.trendingUp,
                     size: NeoIconSizes.md,
                     color: deltaColor,
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Text(
-                    '${isAhead ? '+' : '-'}$currencySymbol${_formatAmount(difference.abs())}',
+                    '${isWithinBudget ? '+' : '-'}$currencySymbol${_formatAmount(difference.abs())}',
                     style: NeoTypography.rowAmount(context, deltaColor),
                   ),
                 ],
@@ -282,16 +297,16 @@ class IncomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildIncomeSourceItem(
+  Widget _buildCategoryCard(
     BuildContext context,
     WidgetRef ref,
-    IncomeSource source,
+    Category category,
     String currencySymbol,
   ) {
     final palette = NeoTheme.of(context);
 
     return Dismissible(
-      key: Key(source.id),
+      key: Key(category.id),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -302,17 +317,15 @@ class IncomeScreen extends ConsumerWidget {
         ),
         child: const Icon(LucideIcons.trash2, color: Colors.white),
       ),
-      confirmDismiss: (direction) async {
-        return await _showDeleteConfirmation(context);
-      },
+      confirmDismiss: (direction) => _showDeleteConfirmation(context),
       onDismissed: (direction) {
-        ref.read(incomeNotifierProvider.notifier).deleteIncomeSource(source.id);
+        ref.read(categoryNotifierProvider.notifier).deleteCategory(category.id);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${source.name} deleted')),
+          SnackBar(content: Text('${category.name} deleted')),
         );
       },
       child: InkWell(
-        onTap: () => _showEditSheet(context, ref, source),
+        onTap: () => _showEditSheet(context, category),
         borderRadius: BorderRadius.circular(NeoLayout.cardRadius),
         child: NeoGlassCard(
           child: Column(
@@ -329,38 +342,45 @@ class IncomeScreen extends ConsumerWidget {
                       border: Border.all(color: palette.stroke),
                     ),
                     child: Icon(
-                      LucideIcons.trendingUp,
+                      _categoryIcon(category.icon),
                       size: NeoIconSizes.lg,
-                      color: NeoTheme.positiveValue(context),
+                      color: category.colorValue,
                     ),
                   ),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      source.name,
+                      category.name,
                       style: NeoTypography.rowTitle(context),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  _buildStatusBadge(context, source),
+                  _buildStatusBadge(context, category),
                 ],
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                source.isRecurring
-                    ? '$currencySymbol${_formatAmount(source.actual)} / $currencySymbol${_formatAmount(source.projected)}'
-                    : '$currencySymbol${_formatAmount(source.actual)}',
+                category.isBudgeted
+                    ? '$currencySymbol${_formatAmount(category.totalActual)} / $currencySymbol${_formatAmount(category.totalProjected)}'
+                    : '$currencySymbol${_formatAmount(category.totalActual)}',
                 style: NeoTypography.rowSecondary(context),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
-              if (source.isRecurring) ...[
+              const SizedBox(height: 2),
+              Text(
+                '${category.itemCount} item${category.itemCount == 1 ? '' : 's'}',
+                style: NeoTypography.rowSecondary(context),
+              ),
+              if (category.isBudgeted) ...[
                 const SizedBox(height: AppSpacing.sm),
                 BudgetProgressBar(
-                  projected: source.projected,
-                  actual: source.actual,
-                  color: NeoTheme.positiveValue(context),
+                  projected: category.totalProjected,
+                  actual: category.totalActual,
+                  color: category.isOverBudget
+                      ? NeoTheme.negativeValue(context)
+                      : NeoTheme.positiveValue(context),
                 ),
               ],
             ],
@@ -370,27 +390,30 @@ class IncomeScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildStatusBadge(BuildContext context, IncomeSource source) {
+  Widget _buildStatusBadge(BuildContext context, Category category) {
     String label;
     Color color;
 
-    if (!source.isRecurring) {
-      if (source.actual > 0) {
-        label = 'Received';
-        color = NeoTheme.positiveValue(context);
-      } else {
-        label = 'Pending';
-        color = NeoTheme.of(context).textMuted;
-      }
-    } else if (source.actual >= source.projected && source.projected > 0) {
-      label = 'Received';
-      color = NeoTheme.positiveValue(context);
-    } else if (source.actual > 0) {
-      label = 'Partial';
-      color = NeoTheme.warningValue(context);
-    } else {
-      label = 'Pending';
+    if (!category.isBudgeted) {
+      label = 'No budget';
       color = NeoTheme.of(context).textMuted;
+    } else if (category.totalProjected <= 0) {
+      label = category.totalActual > 0 ? 'Unplanned' : 'No budget';
+      color = category.totalActual > 0
+          ? NeoTheme.warningValue(context)
+          : NeoTheme.of(context).textMuted;
+    } else if (category.isOverBudget) {
+      label = 'Over budget';
+      color = NeoTheme.negativeValue(context);
+    } else if (category.totalActual == 0) {
+      label = 'No spend';
+      color = NeoTheme.of(context).textMuted;
+    } else if (category.isOnBudget) {
+      label = 'On budget';
+      color = NeoTheme.positiveValue(context);
+    } else {
+      label = 'On track';
+      color = NeoTheme.positiveValue(context);
     }
 
     return Container(
@@ -427,23 +450,25 @@ class IncomeScreen extends ConsumerWidget {
                 border: Border.all(color: palette.stroke),
               ),
               child: Icon(
-                LucideIcons.wallet,
+                LucideIcons.pieChart,
                 size: NeoIconSizes.xl,
                 color: palette.textSecondary,
               ),
             ),
             const SizedBox(height: AppSpacing.sm),
-            Text('No income sources yet',
-                style: NeoTypography.rowTitle(context)),
+            Text(
+              'No expense categories yet',
+              style: NeoTypography.rowTitle(context),
+            ),
             const SizedBox(height: 2),
             Text(
-              'Add your first income source to start tracking.',
+              'Add your first expense category to start tracking.',
               style: NeoTypography.rowSecondary(context),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.md),
             ElevatedButton.icon(
-              onPressed: () => _showAddSheet(context, ref),
+              onPressed: () => _showAddSheet(context),
               style: ElevatedButton.styleFrom(
                 backgroundColor: palette.accent,
                 foregroundColor: NeoTheme.isLight(context)
@@ -451,7 +476,7 @@ class IncomeScreen extends ConsumerWidget {
                     : palette.surface1,
               ),
               icon: const Icon(LucideIcons.plus, size: NeoIconSizes.md),
-              label: const Text('Add income source'),
+              label: const Text('Add expense category'),
             ),
           ],
         ),
@@ -471,7 +496,7 @@ class IncomeScreen extends ConsumerWidget {
           border: Border.all(color: danger.withValues(alpha: 0.35)),
         ),
         child: Text(
-          'Failed to load income sources: $error',
+          'Failed to load expense categories: $error',
           style: AppTypography.bodySmall.copyWith(color: danger),
         ),
       ),
@@ -485,22 +510,25 @@ class IncomeScreen extends ConsumerWidget {
     return NumberFormat('#,##0.##').format(amount);
   }
 
-  void _showAddSheet(BuildContext context, WidgetRef ref) {
+  IconData _categoryIcon(String iconName) {
+    return resolveAppIcon(iconName, fallback: LucideIcons.wallet);
+  }
+
+  void _showAddSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const IncomeFormSheet(),
+      builder: (context) => const CategoryFormSheet(),
     );
   }
 
-  void _showEditSheet(
-      BuildContext context, WidgetRef ref, IncomeSource source) {
+  void _showEditSheet(BuildContext context, Category category) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => IncomeFormSheet(incomeSource: source),
+      builder: (context) => CategoryFormSheet(category: category),
     );
   }
 
@@ -511,11 +539,11 @@ class IncomeScreen extends ConsumerWidget {
           builder: (context) => AlertDialog(
             backgroundColor: palette.surface1,
             title: Text(
-              'Delete Income Source?',
+              'Delete Category?',
               style: AppTypography.h3.copyWith(color: palette.textPrimary),
             ),
             content: Text(
-              'This action cannot be undone. Any transactions linked to this income source will be unlinked.',
+              'This action cannot be undone.',
               style: AppTypography.bodyMedium.copyWith(
                 color: palette.textSecondary,
               ),

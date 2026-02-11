@@ -42,7 +42,7 @@ class SubscriptionsScreen extends ConsumerWidget {
                     NeoLayout.screenPadding,
                     AppSpacing.sm,
                   ),
-                  child: _buildHeader(context, ref),
+                  child: _buildHeader(context),
                 ),
               ),
               ...subscriptionsAsync.when(
@@ -106,7 +106,36 @@ class SubscriptionsScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            NeoLayout.screenPadding,
+                            AppSpacing.sm,
+                            NeoLayout.screenPadding,
+                            0,
+                          ),
+                          child: _buildAddSubscriptionRow(
+                            context: context,
+                            onTap: () => _showAddSheet(context, ref),
+                          ),
+                        ),
+                      ),
                     ],
+                    if (active.isEmpty && subscriptions.isNotEmpty)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            NeoLayout.screenPadding,
+                            NeoLayout.sectionGap,
+                            NeoLayout.screenPadding,
+                            0,
+                          ),
+                          child: _buildAddSubscriptionRow(
+                            context: context,
+                            onTap: () => _showAddSheet(context, ref),
+                          ),
+                        ),
+                      ),
                     if (paused.isNotEmpty) ...[
                       SliverToBoxAdapter(
                         child: Padding(
@@ -195,7 +224,7 @@ class SubscriptionsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeader(BuildContext context, WidgetRef ref) {
+  Widget _buildHeader(BuildContext context) {
     return SafeArea(
       bottom: false,
       child: Row(
@@ -218,16 +247,49 @@ class SubscriptionsScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: NeoCircleIconButton(
-              icon: LucideIcons.plus,
-              onPressed: () => _showAddSheet(context, ref),
-              semanticLabel: 'Add subscription',
-              size: 36,
-            ),
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: NeoSettingsHeaderButton(),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAddSubscriptionRow({
+    required BuildContext context,
+    required VoidCallback onTap,
+  }) {
+    final addColor = NeoTheme.positiveValue(context);
+    final borderColor = NeoTheme.of(context).stroke;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+        child: Container(
+          padding: AppSpacing.cardPadding,
+          decoration: BoxDecoration(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(LucideIcons.plus, color: addColor, size: NeoIconSizes.lg),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                'Add Subscription',
+                style: AppTypography.bodyLarge.copyWith(
+                  color: addColor,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

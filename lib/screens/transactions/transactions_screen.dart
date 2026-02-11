@@ -199,15 +199,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 ],
               ),
             ),
-            const SizedBox(width: AppSpacing.sm),
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: NeoCircleIconButton(
-                icon: LucideIcons.plus,
-                onPressed: () => _showAddSheet(),
-                semanticLabel: 'Add transaction',
-                size: 36,
-              ),
+            const SizedBox(width: 8),
+            const Padding(
+              padding: EdgeInsets.only(top: 4),
+              child: NeoSettingsHeaderButton(),
             ),
           ],
         ),

@@ -152,6 +152,11 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
               size: 36,
             ),
           ),
+          const SizedBox(width: 8),
+          const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: NeoSettingsHeaderButton(),
+          ),
         ],
       ),
     );

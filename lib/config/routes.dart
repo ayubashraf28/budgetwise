@@ -12,7 +12,7 @@ import '../screens/income/income_screen.dart';
 import '../screens/categories/categories_screen.dart';
 import '../screens/manage/manage_screen.dart';
 import '../screens/analysis/analysis_screen.dart';
-import '../screens/expenses/expenses_overview_screen.dart';
+import '../screens/expenses/expense_categories_screen.dart';
 import '../screens/expenses/category_detail_screen.dart';
 import '../screens/expenses/item_detail_screen.dart';
 import '../screens/transactions/transactions_screen.dart';
@@ -169,7 +169,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/budget',
             name: 'budget',
-            builder: (context, state) => const ExpensesOverviewScreen(),
+            builder: (context, state) => const ExpenseCategoriesScreen(),
             routes: [
               GoRoute(
                 path: 'category/:id',
