@@ -30,6 +30,7 @@ dependencies:
   uuid: ^4.2.1
   connectivity_plus: ^5.0.2
   shared_preferences: ^2.2.3
+  google_sign_in: ^6.2.1
 
   # UI
   flutter_svg: ^2.0.9

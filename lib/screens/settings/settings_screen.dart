@@ -10,14 +10,31 @@ import '../../providers/providers.dart';
 import '../../widgets/common/neo_page_components.dart';
 import 'currency_picker_sheet.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  bool _isLinkingGoogle = false;
+  bool _isDeletingAllData = false;
+
+  @override
+  Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
     final authState = ref.watch(authStateProvider);
     final user = authState.valueOrNull;
+    final linkedProviders = ref.watch(linkedProvidersProvider);
+    final linkedSet = linkedProviders.valueOrNull ?? <String>{};
+    final hasGoogleLinked = linkedSet.contains('google');
+    final hasEmailLinked = user?.email != null || linkedSet.contains('email');
+    final linkedSummary = [
+      if (hasEmailLinked) 'Email linked',
+      if (hasGoogleLinked) 'Google linked',
+      if (!hasEmailLinked && !hasGoogleLinked) 'No linked providers',
+    ].join(' • ');
     final currentCurrency = ref.watch(currencyProvider);
     final currentSymbol = ref.watch(currencySymbolProvider);
     final currentThemeMode = ref.watch(themeModeProvider);
@@ -58,6 +75,33 @@ class SettingsScreen extends ConsumerWidget {
                   onTap: () {
                     HapticFeedback.selectionClick();
                     context.push('/settings/profile');
+                  },
+                ),
+                const Divider(height: 1),
+                _SettingsTile(
+                  icon: LucideIcons.link2,
+                  title: 'Linked Accounts',
+                  subtitle: linkedSummary,
+                  trailing: linkedProviders.isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : hasGoogleLinked
+                          ? Icon(
+                              LucideIcons.checkCircle2,
+                              size: NeoIconSizes.lg,
+                              color: NeoTheme.positiveValue(context),
+                            )
+                          : null,
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    _showLinkedAccountsDialog(
+                      context,
+                      hasEmailLinked: hasEmailLinked,
+                      hasGoogleLinked: hasGoogleLinked,
+                    );
                   },
                 ),
               ],
@@ -155,6 +199,32 @@ class SettingsScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: NeoLayout.sectionGap),
+            _buildSectionHeader(context, 'Danger Zone'),
+            const SizedBox(height: AppSpacing.sm),
+            _buildSettingsCard(
+              context,
+              children: [
+                _SettingsTile(
+                  icon: LucideIcons.trash2,
+                  title: 'Delete All Data',
+                  subtitle: 'Permanently remove your app data',
+                  titleColor: NeoTheme.negativeValue(context),
+                  showChevron: false,
+                  trailing: _isDeletingAllData
+                      ? SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: NeoTheme.negativeValue(context),
+                          ),
+                        )
+                      : null,
+                  onTap: _isDeletingAllData ? () {} : _confirmDeleteAllData,
+                ),
+              ],
+            ),
+            const SizedBox(height: NeoLayout.sectionGap),
             _buildSettingsCard(
               context,
               children: [
@@ -187,6 +257,269 @@ class SettingsScreen extends ConsumerWidget {
         color: NeoTheme.of(context).textMuted,
       ),
     );
+  }
+
+  void _showLinkedAccountsDialog(
+    BuildContext context, {
+    required bool hasEmailLinked,
+    required bool hasGoogleLinked,
+  }) {
+    final palette = NeoTheme.of(context);
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: palette.surface1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          side: BorderSide(color: palette.stroke),
+        ),
+        title: Text(
+          'Linked Accounts',
+          style: AppTypography.h3.copyWith(color: palette.textPrimary),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _linkedProviderRow(
+              context,
+              provider: 'Email',
+              linked: hasEmailLinked,
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            _linkedProviderRow(
+              context,
+              provider: 'Google',
+              linked: hasGoogleLinked,
+            ),
+            if (!hasGoogleLinked) ...[
+              const SizedBox(height: AppSpacing.lg),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLinkingGoogle
+                      ? null
+                      : () async {
+                          await _handleLinkGoogle();
+                          if (dialogContext.mounted) {
+                            Navigator.of(dialogContext).pop();
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: palette.accent,
+                    foregroundColor: NeoTheme.isLight(context)
+                        ? palette.textPrimary
+                        : palette.surface1,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                    ),
+                  ),
+                  child: _isLinkingGoogle
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Link Google Account'),
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _linkedProviderRow(
+    BuildContext context, {
+    required String provider,
+    required bool linked,
+  }) {
+    final palette = NeoTheme.of(context);
+    return Row(
+      children: [
+        Icon(
+          linked ? LucideIcons.checkCircle2 : LucideIcons.circle,
+          size: NeoIconSizes.lg,
+          color: linked ? NeoTheme.positiveValue(context) : palette.textMuted,
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: Text(
+            provider,
+            style: AppTypography.bodyLarge.copyWith(color: palette.textPrimary),
+          ),
+        ),
+        Text(
+          linked ? 'Linked' : 'Not linked',
+          style: AppTypography.bodySmall.copyWith(
+            color: linked ? NeoTheme.positiveValue(context) : palette.textMuted,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handleLinkGoogle() async {
+    if (_isLinkingGoogle) return;
+    setState(() => _isLinkingGoogle = true);
+
+    try {
+      await ref.read(authNotifierProvider.notifier).linkGoogleAccount();
+      ref.invalidate(linkedProvidersProvider);
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Google account linked successfully'),
+          backgroundColor: NeoTheme.positiveValue(context),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to link Google account: $e'),
+          backgroundColor: NeoTheme.negativeValue(context),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLinkingGoogle = false);
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteAllData() async {
+    final palette = NeoTheme.of(context);
+    final controller = TextEditingController();
+    bool canDelete = false;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          return AlertDialog(
+            backgroundColor: palette.surface1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+              side: BorderSide(color: palette.stroke),
+            ),
+            title: Text(
+              'Delete All Data',
+              style: AppTypography.h3.copyWith(
+                color: NeoTheme.negativeValue(context),
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'This will permanently delete all app data in Supabase while keeping your auth account.',
+                  style: AppTypography.bodyMedium
+                      .copyWith(color: palette.textSecondary),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Type DELETE to confirm:',
+                  style: AppTypography.bodySmall
+                      .copyWith(color: palette.textMuted),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                TextField(
+                  controller: controller,
+                  onChanged: (value) {
+                    setDialogState(() => canDelete = value.trim() == 'DELETE');
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'DELETE',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: _isDeletingAllData
+                    ? null
+                    : () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: (!canDelete || _isDeletingAllData)
+                    ? null
+                    : () => Navigator.of(dialogContext).pop(true),
+                style: TextButton.styleFrom(
+                  foregroundColor: NeoTheme.negativeValue(context),
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    controller.dispose();
+
+    if (!mounted) return;
+    if (confirmed == true) {
+      await _deleteAllData();
+    }
+  }
+
+  Future<void> _deleteAllData() async {
+    if (_isDeletingAllData) return;
+    setState(() => _isDeletingAllData = true);
+
+    var loadingDialogShown = false;
+    if (mounted) {
+      loadingDialogShown = true;
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    try {
+      await ref.read(profileServiceProvider).deleteAllUserData();
+      await ref.read(authNotifierProvider.notifier).signOut();
+      ref.invalidate(linkedProvidersProvider);
+      if (!mounted) return;
+
+      if (loadingDialogShown) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      context.go('/login');
+    } catch (e) {
+      if (!mounted) return;
+      if (loadingDialogShown) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete data: $e'),
+          backgroundColor: NeoTheme.negativeValue(context),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isDeletingAllData = false);
+      }
+    }
   }
 
   Widget _buildSettingsCard(BuildContext context,

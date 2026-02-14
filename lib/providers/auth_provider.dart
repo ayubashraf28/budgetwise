@@ -22,10 +22,19 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
   return user != null;
 });
 
+final linkedProvidersProvider = FutureProvider<Set<String>>((ref) async {
+  final user = ref.watch(currentUserProvider);
+  if (user == null) return <String>{};
+
+  final authService = ref.watch(authServiceProvider);
+  return authService.getLinkedProviders();
+});
+
 class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
   final AuthService _authService;
 
-  AuthNotifier(this._authService) : super(AsyncValue.data(_authService.currentUser));
+  AuthNotifier(this._authService)
+      : super(AsyncValue.data(_authService.currentUser));
 
   Future<void> signIn({
     required String email,
@@ -74,6 +83,28 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
     }
   }
 
+  Future<void> signInWithGoogle() async {
+    state = const AsyncValue.loading();
+    try {
+      await _authService.signInWithGoogle();
+      state = AsyncValue.data(_authService.currentUser);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
+  Future<void> linkGoogleAccount() async {
+    state = const AsyncValue.loading();
+    try {
+      final response = await _authService.linkGoogleAccount();
+      state = AsyncValue.data(response.user ?? _authService.currentUser);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+      rethrow;
+    }
+  }
+
   Future<void> resetPassword(String email) async {
     try {
       await _authService.resetPassword(email);
@@ -83,7 +114,8 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
   }
 }
 
-final authNotifierProvider = StateNotifierProvider<AuthNotifier, AsyncValue<User?>>((ref) {
+final authNotifierProvider =
+    StateNotifierProvider<AuthNotifier, AsyncValue<User?>>((ref) {
   final authService = ref.watch(authServiceProvider);
   return AuthNotifier(authService);
 });

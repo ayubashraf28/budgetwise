@@ -22,7 +22,8 @@ class ProfileService {
         .from(_table)
         .insert({
           'user_id': userId,
-          'display_name': _client.auth.currentUser?.email?.split('@').first ?? 'User',
+          'display_name':
+              _client.auth.currentUser?.email?.split('@').first ?? 'User',
           'currency': 'USD',
           'locale': 'en_US',
           'onboarding_completed': false,
@@ -40,11 +41,8 @@ class ProfileService {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return null;
 
-    final response = await _client
-        .from(_table)
-        .select()
-        .eq('user_id', userId)
-        .maybeSingle();
+    final response =
+        await _client.from(_table).select().eq('user_id', userId).maybeSingle();
 
     if (response == null) return null;
     return UserProfile.fromJson(response);
@@ -52,11 +50,8 @@ class ProfileService {
 
   /// Get a profile by user ID
   Future<UserProfile?> getProfileByUserId(String userId) async {
-    final response = await _client
-        .from(_table)
-        .select()
-        .eq('user_id', userId)
-        .maybeSingle();
+    final response =
+        await _client.from(_table).select().eq('user_id', userId).maybeSingle();
 
     if (response == null) return null;
     return UserProfile.fromJson(response);
@@ -110,5 +105,10 @@ class ProfileService {
   Future<bool> isOnboardingCompleted() async {
     final profile = await getCurrentProfile();
     return profile?.onboardingCompleted ?? false;
+  }
+
+  /// Delete all app data for the current user while preserving auth account
+  Future<void> deleteAllUserData() async {
+    await _client.rpc('delete_all_user_data');
   }
 }

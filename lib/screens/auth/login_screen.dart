@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -22,9 +24,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
-  bool _isLoading = false;
+  bool _isEmailLoading = false;
+  bool _isGoogleLoading = false;
   String? _errorMessage;
   bool _isCredentialError = false;
+
+  bool get _isBusy => _isEmailLoading || _isGoogleLoading;
 
   @override
   void dispose() {
@@ -37,7 +42,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
-      _isLoading = true;
+      _isEmailLoading = true;
       _errorMessage = null;
       _isCredentialError = false;
     });
@@ -63,7 +68,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     } finally {
       if (mounted) {
         setState(() {
-          _isLoading = false;
+          _isEmailLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isGoogleLoading = true;
+      _errorMessage = null;
+      _isCredentialError = false;
+    });
+
+    try {
+      await ref.read(authNotifierProvider.notifier).signInWithGoogle();
+      // OAuth flow completes through deep-link callback and router auth refresh.
+    } catch (e) {
+      final normalized = e.toString().toLowerCase();
+      if (normalized.contains('cancel')) {
+        return;
+      }
+
+      setState(() {
+        _errorMessage = _getErrorMessage(e.toString());
+        _isCredentialError = false;
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGoogleLoading = false;
         });
       }
     }
@@ -87,6 +121,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
     if (errorLower.contains('network') || errorLower.contains('connection')) {
       return 'Network error. Please check your internet connection';
+    }
+    if (errorLower.contains('google sign-in is not enabled') ||
+        errorLower.contains('provider is not enabled')) {
+      return 'Google sign-in is not enabled yet. Please contact support.';
+    }
+    if (errorLower.contains('google sign-in is only available')) {
+      return 'Google sign-in is available on Android and iOS only.';
+    }
+    if (errorLower.contains('google authentication failed')) {
+      return 'Google sign-in failed. Please try again.';
     }
     return 'Unable to sign in. Please try again';
   }
@@ -290,6 +334,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget _buildFormCard(Color color) {
     final palette = NeoTheme.of(context);
     final isLight = NeoTheme.isLight(context);
+    final showGoogleButton = !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
 
     return NeoGlassCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
@@ -401,7 +448,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             width: double.infinity,
             height: 48,
             child: ElevatedButton.icon(
-              onPressed: _isLoading ? null : _handleLogin,
+              onPressed: _isBusy ? null : _handleLogin,
               style: ElevatedButton.styleFrom(
                 backgroundColor: color,
                 foregroundColor:
@@ -411,7 +458,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   borderRadius: BorderRadius.circular(AppSizing.radiusMd),
                 ),
               ),
-              icon: _isLoading
+              icon: _isEmailLoading
                   ? SizedBox(
                       width: 18,
                       height: 18,
@@ -422,7 +469,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     )
                   : const Icon(LucideIcons.logIn, size: 18),
               label: Text(
-                _isLoading ? 'Signing in...' : 'Log In',
+                _isEmailLoading ? 'Signing in...' : 'Log In',
                 style: const TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 15,
@@ -430,6 +477,73 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
           ),
+          if (showGoogleButton) ...[
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: Divider(
+                    color: palette.stroke,
+                    height: 1,
+                  ),
+                ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                  child: Text(
+                    'or continue with',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: palette.textMuted,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Divider(
+                    color: palette.stroke,
+                    height: 1,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton.icon(
+                onPressed: _isBusy ? null : _handleGoogleSignIn,
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black87,
+                  side: BorderSide(color: palette.stroke),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                  ),
+                ),
+                icon: _isGoogleLoading
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: color,
+                        ),
+                      )
+                    : SvgPicture.asset(
+                        'assets/icons/google_g_logo.svg',
+                        width: 18,
+                        height: 18,
+                      ),
+                label: const Text(
+                  'Continue with Google',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

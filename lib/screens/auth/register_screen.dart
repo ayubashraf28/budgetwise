@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -25,7 +27,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
   String? _errorMessage;
+
+  bool get _isBusy => _isLoading || _isGoogleLoading;
 
   @override
   void dispose() {
@@ -67,6 +72,33 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isGoogleLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await ref.read(authNotifierProvider.notifier).signInWithGoogle();
+      // OAuth flow completes through deep-link callback and router auth refresh.
+    } catch (e) {
+      final normalized = e.toString().toLowerCase();
+      if (normalized.contains('cancel')) {
+        return;
+      }
+
+      setState(() {
+        _errorMessage = _getErrorMessage(e.toString());
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGoogleLoading = false;
+        });
+      }
+    }
+  }
+
   String _getErrorMessage(String error) {
     final errorLower = error.toLowerCase();
 
@@ -86,6 +118,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
     if (errorLower.contains('too many requests')) {
       return 'Too many attempts. Please try again later';
+    }
+    if (errorLower.contains('google sign-in is not enabled') ||
+        errorLower.contains('provider is not enabled')) {
+      return 'Google sign-in is not enabled yet. Please contact support.';
+    }
+    if (errorLower.contains('google sign-in is only available')) {
+      return 'Google sign-in is available on Android and iOS only.';
+    }
+    if (errorLower.contains('google authentication failed')) {
+      return 'Google sign-in failed. Please try again';
     }
     return 'Unable to create account. Please try again';
   }
@@ -354,6 +396,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Widget _buildFormCard(Color color) {
+    final showGoogleButton = !kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS);
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
@@ -461,7 +507,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             width: double.infinity,
             height: 48,
             child: ElevatedButton.icon(
-              onPressed: _isLoading ? null : _handleRegister,
+              onPressed: _isBusy ? null : _handleRegister,
               style: ElevatedButton.styleFrom(
                 backgroundColor: color.withValues(alpha: 0.15),
                 foregroundColor: color,
@@ -490,6 +536,73 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
             ),
           ),
+          if (showGoogleButton) ...[
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                Expanded(
+                  child: Divider(
+                    color: NeoTheme.of(context).stroke,
+                    height: 1,
+                  ),
+                ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+                  child: Text(
+                    'or continue with',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: NeoTheme.of(context).textMuted,
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Divider(
+                    color: NeoTheme.of(context).stroke,
+                    height: 1,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: OutlinedButton.icon(
+                onPressed: _isBusy ? null : _handleGoogleSignIn,
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black87,
+                  side: BorderSide(color: NeoTheme.of(context).stroke),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                  ),
+                ),
+                icon: _isGoogleLoading
+                    ? SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: color,
+                        ),
+                      )
+                    : SvgPicture.asset(
+                        'assets/icons/google_g_logo.svg',
+                        width: 18,
+                        height: 18,
+                      ),
+                label: const Text(
+                  'Continue with Google',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
