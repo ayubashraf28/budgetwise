@@ -8,6 +8,7 @@ import '../../config/theme.dart';
 import '../../models/account.dart';
 import '../../models/category.dart';
 import '../../models/income_source.dart';
+import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
 import '../../widgets/common/neo_page_components.dart';
@@ -37,12 +38,24 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     final expenseCategoriesAsync = ref.watch(categoriesProvider);
     final incomeSourcesAsync = ref.watch(incomeSourcesProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
+    final isSimpleMode = ref.watch(isSimpleBudgetModeProvider);
     final isAccountsExpanded =
         ref.watch(uiSectionExpandedProvider(UiSectionKeys.categoriesAccounts));
     final isExpenseExpanded =
         ref.watch(uiSectionExpandedProvider(UiSectionKeys.categoriesExpense));
     final isIncomeExpanded =
         ref.watch(uiSectionExpandedProvider(UiSectionKeys.categoriesIncome));
+    final monthTx = ref.watch(transactionsProvider).valueOrNull ?? [];
+    final expenseTransactions =
+        monthTx.where((t) => t.type == TransactionType.expense).toList();
+    final txCountByCategory = <String, int>{};
+    for (final tx in expenseTransactions) {
+      final categoryId = tx.categoryId;
+      if (categoryId != null) {
+        txCountByCategory[categoryId] =
+            (txCountByCategory[categoryId] ?? 0) + 1;
+      }
+    }
 
     return Scaffold(
       backgroundColor: _neoAppBg,
@@ -80,6 +93,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                 categoriesAsync: expenseCategoriesAsync,
                 currencySymbol: currencySymbol,
                 isExpanded: isExpenseExpanded,
+                isSimpleMode: isSimpleMode,
+                txCountByCategory: txCountByCategory,
               ),
               const SizedBox(height: NeoLayout.sectionGap),
               _buildIncomeCategoriesCard(
@@ -169,6 +184,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     required AsyncValue<List<Category>> categoriesAsync,
     required String currencySymbol,
     required bool isExpanded,
+    required bool isSimpleMode,
+    required Map<String, int> txCountByCategory,
   }) {
     return _buildSectionCard(
       title: 'Expense Categories',
@@ -202,8 +219,9 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                   icon: _categoryIcon(sorted[index].icon),
                   iconColor: sorted[index].colorValue,
                   title: sorted[index].name,
-                  subtitle:
-                      '${sorted[index].itemCount} item${sorted[index].itemCount == 1 ? '' : 's'}',
+                  subtitle: isSimpleMode
+                      ? '${txCountByCategory[sorted[index].id] ?? 0} ${(txCountByCategory[sorted[index].id] ?? 0) == 1 ? 'transaction' : 'transactions'}'
+                      : '${sorted[index].itemCount} item${sorted[index].itemCount == 1 ? '' : 's'}',
                   trailingTop:
                       '$currencySymbol${_formatAmount(sorted[index].totalActual)}',
                   trailingBottom:

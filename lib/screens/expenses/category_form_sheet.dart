@@ -73,6 +73,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
   Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
     final currencySymbol = ref.watch(currencySymbolProvider);
+    final isSimpleMode = ref.watch(isSimpleBudgetModeProvider);
     return Container(
       decoration: BoxDecoration(
         color: palette.surface1,
@@ -198,8 +199,12 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                         const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
                     child: Text(
                       _isBudgeted
-                          ? 'Track spending against your category limit'
-                          : 'Track spending only - no budget targets',
+                          ? isSimpleMode
+                              ? 'Track spending against a budget'
+                              : 'Track spending against a budget for each item'
+                          : isSimpleMode
+                              ? 'Track spending only'
+                              : 'Track spending only - no budget targets',
                       style: TextStyle(
                         color: palette.textMuted,
                         fontSize: 12,
@@ -422,10 +427,11 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
     try {
       final notifier = ref.read(categoryNotifierProvider.notifier);
       final name = _nameController.text.trim();
-      final budgetAmount = _parseBudgetAmount();
+      final budgetAmount = _isBudgeted ? _parseBudgetAmount() : null;
+      final simpleModeEnabled = ref.read(isSimpleBudgetModeProvider);
 
       if (isEditing) {
-        await notifier.updateCategory(
+        final updatedCategory = await notifier.updateCategory(
           categoryId: widget.category!.id,
           name: name,
           icon: _selectedIcon,
@@ -433,6 +439,13 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
           isBudgeted: _isBudgeted,
           budgetAmount: budgetAmount,
         );
+        if (simpleModeEnabled) {
+          await _ensureSimpleModeDefaultItemsForYear(
+            category: updatedCategory,
+            budgetAmount: _isBudgeted ? (budgetAmount ?? 0) : 0,
+            isBudgeted: _isBudgeted,
+          );
+        }
         if (mounted) {
           Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
@@ -447,6 +460,13 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
           isBudgeted: _isBudgeted,
           budgetAmount: budgetAmount,
         );
+        if (simpleModeEnabled) {
+          await _ensureSimpleModeDefaultItemsForYear(
+            category: newCategory,
+            budgetAmount: _isBudgeted ? (budgetAmount ?? 0) : 0,
+            isBudgeted: _isBudgeted,
+          );
+        }
         if (mounted) {
           Navigator.of(context)
               .pop(newCategory.id); // Return ID for transaction form
@@ -482,5 +502,52 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
       return amount.toStringAsFixed(0);
     }
     return amount.toStringAsFixed(2);
+  }
+
+  Future<void> _ensureSimpleModeDefaultItemsForYear({
+    required Category category,
+    required double budgetAmount,
+    required bool isBudgeted,
+  }) async {
+    final activeMonth = await ref.read(activeMonthProvider.future);
+    final targetYear = activeMonth?.startDate.year ?? DateTime.now().year;
+    final months = await ref.read(userMonthsProvider.future);
+    final yearMonthIds = months
+        .where((m) => m.startDate.year == targetYear)
+        .map((m) => m.id)
+        .toSet();
+    if (yearMonthIds.isEmpty) return;
+
+    final categoryService = ref.read(categoryServiceProvider);
+    final categories =
+        await categoryService.getCategoriesForMonths(yearMonthIds.toList());
+    final matching = categories
+        .where(
+          (c) =>
+              yearMonthIds.contains(c.monthId) &&
+              c.name.toLowerCase() == category.name.toLowerCase(),
+        )
+        .toList();
+    if (matching.isEmpty) return;
+
+    final itemService = ref.read(itemServiceProvider);
+    for (final current in matching) {
+      final defaultItem = await itemService.ensureDefaultItemForCategory(
+        categoryId: current.id,
+        categoryName: current.name,
+        isBudgeted: isBudgeted,
+        projected: budgetAmount,
+      );
+      await itemService.updateItem(
+        itemId: defaultItem.id,
+        projected: isBudgeted ? budgetAmount : 0,
+        isBudgeted: isBudgeted,
+        isArchived: false,
+      );
+      ref.invalidate(categoryByIdProvider(current.id));
+    }
+
+    ref.invalidate(categoriesProvider);
+    ref.invalidate(categoriesForMonthProvider);
   }
 }

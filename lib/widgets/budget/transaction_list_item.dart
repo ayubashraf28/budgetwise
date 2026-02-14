@@ -4,6 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
 import '../../models/transaction.dart';
+import '../../utils/transaction_display_utils.dart';
 
 /// List item widget for displaying a transaction.
 class TransactionListItem extends StatelessWidget {
@@ -13,6 +14,7 @@ class TransactionListItem extends StatelessWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
   final String currencySymbol;
+  final bool useSimpleLabel;
 
   const TransactionListItem({
     super.key,
@@ -22,6 +24,7 @@ class TransactionListItem extends StatelessWidget {
     this.onEdit,
     this.onDelete,
     this.currencySymbol = '\u00A3',
+    this.useSimpleLabel = false,
   });
 
   @override
@@ -95,7 +98,10 @@ class TransactionListItem extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      transaction.displayName,
+                      transactionPrimaryLabel(
+                        transaction,
+                        isSimpleMode: useSimpleLabel,
+                      ),
                       style: NeoTypography.rowTitle(context),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

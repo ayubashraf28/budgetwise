@@ -11,6 +11,7 @@ import '../../models/subscription.dart';
 import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
+import '../../utils/transaction_display_utils.dart';
 import '../../widgets/charts/donut_chart.dart';
 import '../../widgets/charts/stacked_bar_chart.dart';
 import '../transactions/transaction_form_sheet.dart';
@@ -1478,6 +1479,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     String currencySymbol,
     bool isExpanded,
   ) {
+    final isSimpleMode = ref.watch(isSimpleBudgetModeProvider);
     return transactions.when(
       data: (list) {
         final recent = [...list]..sort((a, b) => b.date.compareTo(a.date));
@@ -1538,6 +1540,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           _buildRecentTransactionRow(
                             visible[index],
                             currencySymbol,
+                            isSimpleMode: isSimpleMode,
                           ),
                           if (index < visible.length - 1)
                             Divider(
@@ -1664,7 +1667,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildRecentTransactionRow(
-      Transaction transaction, String currencySymbol) {
+    Transaction transaction,
+    String currencySymbol, {
+    required bool isSimpleMode,
+  }) {
     final amountColor = transaction.isIncome ? _positiveColor : _negativeColor;
 
     return InkWell(
@@ -1694,7 +1700,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    transaction.displayName,
+                    transactionPrimaryLabel(
+                      transaction,
+                      isSimpleMode: isSimpleMode,
+                    ),
                     style: _rowTitleStyle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,

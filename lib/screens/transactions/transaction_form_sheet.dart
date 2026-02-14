@@ -19,10 +19,12 @@ import '../income/income_form_sheet.dart';
 
 class TransactionFormSheet extends ConsumerStatefulWidget {
   final Transaction? transaction;
+  final String? initialCategoryId;
 
   const TransactionFormSheet({
     super.key,
     this.transaction,
+    this.initialCategoryId,
   });
 
   @override
@@ -56,7 +58,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
 
     _noteController = TextEditingController(text: tx?.note ?? '');
     _transactionType = tx?.type ?? TransactionType.expense;
-    _selectedCategoryId = tx?.categoryId;
+    _selectedCategoryId = tx?.categoryId ?? widget.initialCategoryId;
     _selectedItemId = tx?.itemId;
     _selectedIncomeSourceId = tx?.incomeSourceId;
     _selectedAccountId = tx?.accountId;
@@ -75,6 +77,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   @override
   Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
+    final isSimpleMode = ref.watch(isSimpleBudgetModeProvider);
     final categories = ref.watch(categoriesProvider).value ?? <Category>[];
     final incomeSources =
         ref.watch(incomeSourcesProvider).value ?? <IncomeSource>[];
@@ -113,10 +116,16 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       items = category?.items ?? <Item>[];
     }
 
-    final safeItemId =
-        (_selectedItemId != null && items.any((i) => i.id == _selectedItemId))
-            ? _selectedItemId
-            : null;
+    final canKeepEditingSimpleModeItem = isSimpleMode &&
+        isEditing &&
+        safeCategoryId == widget.transaction?.categoryId &&
+        _selectedItemId == widget.transaction?.itemId &&
+        _selectedItemId != null;
+    final safeItemId = (_selectedItemId != null &&
+                items.any((i) => i.id == _selectedItemId)) ||
+            canKeepEditingSimpleModeItem
+        ? _selectedItemId
+        : null;
 
     if (safeCategoryId != _selectedCategoryId ||
         safeItemId != _selectedItemId ||
@@ -150,9 +159,11 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
 
     final categoryPillValue = selectedCategory == null
         ? 'Category'
-        : selectedItem == null
+        : isSimpleMode
             ? selectedCategory.name
-            : '${selectedCategory.name} - ${selectedItem.name}';
+            : selectedItem == null
+                ? selectedCategory.name
+                : '${selectedCategory.name} - ${selectedItem.name}';
     final sourcePillValue = selectedIncomeSource?.name ?? 'Source';
     final accountPillValue = selectedAccount == null
         ? 'Account'
@@ -214,7 +225,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                               : () {
                                   if (_transactionType ==
                                       TransactionType.expense) {
-                                    _pickCategoryAndItem(categories);
+                                    _pickCategoryAndItem(
+                                      categories,
+                                      isSimpleMode: isSimpleMode,
+                                    );
                                   } else {
                                     _pickIncomeSource(incomeSources);
                                   }
@@ -745,7 +759,10 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     }
   }
 
-  Future<void> _pickCategoryAndItem(List<Category> categories) async {
+  Future<void> _pickCategoryAndItem(
+    List<Category> categories, {
+    required bool isSimpleMode,
+  }) async {
     final previousCategoryId = _selectedCategoryId;
     final selectedCategoryId = await showModalBottomSheet<String>(
       context: context,
@@ -776,6 +793,27 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     final selectedCategory =
         categories.where((c) => c.id == selectedCategoryId).firstOrNull;
     if (selectedCategory == null) return;
+
+    if (isSimpleMode) {
+      String? itemId = _selectedItemId;
+      final keepCurrentItem = isEditing &&
+          previousCategoryId == selectedCategoryId &&
+          _selectedItemId != null;
+
+      if (!keepCurrentItem) {
+        itemId = await _ensureSimpleModeItemIdForCategory(
+          categoryId: selectedCategoryId,
+          categoryNameHint: selectedCategory.name,
+        );
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _selectedCategoryId = selectedCategoryId;
+        _selectedItemId = itemId;
+      });
+      return;
+    }
 
     final initialItemId =
         previousCategoryId == selectedCategoryId ? _selectedItemId : null;
@@ -814,6 +852,33 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     if (selectedItemId != null && mounted) {
       setState(() => _selectedItemId = selectedItemId);
     }
+  }
+
+  Future<String?> _ensureSimpleModeItemIdForCategory({
+    required String categoryId,
+    String? categoryNameHint,
+  }) async {
+    final loadedCategories = ref.read(categoriesProvider).value;
+    final List<Category> categories = loadedCategories ??
+        await ref.read(categoriesProvider.future) ??
+        <Category>[];
+    final category = categories.where((c) => c.id == categoryId).firstOrNull;
+    final currentItemId = category?.items?.firstOrNull?.id;
+    if (currentItemId != null) return currentItemId;
+
+    final service = ref.read(itemServiceProvider);
+    final createdOrExisting = await service.ensureDefaultItemForCategory(
+      categoryId: categoryId,
+      categoryName: category?.name ?? categoryNameHint ?? 'Category',
+      isBudgeted: category?.isBudgeted ?? true,
+      projected: category?.budgetAmount ?? category?.totalProjected ?? 0,
+    );
+
+    ref.invalidate(categoriesProvider);
+    final refreshed = await ref.read(categoriesProvider.future);
+    final refreshedCategory =
+        refreshed.where((c) => c.id == categoryId).firstOrNull;
+    return refreshedCategory?.items?.firstOrNull?.id ?? createdOrExisting.id;
   }
 
   Future<void> _pickIncomeSource(List<IncomeSource> incomeSources) async {
@@ -938,9 +1003,22 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
     await ref.read(categoriesProvider.future);
     if (!mounted) return;
 
+    String? resolvedItemId;
+    if (ref.read(isSimpleBudgetModeProvider) &&
+        _transactionType == TransactionType.expense) {
+      final categories = ref.read(categoriesProvider).value ?? <Category>[];
+      final category =
+          categories.where((c) => c.id == newCategoryId).firstOrNull;
+      resolvedItemId = await _ensureSimpleModeItemIdForCategory(
+        categoryId: newCategoryId,
+        categoryNameHint: category?.name,
+      );
+      if (!mounted) return;
+    }
+
     setState(() {
       _selectedCategoryId = newCategoryId;
-      _selectedItemId = null;
+      _selectedItemId = resolvedItemId;
     });
   }
 
@@ -1015,6 +1093,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
   }
 
   Future<void> _handleSubmit() async {
+    final isSimpleMode = ref.read(isSimpleBudgetModeProvider);
     final activeAccounts = await ref.read(accountsProvider.future);
     if (!mounted) return;
 
@@ -1030,12 +1109,21 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
       _showError('Enter an amount greater than zero');
       return;
     }
+    String? expenseItemId = _selectedItemId;
     if (_transactionType == TransactionType.expense) {
       if (_selectedCategoryId == null) {
         _showError('Select a category');
         return;
       }
-      if (_selectedItemId == null) {
+      if (expenseItemId == null && isSimpleMode) {
+        expenseItemId = await _ensureSimpleModeItemIdForCategory(
+          categoryId: _selectedCategoryId!,
+        );
+        if (expenseItemId != null && mounted) {
+          setState(() => _selectedItemId = expenseItemId);
+        }
+      }
+      if (expenseItemId == null) {
         _showError('Select an item');
         return;
       }
@@ -1057,7 +1145,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
           await notifier.updateTransaction(
             transactionId: widget.transaction!.id,
             categoryId: _selectedCategoryId,
-            itemId: _selectedItemId,
+            itemId: expenseItemId,
             accountId: accountId,
             amount: amount,
             date: _selectedDate,
@@ -1077,7 +1165,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
         if (_transactionType == TransactionType.expense) {
           await notifier.addExpense(
             categoryId: _selectedCategoryId!,
-            itemId: _selectedItemId!,
+            itemId: expenseItemId!,
             accountId: accountId,
             amount: amount,
             date: _selectedDate,

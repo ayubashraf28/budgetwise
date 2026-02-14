@@ -16,6 +16,11 @@ enum BudgetViewMode {
   year,
 }
 
+enum BudgetStructure {
+  simple,
+  detailed,
+}
+
 enum AppFontSize {
   small,
   medium,
@@ -66,6 +71,7 @@ class UiPreferencesState {
   final AppFontSize appFontSize;
   final bool hideSensitiveAmounts;
   final BudgetViewMode budgetViewMode;
+  final BudgetStructure budgetStructure;
   final Map<String, bool> expandedSections;
 
   const UiPreferencesState({
@@ -75,6 +81,7 @@ class UiPreferencesState {
     required this.appFontSize,
     required this.hideSensitiveAmounts,
     required this.budgetViewMode,
+    required this.budgetStructure,
     required this.expandedSections,
   });
 
@@ -88,6 +95,7 @@ class UiPreferencesState {
       appFontSize: AppFontSize.medium,
       hideSensitiveAmounts: false,
       budgetViewMode: BudgetViewMode.month,
+      budgetStructure: BudgetStructure.detailed,
       expandedSections: Map<String, bool>.from(_defaultExpandedSections),
     );
   }
@@ -99,6 +107,7 @@ class UiPreferencesState {
     AppFontSize? appFontSize,
     bool? hideSensitiveAmounts,
     BudgetViewMode? budgetViewMode,
+    BudgetStructure? budgetStructure,
     Map<String, bool>? expandedSections,
   }) {
     return UiPreferencesState(
@@ -108,6 +117,7 @@ class UiPreferencesState {
       appFontSize: appFontSize ?? this.appFontSize,
       hideSensitiveAmounts: hideSensitiveAmounts ?? this.hideSensitiveAmounts,
       budgetViewMode: budgetViewMode ?? this.budgetViewMode,
+      budgetStructure: budgetStructure ?? this.budgetStructure,
       expandedSections: expandedSections ?? this.expandedSections,
     );
   }
@@ -130,6 +140,7 @@ class UiPreferencesState {
       'appFontSize': _appFontSizeToStoredValue(appFontSize),
       'hideSensitiveAmounts': hideSensitiveAmounts,
       'budgetViewMode': _budgetViewModeToStoredValue(budgetViewMode),
+      'budgetStructure': _budgetStructureToStoredValue(budgetStructure),
       'expandedSections': persistedSections,
     };
   }
@@ -166,6 +177,10 @@ class UiPreferencesState {
       budgetViewMode:
           _budgetViewModeFromStoredValue(json['budgetViewMode'] as String?) ??
               BudgetViewMode.month,
+      budgetStructure: _budgetStructureFromStoredValue(
+            json['budgetStructure'] as String?,
+          ) ??
+          BudgetStructure.detailed,
       expandedSections: sections,
     );
   }
@@ -197,6 +212,15 @@ final uiSectionExpandedProvider = Provider.family<bool, String>((ref, section) {
 final budgetViewModeProvider = Provider<BudgetViewMode>((ref) {
   return ref
       .watch(uiPreferencesProvider.select((prefs) => prefs.budgetViewMode));
+});
+
+final budgetStructureProvider = Provider<BudgetStructure>((ref) {
+  return ref
+      .watch(uiPreferencesProvider.select((prefs) => prefs.budgetStructure));
+});
+
+final isSimpleBudgetModeProvider = Provider<bool>((ref) {
+  return ref.watch(budgetStructureProvider) == BudgetStructure.simple;
 });
 
 final appFontSizeProvider = Provider<AppFontSize>((ref) {
@@ -249,6 +273,11 @@ class UiPreferencesNotifier extends StateNotifier<UiPreferencesState> {
   Future<void> setBudgetViewMode(BudgetViewMode mode) {
     if (state.budgetViewMode == mode) return Future<void>.value();
     return _updateAndPersist(state.copyWith(budgetViewMode: mode));
+  }
+
+  Future<void> setBudgetStructure(BudgetStructure mode) {
+    if (state.budgetStructure == mode) return Future<void>.value();
+    return _updateAndPersist(state.copyWith(budgetStructure: mode));
   }
 
   Future<void> setAppFontSize(AppFontSize size) {
@@ -363,6 +392,26 @@ String _budgetViewModeToStoredValue(BudgetViewMode mode) {
       return 'month';
     case BudgetViewMode.year:
       return 'year';
+  }
+}
+
+BudgetStructure? _budgetStructureFromStoredValue(String? value) {
+  switch (value) {
+    case 'simple':
+      return BudgetStructure.simple;
+    case 'detailed':
+      return BudgetStructure.detailed;
+    default:
+      return null;
+  }
+}
+
+String _budgetStructureToStoredValue(BudgetStructure mode) {
+  switch (mode) {
+    case BudgetStructure.simple:
+      return 'simple';
+    case BudgetStructure.detailed:
+      return 'detailed';
   }
 }
 

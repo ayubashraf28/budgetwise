@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
 import '../../models/category.dart';
+import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
 import '../../widgets/budget/budget_widgets.dart';
@@ -22,6 +23,18 @@ class ExpenseCategoriesScreen extends ConsumerWidget {
     final totalProjected = ref.watch(totalProjectedExpensesProvider);
     final totalActual = ref.watch(totalActualExpensesProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
+    final isSimpleMode = ref.watch(isSimpleBudgetModeProvider);
+    final monthTx = ref.watch(transactionsProvider).valueOrNull ?? [];
+    final expenseTransactions =
+        monthTx.where((t) => t.type == TransactionType.expense).toList();
+    final txCountByCategory = <String, int>{};
+    for (final tx in expenseTransactions) {
+      final categoryId = tx.categoryId;
+      if (categoryId != null) {
+        txCountByCategory[categoryId] =
+            (txCountByCategory[categoryId] ?? 0) + 1;
+      }
+    }
 
     return Scaffold(
       backgroundColor: palette.appBg,
@@ -119,6 +132,9 @@ class ExpenseCategoriesScreen extends ConsumerWidget {
                                 ref,
                                 category,
                                 currencySymbol,
+                                isSimpleMode: isSimpleMode,
+                                transactionCount:
+                                    txCountByCategory[category.id] ?? 0,
                               ),
                             );
                           },
@@ -302,8 +318,10 @@ class ExpenseCategoriesScreen extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     Category category,
-    String currencySymbol,
-  ) {
+    String currencySymbol, {
+    required bool isSimpleMode,
+    required int transactionCount,
+  }) {
     final palette = NeoTheme.of(context);
 
     return Dismissible(
@@ -371,7 +389,9 @@ class ExpenseCategoriesScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                '${category.itemCount} item${category.itemCount == 1 ? '' : 's'}',
+                isSimpleMode
+                    ? '$transactionCount ${transactionCount == 1 ? 'transaction' : 'transactions'}'
+                    : '${category.itemCount} item${category.itemCount == 1 ? '' : 's'}',
                 style: NeoTypography.rowSecondary(context),
               ),
               if (category.isBudgeted) ...[

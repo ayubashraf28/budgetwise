@@ -30,13 +30,21 @@ void main() {
       overrides: overrides,
       child: MaterialApp(
         theme: AppTheme.darkTheme,
-        home: Scaffold(body: child),
+        home: MediaQuery(
+          data: const MediaQueryData(size: Size(800, 1600)),
+          child: Scaffold(
+            body: SizedBox.expand(child: child),
+          ),
+        ),
       ),
     );
   }
 
   testWidgets('Subscription form sheet renders without dropdown layout errors',
       (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await tester.pumpWidget(
       testHarness(
         child: const SubscriptionFormSheet(),
@@ -54,6 +62,9 @@ void main() {
 
   testWidgets('Transaction form sheet renders without dropdown layout errors',
       (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
     await tester.pumpWidget(
       testHarness(
         child: const TransactionFormSheet(),
@@ -67,7 +78,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Add Transaction'), findsWidgets);
+    expect(find.text('SAVE'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 }

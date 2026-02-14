@@ -22,6 +22,7 @@ class SettingsScreen extends ConsumerWidget {
     final currentSymbol = ref.watch(currencySymbolProvider);
     final currentThemeMode = ref.watch(themeModeProvider);
     final currentAppFontSize = ref.watch(appFontSizeProvider);
+    final currentBudgetStructure = ref.watch(budgetStructureProvider);
 
     return Scaffold(
       backgroundColor: palette.appBg,
@@ -80,6 +81,24 @@ class SettingsScreen extends ConsumerWidget {
                       context: context,
                       backgroundColor: Colors.transparent,
                       builder: (context) => const CurrencyPickerSheet(),
+                    );
+                  },
+                ),
+                _SettingsTile(
+                  icon: LucideIcons.layers,
+                  title: 'Budget Structure',
+                  trailing: Text(
+                    currentBudgetStructure == BudgetStructure.simple
+                        ? 'Simple'
+                        : 'Detailed',
+                    style: NeoTypography.rowSecondary(context),
+                  ),
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    _showBudgetStructureSheet(
+                      context,
+                      ref,
+                      currentBudgetStructure,
                     );
                   },
                 ),
@@ -346,6 +365,87 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   for (final size in AppFontSize.values) option(size),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showBudgetStructureSheet(
+    BuildContext context,
+    WidgetRef ref,
+    BudgetStructure currentStructure,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final palette = NeoTheme.of(sheetContext);
+
+        Future<void> setStructure(BudgetStructure structure) async {
+          await ref
+              .read(uiPreferencesProvider.notifier)
+              .setBudgetStructure(structure);
+          if (sheetContext.mounted) {
+            Navigator.of(sheetContext).pop();
+          }
+        }
+
+        Widget option({
+          required BudgetStructure structure,
+          required String label,
+          required String description,
+        }) {
+          final isSelected = currentStructure == structure;
+          return ListTile(
+            onTap: () => setStructure(structure),
+            leading: Icon(
+              isSelected ? LucideIcons.checkCircle2 : LucideIcons.circle,
+              color: isSelected ? palette.accent : palette.textMuted,
+            ),
+            title: Text(
+              label,
+              style: AppTypography.bodyLarge.copyWith(
+                color: isSelected ? palette.textPrimary : palette.textSecondary,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              ),
+            ),
+            subtitle: Text(
+              description,
+              style: AppTypography.bodySmall.copyWith(
+                color: palette.textMuted,
+              ),
+            ),
+          );
+        }
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            child: NeoGlassCard(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Budget Structure',
+                    style: NeoTypography.sectionTitle(sheetContext),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  option(
+                    structure: BudgetStructure.simple,
+                    label: 'Simple',
+                    description:
+                        'Track spending by category. Best for straightforward budgets.',
+                  ),
+                  option(
+                    structure: BudgetStructure.detailed,
+                    label: 'Detailed',
+                    description:
+                        'Break categories into items for granular tracking.',
+                  ),
                 ],
               ),
             ),

@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
 import '../../models/category.dart';
 import '../../models/item.dart';
+import '../../models/transaction.dart';
 import '../../providers/providers.dart';
+import '../../utils/transaction_display_utils.dart';
 import '../../utils/app_icon_registry.dart';
 import '../../widgets/budget/budget_widgets.dart';
 import '../../widgets/common/neo_page_components.dart';
 import 'category_form_sheet.dart';
 import 'item_form_sheet.dart';
+import '../transactions/transaction_form_sheet.dart';
 
 class CategoryDetailScreen extends ConsumerWidget {
   final String categoryId;
@@ -82,6 +86,7 @@ class CategoryDetailScreen extends ConsumerWidget {
   Widget _buildYearMode(
       BuildContext context, WidgetRef ref, String currencySymbol) {
     final palette = NeoTheme.of(context);
+    final isSimpleMode = ref.watch(isSimpleBudgetModeProvider);
     final yearDataAsync = ref.watch(yearlyCategoryDetailProvider(categoryId));
     final activeMonth = ref.watch(activeMonthProvider);
     final yearLabel = activeMonth.value?.startDate.year.toString() ?? '';
@@ -167,7 +172,9 @@ class CategoryDetailScreen extends ConsumerWidget {
                   ),
                 ),
                 // Items
-                if (category.items != null && category.items!.isNotEmpty) ...[
+                if (!isSimpleMode &&
+                    category.items != null &&
+                    category.items!.isNotEmpty) ...[
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(
@@ -280,7 +287,10 @@ class CategoryDetailScreen extends ConsumerWidget {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        tx.displayName,
+                                        transactionPrimaryLabel(
+                                          tx,
+                                          isSimpleMode: isSimpleMode,
+                                        ),
                                         style: TextStyle(
                                           fontWeight: FontWeight.w600,
                                           color: palette.textPrimary,
@@ -348,7 +358,15 @@ class CategoryDetailScreen extends ConsumerWidget {
   Widget _buildScreen(BuildContext context, WidgetRef ref, Category category,
       String currencySymbol) {
     final palette = NeoTheme.of(context);
+    final isSimpleMode = ref.watch(isSimpleBudgetModeProvider);
     final items = category.items ?? [];
+    final categoryTransactions = isSimpleMode
+        ? ref.watch(transactionsByCategoryProvider(categoryId)).value ??
+            const <Transaction>[]
+        : const <Transaction>[];
+    final groupedTransactions = _groupTransactionsByDate(categoryTransactions);
+    final groupedDates = groupedTransactions.keys.toList()
+      ..sort((a, b) => b.compareTo(a));
 
     return Scaffold(
       backgroundColor: NeoTheme.of(context).appBg,
@@ -357,6 +375,9 @@ class CategoryDetailScreen extends ConsumerWidget {
           onRefresh: () async {
             ref.invalidate(categoryByIdProvider(categoryId));
             ref.invalidate(categoriesProvider);
+            if (isSimpleMode) {
+              ref.invalidate(transactionsByCategoryProvider(categoryId));
+            }
           },
           child: CustomScrollView(
             slivers: [
@@ -419,67 +440,143 @@ class CategoryDetailScreen extends ConsumerWidget {
                     _buildGlassSummaryCard(context, category, currencySymbol),
               ),
 
-              // Items Section Title
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.md,
-                    AppSpacing.lg,
-                    AppSpacing.md,
-                    AppSpacing.sm,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Expanded(
-                        child: AdaptiveHeadingText(
-                          text: 'Items',
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Flexible(
-                        child: Text(
-                          '${items.length} ${items.length == 1 ? 'item' : 'items'}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.end,
-                          style: NeoTypography.rowSecondary(context),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // Items List
-              if (items.isEmpty)
+              if (isSimpleMode) ...[
                 SliverToBoxAdapter(
-                  child: _buildEmptyState(context, ref, category),
-                )
-              else
-                SliverPadding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  sliver: SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final item = items[index];
-                        return Padding(
-                          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                          child: _buildItemCard(
-                              context, ref, category, item, currencySymbol),
-                        );
-                      },
-                      childCount: items.length,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      AppSpacing.lg,
+                      AppSpacing.md,
+                      AppSpacing.sm,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Expanded(
+                          child: AdaptiveHeadingText(
+                            text: 'Transactions',
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Flexible(
+                          child: Text(
+                            '${categoryTransactions.length} ${categoryTransactions.length == 1 ? 'transaction' : 'transactions'}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: NeoTypography.rowSecondary(context),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
+                if (categoryTransactions.isEmpty)
+                  SliverToBoxAdapter(
+                    child: _buildEmptyState(
+                      context,
+                      ref,
+                      category,
+                      isSimpleMode: true,
+                    ),
+                  )
+                else
+                  SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) {
+                        final date = groupedDates[index];
+                        final dayTransactions = groupedTransactions[date]!;
+                        return _buildSimpleTransactionDateGroup(
+                          context,
+                          ref,
+                          category,
+                          date: date,
+                          transactions: dayTransactions,
+                          currencySymbol: currencySymbol,
+                        );
+                      },
+                      childCount: groupedDates.length,
+                    ),
+                  ),
+              ] else ...[
+                // Items Section Title
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.md,
+                      AppSpacing.lg,
+                      AppSpacing.md,
+                      AppSpacing.sm,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Expanded(
+                          child: AdaptiveHeadingText(
+                            text: 'Items',
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        Flexible(
+                          child: Text(
+                            '${items.length} ${items.length == 1 ? 'item' : 'items'}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.end,
+                            style: NeoTypography.rowSecondary(context),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // Items List
+                if (items.isEmpty)
+                  SliverToBoxAdapter(
+                    child: _buildEmptyState(
+                      context,
+                      ref,
+                      category,
+                      isSimpleMode: false,
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final item = items[index];
+                          return Padding(
+                            padding:
+                                const EdgeInsets.only(bottom: AppSpacing.sm),
+                            child: _buildItemCard(
+                              context,
+                              ref,
+                              category,
+                              item,
+                              currencySymbol,
+                            ),
+                          );
+                        },
+                        childCount: items.length,
+                      ),
+                    ),
+                  ),
+              ],
 
               // Add Button
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(AppSpacing.md),
-                  child: _buildAddButton(context, ref, category),
+                  child: _buildAddButton(
+                    context,
+                    ref,
+                    category,
+                    isSimpleMode: isSimpleMode,
+                  ),
                 ),
               ),
 
@@ -777,8 +874,173 @@ class CategoryDetailScreen extends ConsumerWidget {
     );
   }
 
+  Map<DateTime, List<Transaction>> _groupTransactionsByDate(
+    List<Transaction> transactions,
+  ) {
+    final grouped = <DateTime, List<Transaction>>{};
+    for (final tx in transactions) {
+      final key = DateTime(tx.date.year, tx.date.month, tx.date.day);
+      grouped.putIfAbsent(key, () => []).add(tx);
+    }
+    return grouped;
+  }
+
+  Widget _buildSimpleTransactionDateGroup(
+    BuildContext context,
+    WidgetRef ref,
+    Category category, {
+    required DateTime date,
+    required List<Transaction> transactions,
+    required String currencySymbol,
+  }) {
+    final palette = NeoTheme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.md,
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.sm,
+          ),
+          child: Text(
+            _formatDateHeader(date),
+            style: AppTypography.labelMedium
+                .copyWith(color: palette.textSecondary),
+          ),
+        ),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          decoration: BoxDecoration(
+            color: palette.surface1,
+            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          ),
+          child: Column(
+            children: transactions.asMap().entries.map((entry) {
+              final txIndex = entry.key;
+              final tx = entry.value;
+              final isLast = txIndex == transactions.length - 1;
+
+              return Column(
+                children: [
+                  Dismissible(
+                    key: Key(tx.id),
+                    direction: DismissDirection.endToStart,
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: AppSpacing.md),
+                      decoration: BoxDecoration(
+                        color: NeoTheme.negativeValue(context),
+                        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+                      ),
+                      child:
+                          const Icon(LucideIcons.trash2, color: Colors.white),
+                    ),
+                    confirmDismiss: (_) =>
+                        _showDeleteTransactionConfirmation(context),
+                    onDismissed: (_) {
+                      ref
+                          .read(transactionNotifierProvider.notifier)
+                          .deleteTransaction(tx.id);
+                      _invalidateAfterTransactionChange(ref, category.id);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Transaction deleted')),
+                      );
+                    },
+                    child: TransactionListItem(
+                      transaction: tx,
+                      currencySymbol: currencySymbol,
+                      useSimpleLabel: true,
+                      onTap: () => _showEditTransactionSheet(
+                        context,
+                        ref,
+                        category.id,
+                        tx,
+                      ),
+                    ),
+                  ),
+                  if (!isLast)
+                    Divider(
+                      height: 1,
+                      indent: AppSpacing.md + 44 + AppSpacing.md,
+                      color: palette.stroke.withValues(alpha: 0.85),
+                    ),
+                ],
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatDateHeader(DateTime date) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final dateOnly = DateTime(date.year, date.month, date.day);
+
+    if (dateOnly == today) return 'Today';
+    if (dateOnly == yesterday) return 'Yesterday';
+    if (dateOnly.year == today.year) return DateFormat('d MMMM').format(date);
+    return DateFormat('d MMMM yyyy').format(date);
+  }
+
+  Future<void> _showEditTransactionSheet(
+    BuildContext context,
+    WidgetRef ref,
+    String categoryId,
+    Transaction tx,
+  ) async {
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => TransactionFormSheet(transaction: tx),
+    );
+    _invalidateAfterTransactionChange(ref, categoryId);
+  }
+
+  Future<bool> _showDeleteTransactionConfirmation(BuildContext context) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: NeoTheme.of(context).surface1,
+            title: const Text('Delete Transaction?'),
+            content: const Text('This action cannot be undone.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                style: TextButton.styleFrom(
+                  foregroundColor: NeoTheme.negativeValue(context),
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  void _invalidateAfterTransactionChange(WidgetRef ref, String categoryId) {
+    ref.invalidate(transactionsByCategoryProvider(categoryId));
+    ref.invalidate(transactionsProvider);
+    ref.invalidate(categoryByIdProvider(categoryId));
+    ref.invalidate(categoriesProvider);
+  }
+
   Widget _buildAddButton(
-      BuildContext context, WidgetRef ref, Category category) {
+    BuildContext context,
+    WidgetRef ref,
+    Category category, {
+    required bool isSimpleMode,
+  }) {
     final palette = NeoTheme.of(context);
     final color = category.colorValue;
 
@@ -800,7 +1062,12 @@ class CategoryDetailScreen extends ConsumerWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _showAddSheet(context, ref, category),
+          onTap: () => _showAddSheet(
+            context,
+            ref,
+            category,
+            isSimpleMode: isSimpleMode,
+          ),
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
           child: Container(
             padding: const EdgeInsets.symmetric(
@@ -825,7 +1092,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Text(
-                  'Add Item',
+                  isSimpleMode ? 'Add Transaction' : 'Add Item',
                   style: TextStyle(
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
@@ -842,7 +1109,11 @@ class CategoryDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildEmptyState(
-      BuildContext context, WidgetRef ref, Category category) {
+    BuildContext context,
+    WidgetRef ref,
+    Category category, {
+    required bool isSimpleMode,
+  }) {
     final palette = NeoTheme.of(context);
     final color = category.colorValue;
 
@@ -881,7 +1152,7 @@ class CategoryDetailScreen extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.md),
           Text(
-            'No items yet',
+            isSimpleMode ? 'No transactions yet' : 'No items yet',
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w600,
@@ -891,7 +1162,9 @@ class CategoryDetailScreen extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            'Add items to track spending in this category',
+            isSimpleMode
+                ? 'Add a transaction to start tracking spending in this category'
+                : 'Add items to track spending in this category',
             style: TextStyle(
               fontSize: 13,
               color: palette.textSecondary,
@@ -918,7 +1191,12 @@ class CategoryDetailScreen extends ConsumerWidget {
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                onTap: () => _showAddSheet(context, ref, category),
+                onTap: () => _showAddSheet(
+                  context,
+                  ref,
+                  category,
+                  isSimpleMode: isSimpleMode,
+                ),
                 borderRadius: BorderRadius.circular(AppSizing.radiusLg),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -944,7 +1222,7 @@ class CategoryDetailScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       Text(
-                        'Add Item',
+                        isSimpleMode ? 'Add Transaction' : 'Add Item',
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 14,
@@ -964,17 +1242,26 @@ class CategoryDetailScreen extends ConsumerWidget {
   }
 
   Future<void> _showAddSheet(
-      BuildContext context, WidgetRef ref, Category category) async {
+    BuildContext context,
+    WidgetRef ref,
+    Category category, {
+    required bool isSimpleMode,
+  }) async {
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => ItemFormSheet(
-        categoryId: category.id,
-      ),
+      builder: (context) => isSimpleMode
+          ? TransactionFormSheet(initialCategoryId: category.id)
+          : ItemFormSheet(
+              categoryId: category.id,
+            ),
     );
-    // Refresh the category data after adding item
+
     ref.invalidate(categoryByIdProvider(categoryId));
+    ref.invalidate(categoriesProvider);
+    ref.invalidate(transactionsByCategoryProvider(categoryId));
+    ref.invalidate(transactionsProvider);
   }
 
   Future<bool> _showDeleteConfirmation(BuildContext context, Item item) async {

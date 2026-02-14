@@ -27,6 +27,7 @@ import '../screens/onboarding/template_selection_screen.dart';
 import '../screens/onboarding/setup_complete_screen.dart';
 import '../widgets/navigation/app_shell.dart';
 import '../services/profile_service.dart';
+import '../providers/providers.dart';
 
 /// A Listenable that notifies when auth state changes
 class GoRouterRefreshStream extends ChangeNotifier {
@@ -193,6 +194,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) {
                       final categoryId = state.pathParameters['id']!;
                       final itemId = state.pathParameters['itemId']!;
+                      if (ref.read(isSimpleBudgetModeProvider)) {
+                        return CategoryDetailScreen(
+                          categoryId: categoryId,
+                          routePrefix: '/budget',
+                        );
+                      }
                       return ItemDetailScreen(
                         categoryId: categoryId,
                         itemId: itemId,
@@ -234,6 +241,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) {
                       final categoryId = state.pathParameters['id']!;
                       final itemId = state.pathParameters['itemId']!;
+                      if (ref.read(isSimpleBudgetModeProvider)) {
+                        return CategoryDetailScreen(
+                          categoryId: categoryId,
+                          routePrefix: '/expenses',
+                        );
+                      }
                       return ItemDetailScreen(
                         categoryId: categoryId,
                         itemId: itemId,

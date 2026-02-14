@@ -9,6 +9,7 @@ import '../../models/account.dart';
 import '../../models/monthly_summary.dart';
 import '../../models/transaction.dart';
 import '../../providers/providers.dart';
+import '../../utils/transaction_display_utils.dart';
 import '../../widgets/budget/budget_widgets.dart';
 import '../../widgets/common/neo_page_components.dart';
 import 'transaction_form_sheet.dart';
@@ -56,7 +57,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     super.dispose();
   }
 
-  List<Transaction> _applyFilters(List<Transaction> transactions) {
+  List<Transaction> _applyFilters(
+    List<Transaction> transactions, {
+    required bool isSimpleMode,
+  }) {
     var filtered = transactions;
 
     if (_filterType != null) {
@@ -71,7 +75,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     if (_searchQuery.isNotEmpty) {
       final query = _searchQuery.toLowerCase();
       filtered = filtered.where((t) {
-        final name = t.displayName.toLowerCase();
+        final name = transactionPrimaryLabel(
+          t,
+          isSimpleMode: isSimpleMode,
+        ).toLowerCase();
         final category = (t.categoryName ?? '').toLowerCase();
         final account = (t.accountName ?? '').toLowerCase();
         final note = (t.note ?? '').toLowerCase();
@@ -102,6 +109,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final summary = ref.watch(monthlySummaryProvider);
     final currencySymbol = ref.watch(currencySymbolProvider);
     final accounts = ref.watch(accountsProvider).value ?? <Account>[];
+    final isSimpleMode = ref.watch(isSimpleBudgetModeProvider);
 
     return Scaffold(
       backgroundColor: _palette.appBg,
@@ -115,7 +123,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           },
           child: transactionsAsync.when(
             data: (transactions) {
-              final filtered = _applyFilters(transactions);
+              final filtered = _applyFilters(
+                transactions,
+                isSimpleMode: isSimpleMode,
+              );
               final grouped = _groupByDate(filtered);
 
               return CustomScrollView(
@@ -139,7 +150,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                       ),
                     )
                   else
-                    ..._buildGroupedTransactions(grouped, currencySymbol),
+                    ..._buildGroupedTransactions(
+                      grouped,
+                      currencySymbol,
+                      isSimpleMode: isSimpleMode,
+                    ),
                   SliverToBoxAdapter(
                     child: SizedBox(
                       height: AppSpacing.xl +
@@ -538,8 +553,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
   List<Widget> _buildGroupedTransactions(
     Map<DateTime, List<Transaction>> grouped,
-    String currencySymbol,
-  ) {
+    String currencySymbol, {
+    required bool isSimpleMode,
+  }) {
     final slivers = <Widget>[];
     for (final entry in grouped.entries) {
       final date = entry.key;
@@ -615,6 +631,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         child: TransactionListItem(
                           transaction: transaction,
                           currencySymbol: currencySymbol,
+                          useSimpleLabel: isSimpleMode,
                           onTap: () => _showEditSheet(transaction),
                         ),
                       ),

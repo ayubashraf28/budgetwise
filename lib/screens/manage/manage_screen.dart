@@ -7,6 +7,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/theme.dart';
 import '../../models/category.dart';
 import '../../models/subscription.dart';
+import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
 import '../../widgets/common/neo_page_components.dart';
@@ -38,6 +39,18 @@ class _ManageScreenState extends ConsumerState<ManageScreen> {
         ref.watch(uiSectionExpandedProvider(UiSectionKeys.manageSubscriptions));
     final isBudgetsExpanded =
         ref.watch(uiSectionExpandedProvider(UiSectionKeys.manageBudgets));
+    final isSimpleMode = ref.watch(isSimpleBudgetModeProvider);
+    final monthTx = ref.watch(transactionsProvider).valueOrNull ?? [];
+    final expenseTransactions =
+        monthTx.where((t) => t.type == TransactionType.expense).toList();
+    final txCountByCategory = <String, int>{};
+    for (final tx in expenseTransactions) {
+      final categoryId = tx.categoryId;
+      if (categoryId != null) {
+        txCountByCategory[categoryId] =
+            (txCountByCategory[categoryId] ?? 0) + 1;
+      }
+    }
 
     return Scaffold(
       backgroundColor: _palette.appBg,
@@ -103,6 +116,8 @@ class _ManageScreenState extends ConsumerState<ManageScreen> {
                   totalActual: totalActual,
                   overBudgetCount: overBudgetCount,
                   currencySymbol: currencySymbol,
+                  isSimpleMode: isSimpleMode,
+                  txCountByCategory: txCountByCategory,
                 ),
               ),
             ],
@@ -229,6 +244,8 @@ class _ManageScreenState extends ConsumerState<ManageScreen> {
     required double totalActual,
     required int overBudgetCount,
     required String currencySymbol,
+    required bool isSimpleMode,
+    required Map<String, int> txCountByCategory,
   }) {
     return categoriesAsync.when(
       data: (categories) {
@@ -267,24 +284,35 @@ class _ManageScreenState extends ConsumerState<ManageScreen> {
             ),
             const SizedBox(height: AppSpacing.sm),
             for (var i = 0; i < visible.length; i++) ...[
-              NeoHubRow(
-                icon: _categoryIcon(visible[i].icon),
-                iconColor: visible[i].colorValue,
-                title: visible[i].name,
-                subtitle: visible[i].isBudgeted
-                    ? '${_budgetProgressLabel(visible[i])} • ${visible[i].itemCount} item${visible[i].itemCount == 1 ? '' : 's'}'
-                    : '${visible[i].itemCount} item${visible[i].itemCount == 1 ? '' : 's'} • No budget',
-                trailingTop:
-                    '$currencySymbol${_formatAmount(visible[i].totalActual)}',
-                trailingBottom: visible[i].isBudgeted
-                    ? '$currencySymbol${_formatAmount(visible[i].totalProjected)} budget'
-                    : 'Unbudgeted',
-                trailingColor: visible[i].isOverBudget
-                    ? NeoTheme.negativeValue(context)
-                    : visible[i].totalActual > 0
-                        ? NeoTheme.warningValue(context)
-                        : _palette.textSecondary,
-                onTap: () => context.push('/budget/category/${visible[i].id}'),
+              Builder(
+                builder: (_) {
+                  final txCount = txCountByCategory[visible[i].id] ?? 0;
+                  final subtitle = visible[i].isBudgeted
+                      ? isSimpleMode
+                          ? '${_budgetProgressLabel(visible[i])} • $txCount ${txCount == 1 ? 'transaction' : 'transactions'}'
+                          : '${_budgetProgressLabel(visible[i])} • ${visible[i].itemCount} item${visible[i].itemCount == 1 ? '' : 's'}'
+                      : isSimpleMode
+                          ? '$txCount ${txCount == 1 ? 'transaction' : 'transactions'} • No budget'
+                          : '${visible[i].itemCount} item${visible[i].itemCount == 1 ? '' : 's'} • No budget';
+                  return NeoHubRow(
+                    icon: _categoryIcon(visible[i].icon),
+                    iconColor: visible[i].colorValue,
+                    title: visible[i].name,
+                    subtitle: subtitle,
+                    trailingTop:
+                        '$currencySymbol${_formatAmount(visible[i].totalActual)}',
+                    trailingBottom: visible[i].isBudgeted
+                        ? '$currencySymbol${_formatAmount(visible[i].totalProjected)} budget'
+                        : 'Unbudgeted',
+                    trailingColor: visible[i].isOverBudget
+                        ? NeoTheme.negativeValue(context)
+                        : visible[i].totalActual > 0
+                            ? NeoTheme.warningValue(context)
+                            : _palette.textSecondary,
+                    onTap: () =>
+                        context.push('/budget/category/${visible[i].id}'),
+                  );
+                },
               ),
               if (i < visible.length - 1)
                 Divider(

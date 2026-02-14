@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
@@ -24,6 +25,44 @@ class ItemDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isSimpleMode = ref.watch(isSimpleBudgetModeProvider);
+    if (isSimpleMode) {
+      final path = GoRouterState.of(context).uri.path;
+      final prefix = path.startsWith('/expenses') ? '/expenses' : '/budget';
+      return Scaffold(
+        backgroundColor: NeoTheme.of(context).appBg,
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(LucideIcons.arrowLeft),
+            onPressed: () => context.go('$prefix/category/$categoryId'),
+          ),
+          actions: const [NeoSettingsAppBarAction()],
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const AdaptiveHeadingText(text: 'Item details are hidden'),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'Switch to Detailed mode in Settings to manage items.',
+                  style: NeoTypography.rowSecondary(context),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                ElevatedButton(
+                  onPressed: () => context.go('$prefix/category/$categoryId'),
+                  child: const Text('Back to category'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final itemAsync = ref.watch(itemByIdProvider(itemId));
     final transactionsAsync = ref.watch(transactionsByItemProvider(itemId));
     final categoryAsync = ref.watch(categoryByIdProvider(categoryId));

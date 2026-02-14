@@ -43,6 +43,24 @@ class ItemService {
     return Item.fromJson(response);
   }
 
+  /// Ensure a category has at least one non-archived item.
+  Future<Item> ensureDefaultItemForCategory({
+    required String categoryId,
+    required String categoryName,
+    bool isBudgeted = true,
+    double projected = 0,
+  }) async {
+    final existing = await getItemsForCategory(categoryId);
+    if (existing.isNotEmpty) return existing.first;
+
+    return createItem(
+      categoryId: categoryId,
+      name: categoryName,
+      projected: projected,
+      isBudgeted: isBudgeted,
+    );
+  }
+
   /// Create a new item
   Future<Item> createItem({
     required String categoryId,
