@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/auth_service.dart';
+import '../utils/errors/error_mapper.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService();
@@ -48,8 +49,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
       );
       state = AsyncValue.data(response.user);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
-      rethrow;
+      final mappedError = ErrorMapper.toAppError(e, stackTrace: st);
+      state = AsyncValue.error(mappedError, st);
+      throw mappedError;
     }
   }
 
@@ -67,8 +69,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
       );
       state = AsyncValue.data(response.user);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
-      rethrow;
+      final mappedError = ErrorMapper.toAppError(e, stackTrace: st);
+      state = AsyncValue.error(mappedError, st);
+      throw mappedError;
     }
   }
 
@@ -78,8 +81,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
       await _authService.signOut();
       state = const AsyncValue.data(null);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
-      rethrow;
+      final mappedError = ErrorMapper.toAppError(e, stackTrace: st);
+      state = AsyncValue.error(mappedError, st);
+      throw mappedError;
     }
   }
 
@@ -89,8 +93,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
       await _authService.signInWithGoogle();
       state = AsyncValue.data(_authService.currentUser);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
-      rethrow;
+      final mappedError = ErrorMapper.toAppError(e, stackTrace: st);
+      state = AsyncValue.error(mappedError, st);
+      throw mappedError;
     }
   }
 
@@ -100,8 +105,9 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
       final response = await _authService.linkGoogleAccount();
       state = AsyncValue.data(response.user ?? _authService.currentUser);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
-      rethrow;
+      final mappedError = ErrorMapper.toAppError(e, stackTrace: st);
+      state = AsyncValue.error(mappedError, st);
+      throw mappedError;
     }
   }
 

@@ -4,6 +4,7 @@ import '../config/supabase_config.dart';
 import '../models/category.dart';
 import '../models/month.dart';
 import '../utils/category_name_utils.dart';
+import '../utils/errors/app_error.dart';
 import 'item_service.dart';
 
 class CategoryService {
@@ -11,7 +12,13 @@ class CategoryService {
   static const _table = 'categories';
   final _uuid = const Uuid();
 
-  String get _userId => _client.auth.currentUser!.id;
+  String get _userId {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AppError.unauthenticated();
+    }
+    return userId;
+  }
 
   /// Get all categories for a month with their items
   Future<List<Category>> getCategoriesForMonth(String monthId) async {
@@ -63,8 +70,12 @@ class CategoryService {
   }) async {
     final canonicalName = canonicalizeCategoryName(name);
     if (!allowReservedName && isReservedCategoryName(canonicalName)) {
-      throw Exception(
-          'The "$systemSubscriptionsCategoryName" category name is reserved for subscription tracking.');
+      throw const AppError.validation(
+        technicalMessage:
+            'The "$systemSubscriptionsCategoryName" category name is reserved for subscription tracking.',
+        userMessage:
+            'The "$systemSubscriptionsCategoryName" category name is reserved.',
+      );
     }
 
     // Get next sort order if not provided
@@ -111,7 +122,11 @@ class CategoryService {
     int? sortOrder,
   }) async {
     final current = await getCategoryById(categoryId);
-    if (current == null) throw Exception('Category not found');
+    if (current == null) {
+      throw const AppError.notFound(
+        technicalMessage: 'Category not found',
+      );
+    }
 
     final updates = <String, dynamic>{};
     if (name != null) {
@@ -119,12 +134,20 @@ class CategoryService {
       final isTargetReserved = isReservedCategoryName(name);
 
       if (isCurrentReserved && !isTargetReserved) {
-        throw Exception(
-            'The "$systemSubscriptionsCategoryName" category is system-managed and cannot be renamed.');
+        throw const AppError.validation(
+          technicalMessage:
+              'The "$systemSubscriptionsCategoryName" category is system-managed and cannot be renamed.',
+          userMessage:
+              'The "$systemSubscriptionsCategoryName" category cannot be renamed.',
+        );
       }
       if (!isCurrentReserved && isTargetReserved) {
-        throw Exception(
-            'The "$systemSubscriptionsCategoryName" category name is reserved for subscription tracking.');
+        throw const AppError.validation(
+          technicalMessage:
+              'The "$systemSubscriptionsCategoryName" category name is reserved for subscription tracking.',
+          userMessage:
+              'The "$systemSubscriptionsCategoryName" category name is reserved.',
+        );
       }
 
       updates['name'] = canonicalizeCategoryName(name);

@@ -9,6 +9,7 @@ import '../../models/account.dart';
 import '../../models/monthly_summary.dart';
 import '../../models/transaction.dart';
 import '../../providers/providers.dart';
+import '../../utils/errors/error_mapper.dart';
 import '../../utils/transaction_display_utils.dart';
 import '../../widgets/budget/budget_widgets.dart';
 import '../../widgets/common/neo_page_components.dart';
@@ -176,7 +177,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(NeoLayout.screenPadding),
               children: [
-                _buildErrorState(error.toString()),
+                _buildErrorState(
+                  ErrorMapper.toUserMessage(error, stackTrace: stack),
+                ),
               ],
             ),
           ),

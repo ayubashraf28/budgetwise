@@ -1,14 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/subscription.dart';
-import '../services/category_service.dart';
-import '../services/item_service.dart';
-import '../services/month_service.dart';
 import '../services/subscription_service.dart';
+import '../utils/errors/app_error.dart';
+import 'account_provider.dart';
 import 'auth_provider.dart';
 import 'category_provider.dart';
+import 'item_provider.dart';
+import 'month_provider.dart';
 import 'transaction_provider.dart';
-import 'account_provider.dart';
 
 /// Subscription service provider
 final subscriptionServiceProvider = Provider<SubscriptionService>((ref) {
@@ -89,7 +89,7 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
     int reminderDaysBefore = 2,
   }) async {
     final user = ref.read(currentUserProvider);
-    if (user == null) throw Exception('Not authenticated');
+    if (user == null) throw const AppError.unauthenticated();
 
     final sub = await _service.createSubscription(
       name: name,
@@ -203,9 +203,9 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
   /// Sync subscription items in the current month's Subscriptions category.
   Future<void> _syncSubscriptionItems() async {
     try {
-      final monthService = MonthService();
-      final categoryService = CategoryService();
-      final itemService = ItemService();
+      final monthService = ref.read(monthServiceProvider);
+      final categoryService = ref.read(categoryServiceProvider);
+      final itemService = ref.read(itemServiceProvider);
 
       final now = DateTime.now();
       final currentMonth = await monthService.getMonthForDate(now);

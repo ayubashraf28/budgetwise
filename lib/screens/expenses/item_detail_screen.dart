@@ -8,6 +8,7 @@ import '../../config/theme.dart';
 import '../../models/item.dart';
 import '../../models/transaction.dart';
 import '../../providers/providers.dart';
+import '../../utils/errors/error_mapper.dart';
 import '../../widgets/budget/transaction_list_item.dart';
 import '../../widgets/common/neo_page_components.dart';
 import '../transactions/transaction_form_sheet.dart';
@@ -117,7 +118,11 @@ class ItemDetailScreen extends ConsumerWidget {
           ),
           actions: const [NeoSettingsAppBarAction()],
         ),
-        body: Center(child: Text('Error: $error')),
+        body: Center(
+          child: Text(
+            ErrorMapper.toUserMessage(error, stackTrace: stack),
+          ),
+        ),
       ),
     );
   }
@@ -202,7 +207,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
                               size: 18,
                               color: NeoTheme.negativeValue(context),
                             ),
-                            SizedBox(width: 8),
+                            const SizedBox(width: 8),
                             Text(
                               'Delete Item',
                               style: TextStyle(

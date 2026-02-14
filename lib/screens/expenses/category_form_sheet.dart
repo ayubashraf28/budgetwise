@@ -9,6 +9,7 @@ import '../../models/category.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
 import '../../utils/category_name_utils.dart';
+import '../../utils/errors/error_mapper.dart';
 
 class CategoryFormSheet extends ConsumerStatefulWidget {
   final Category? category;
@@ -175,7 +176,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                           children: [
                             Icon(LucideIcons.target,
                                 size: 20, color: palette.textSecondary),
-                            SizedBox(width: AppSpacing.sm),
+                            const SizedBox(width: AppSpacing.sm),
                             Text(
                               'Enable budgeting',
                               style: AppTypography.bodyLarge.copyWith(
@@ -475,11 +476,13 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
           );
         }
       }
-    } catch (e) {
+    } catch (error, stackTrace) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text(
+              ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
+            ),
             backgroundColor: NeoTheme.negativeValue(context),
           ),
         );

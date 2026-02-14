@@ -9,6 +9,7 @@ import '../../models/category.dart';
 import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
+import '../../utils/errors/error_mapper.dart';
 import '../../widgets/common/neo_page_components.dart';
 import 'category_form_sheet.dart';
 
@@ -120,7 +121,9 @@ class _ExpenseOverviewScreenState extends ConsumerState<ExpenseOverviewScreen> {
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, stack) => _buildErrorState(error.toString()),
+            error: (error, stack) => _buildErrorState(
+              ErrorMapper.toUserMessage(error, stackTrace: stack),
+            ),
           ),
         ),
       ),

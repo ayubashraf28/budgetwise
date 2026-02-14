@@ -9,6 +9,7 @@ import '../../models/category.dart';
 import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
+import '../../utils/errors/error_mapper.dart';
 import '../../widgets/budget/budget_widgets.dart';
 import '../../widgets/common/neo_page_components.dart';
 import 'category_form_sheet.dart';
@@ -70,15 +71,15 @@ class ExpenseCategoriesScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              SliverToBoxAdapter(
+              const SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
+                  padding: EdgeInsets.fromLTRB(
                     NeoLayout.screenPadding,
                     NeoLayout.sectionGap,
                     NeoLayout.screenPadding,
                     AppSpacing.sm,
                   ),
-                  child: const AdaptiveHeadingText(
+                  child: AdaptiveHeadingText(
                     text: 'Expense Categories',
                   ),
                 ),
@@ -160,7 +161,10 @@ class ExpenseCategoriesScreen extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(
                         horizontal: NeoLayout.screenPadding,
                       ),
-                      child: _buildErrorState(context, error.toString()),
+                      child: _buildErrorState(
+                        context,
+                        ErrorMapper.toUserMessage(error, stackTrace: stack),
+                      ),
                     ),
                   ),
                 ],

@@ -6,11 +6,12 @@ import '../models/transaction.dart';
 import '../services/category_service.dart';
 import '../services/month_service.dart';
 import '../services/transaction_service.dart';
+import '../utils/errors/app_error.dart';
+import 'account_provider.dart';
 import 'auth_provider.dart';
-import 'month_provider.dart';
 import 'category_provider.dart';
 import 'income_provider.dart';
-import 'account_provider.dart';
+import 'month_provider.dart';
 
 /// Transaction service provider
 final transactionServiceProvider = Provider<TransactionService>((ref) {
@@ -88,6 +89,8 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
   }
 
   TransactionService get _service => ref.read(transactionServiceProvider);
+  MonthService get _monthService => ref.read(monthServiceProvider);
+  CategoryService get _categoryService => ref.read(categoryServiceProvider);
 
   /// Add an expense transaction.
   /// Month is derived from the transaction date, NOT the active month.
@@ -100,20 +103,27 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
     String? note,
   }) async {
     final user = ref.read(currentUserProvider);
-    if (user == null) throw Exception('Not ready');
+    if (user == null) {
+      throw const AppError.validation(technicalMessage: 'Provider not ready');
+    }
+
+    final transactionService = _service;
+    final monthService = _monthService;
+    final categoryService = _categoryService;
+    final activeMonth = ref.read(activeMonthProvider).valueOrNull ??
+        await ref.read(activeMonthProvider.future);
 
     // Derive month from transaction date
-    final monthService = MonthService();
     final targetMonth = await monthService.getMonthForDate(date);
 
     // Resolve category/item IDs for the target month
-    final activeMonth = ref.read(activeMonthProvider).value;
     String resolvedCategoryId = categoryId;
     String resolvedItemId = itemId;
 
     if (activeMonth != null && activeMonth.id != targetMonth.id) {
       // Transaction date is in a different month than active — resolve IDs by name
       final resolved = await _resolveIdsForMonth(
+        categoryService: categoryService,
         sourceCategoryId: categoryId,
         sourceItemId: itemId,
         targetMonthId: targetMonth.id,
@@ -122,7 +132,7 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
       resolvedItemId = resolved['itemId']!;
     }
 
-    final tx = await _service.createExpense(
+    final tx = await transactionService.createExpense(
       monthId: targetMonth.id,
       categoryId: resolvedCategoryId,
       itemId: resolvedItemId,
@@ -146,13 +156,17 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
     String? note,
   }) async {
     final user = ref.read(currentUserProvider);
-    if (user == null) throw Exception('Not ready');
+    if (user == null) {
+      throw const AppError.validation(technicalMessage: 'Provider not ready');
+    }
+
+    final transactionService = _service;
+    final monthService = _monthService;
 
     // Derive month from transaction date
-    final monthService = MonthService();
     final targetMonth = await monthService.getMonthForDate(date);
 
-    final tx = await _service.createIncome(
+    final tx = await transactionService.createIncome(
       monthId: targetMonth.id,
       incomeSourceId: incomeSourceId,
       accountId: accountId,
@@ -214,12 +228,11 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
   /// Resolves category/item IDs from one month to another by matching names.
   /// Used when the transaction date is in a different month than the active month.
   Future<Map<String, String>> _resolveIdsForMonth({
+    required CategoryService categoryService,
     required String sourceCategoryId,
     required String sourceItemId,
     required String targetMonthId,
   }) async {
-    final categoryService = CategoryService();
-
     // Get the source category to know its name
     final sourceCategory =
         await categoryService.getCategoryById(sourceCategoryId);

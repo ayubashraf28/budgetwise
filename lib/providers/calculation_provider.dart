@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/monthly_summary.dart';
-import 'month_provider.dart';
-import 'income_provider.dart';
 import 'category_provider.dart';
+import 'income_provider.dart';
+import 'month_provider.dart';
 
 /// Monthly summary combining all financial data
 final monthlySummaryProvider = Provider<MonthlySummary?>((ref) {

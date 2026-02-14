@@ -48,6 +48,7 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+ALTER FUNCTION public.handle_new_user() SET search_path = public;
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
@@ -70,7 +71,8 @@ CREATE TABLE IF NOT EXISTS public.months (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
 
-    CONSTRAINT unique_user_month UNIQUE (user_id, start_date)
+    CONSTRAINT unique_user_month UNIQUE (user_id, start_date),
+    CONSTRAINT months_name_not_blank CHECK (BTRIM(name) <> '')
 );
 
 -- Enable RLS
@@ -113,7 +115,8 @@ CREATE TABLE IF NOT EXISTS public.income_sources (
     sort_order INTEGER DEFAULT 0,
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT income_sources_name_not_blank CHECK (BTRIM(name) <> '')
 );
 
 -- Enable RLS
@@ -156,7 +159,8 @@ CREATE TABLE IF NOT EXISTS public.categories (
     budget_amount DECIMAL(12,2),
     sort_order INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT categories_name_not_blank CHECK (BTRIM(name) <> '')
 );
 
 -- Backward-compat: existing DBs created before category amount budgeting
@@ -212,6 +216,7 @@ CREATE TABLE IF NOT EXISTS public.subscriptions (
     reminder_days_before INTEGER NOT NULL DEFAULT 2,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT subscriptions_name_not_blank CHECK (BTRIM(name) <> ''),
     CONSTRAINT subscriptions_custom_cycle_days_check
         CHECK (custom_cycle_days IS NULL OR custom_cycle_days > 0)
 );
@@ -308,7 +313,8 @@ CREATE TABLE IF NOT EXISTS public.items (
     sort_order INTEGER DEFAULT 0,
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT items_name_not_blank CHECK (BTRIM(name) <> '')
 );
 
 -- Backward-compat: existing DBs created before subscriptions support
@@ -560,6 +566,8 @@ CREATE INDEX IF NOT EXISTS idx_transactions_subscription_id ON public.transactio
 CREATE INDEX IF NOT EXISTS idx_transactions_date ON public.transactions(date);
 CREATE INDEX IF NOT EXISTS idx_transactions_type ON public.transactions(type);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_date ON public.transactions(user_id, date);
+CREATE INDEX IF NOT EXISTS idx_transactions_user_month_date
+    ON public.transactions(user_id, month_id, date DESC);
 CREATE INDEX IF NOT EXISTS idx_transactions_account_id ON public.transactions(account_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_account_date
     ON public.transactions(user_id, account_id, date);
@@ -598,6 +606,7 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+ALTER FUNCTION public.get_item_actual(UUID) SET search_path = public;
 
 -- Function: Get category actual total from transactions
 CREATE OR REPLACE FUNCTION public.get_category_actual(p_category_id UUID)
@@ -609,6 +618,7 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+ALTER FUNCTION public.get_category_actual(UUID) SET search_path = public;
 
 -- Function: Get income source actual from transactions
 CREATE OR REPLACE FUNCTION public.get_income_source_actual(p_income_source_id UUID)
@@ -620,6 +630,7 @@ BEGIN
     );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+ALTER FUNCTION public.get_income_source_actual(UUID) SET search_path = public;
 
 -- Function: Protect reserved system "Subscriptions" category
 CREATE OR REPLACE FUNCTION public.enforce_reserved_subscriptions_category()

@@ -4,10 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
-import '../../config/theme.dart';
 import '../../config/constants.dart';
-import '../../services/services.dart';
-import '../../utils/category_name_utils.dart';
+import '../../config/theme.dart';
+import '../../providers/providers.dart';
+import '../../utils/errors/error_mapper.dart';
 
 class TemplateSelectionScreen extends ConsumerStatefulWidget {
   const TemplateSelectionScreen({super.key});
@@ -202,69 +202,20 @@ class _TemplateSelectionScreenState
     setState(() => _isLoading = true);
 
     try {
-      // Get or create first month
-      final monthService = MonthService();
-      final month = await monthService.getOrCreateCurrentMonth();
-
-      // Create default categories for selected template
-      final categoryService = CategoryService();
-      final itemService = ItemService();
-
-      // Check if categories already exist for this month (from previous attempt)
-      final existingCategories =
-          await categoryService.getCategoriesForMonth(month.id);
-
-      // Only create categories if none exist
-      if (existingCategories.isEmpty) {
-        final templateCategories = budgetTemplates[_selectedTemplate] ?? [];
-
-        for (final categoryName in templateCategories) {
-          if (isReservedCategoryName(categoryName)) continue;
-
-          // Find category template
-          final categoryTemplate = defaultCategories.firstWhere(
-            (c) => c['name'] == categoryName,
-            orElse: () => {
-              'name': categoryName,
-              'icon': 'wallet',
-              'color': '#6366f1',
-              'items': <Map<String, dynamic>>[],
-            },
-          );
-
-          // Create category
-          final category = await categoryService.createCategory(
-            monthId: month.id,
-            name: categoryTemplate['name'] as String,
-            icon: categoryTemplate['icon'] as String? ?? 'wallet',
-            color: categoryTemplate['color'] as String? ?? '#6366f1',
-          );
-
-          // Create items for category
-          final items = categoryTemplate['items'] as List<dynamic>? ?? [];
-          for (final itemData in items) {
-            final itemMap = itemData as Map<String, dynamic>;
-            await itemService.createItem(
-              categoryId: category.id,
-              name: itemMap['name'] as String,
-              projected: (itemMap['projected'] as num?)?.toDouble() ?? 0,
-            );
-          }
-        }
-      }
-
-      // Mark onboarding as completed
-      final profileService = ProfileService();
-      await profileService.completeOnboarding();
+      await ref
+          .read(onboardingNotifierProvider.notifier)
+          .applyTemplate(_selectedTemplate!);
 
       if (mounted) {
         context.go('/onboarding/complete');
       }
-    } catch (e) {
+    } catch (error, stackTrace) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text(
+              ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
+            ),
             backgroundColor: NeoTheme.negativeValue(context),
           ),
         );

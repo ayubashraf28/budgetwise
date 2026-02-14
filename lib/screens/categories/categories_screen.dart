@@ -11,6 +11,7 @@ import '../../models/income_source.dart';
 import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
+import '../../utils/errors/error_mapper.dart';
 import '../../widgets/common/neo_page_components.dart';
 import '../expenses/category_form_sheet.dart';
 import '../income/income_form_sheet.dart';
@@ -175,7 +176,9 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           );
         },
         loading: () => _buildLoadingSection(),
-        error: (error, _) => _buildErrorSection(error.toString()),
+        error: (error, stackTrace) => _buildErrorSection(
+          ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
+        ),
       ),
     );
   }
@@ -244,7 +247,9 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           );
         },
         loading: () => _buildLoadingSection(),
-        error: (error, _) => _buildErrorSection(error.toString()),
+        error: (error, stackTrace) => _buildErrorSection(
+          ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
+        ),
       ),
     );
   }
@@ -306,7 +311,9 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           );
         },
         loading: () => _buildLoadingSection(),
-        error: (error, _) => _buildErrorSection(error.toString()),
+        error: (error, stackTrace) => _buildErrorSection(
+          ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
+        ),
       ),
     );
   }

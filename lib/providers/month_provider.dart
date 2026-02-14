@@ -4,9 +4,10 @@ import '../models/month.dart';
 import '../services/account_service.dart';
 import '../services/category_service.dart';
 import '../services/income_service.dart';
-import '../services/month_service.dart';
 import '../services/item_service.dart';
+import '../services/month_service.dart';
 import '../services/subscription_service.dart';
+import '../utils/errors/app_error.dart';
 import 'account_provider.dart';
 import 'auth_provider.dart';
 
@@ -114,7 +115,7 @@ class MonthNotifier extends AsyncNotifier<Month?> {
     String? notes,
   }) async {
     final user = ref.read(currentUserProvider);
-    if (user == null) throw Exception('Not authenticated');
+    if (user == null) throw const AppError.unauthenticated();
 
     final month = await _service.createMonth(
       name: name,
@@ -131,7 +132,7 @@ class MonthNotifier extends AsyncNotifier<Month?> {
   /// Get or create the current calendar month
   Future<Month> getOrCreateCurrentMonth() async {
     final user = ref.read(currentUserProvider);
-    if (user == null) throw Exception('Not authenticated');
+    if (user == null) throw const AppError.unauthenticated();
 
     final month = await _service.createCurrentMonth();
 

@@ -2,13 +2,20 @@ import 'package:uuid/uuid.dart';
 
 import '../config/supabase_config.dart';
 import '../models/transaction.dart';
+import '../utils/errors/app_error.dart';
 
 class TransactionService {
   final _client = SupabaseConfig.client;
   static const _table = 'transactions';
   final _uuid = const Uuid();
 
-  String get _userId => _client.auth.currentUser!.id;
+  String get _userId {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AppError.unauthenticated();
+    }
+    return userId;
+  }
 
   /// Select query with joins
   String get _selectWithJoins =>
@@ -199,7 +206,11 @@ class TransactionService {
 
     if (updates.isEmpty) {
       final current = await getTransactionById(transactionId);
-      if (current == null) throw Exception('Transaction not found');
+      if (current == null) {
+        throw const AppError.notFound(
+          technicalMessage: 'Transaction not found',
+        );
+      }
       return current;
     }
 

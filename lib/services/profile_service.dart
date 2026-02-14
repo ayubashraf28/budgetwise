@@ -1,17 +1,22 @@
+import '../config/constants.dart';
 import '../config/supabase_config.dart';
 import '../models/user_profile.dart';
+import '../utils/errors/app_error.dart';
 
 class ProfileService {
   final _client = SupabaseConfig.client;
   static const _table = 'profiles';
 
-  /// Ensure profile exists for the current user, create if not
-  Future<UserProfile> ensureProfileExists() async {
+  String get _userId {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) {
-      throw Exception('User not authenticated');
+      throw const AppError.unauthenticated();
     }
+    return userId;
+  }
 
+  /// Ensure profile exists for the current user, create if not
+  Future<UserProfile> ensureProfileExists() async {
     // Check if profile exists
     final existing = await getCurrentProfile();
     if (existing != null) return existing;
@@ -21,11 +26,11 @@ class ProfileService {
     final response = await _client
         .from(_table)
         .insert({
-          'user_id': userId,
+          'user_id': _userId,
           'display_name':
               _client.auth.currentUser?.email?.split('@').first ?? 'User',
-          'currency': 'USD',
-          'locale': 'en_US',
+          'currency': AppConstants.defaultCurrency,
+          'locale': AppConstants.defaultLocale,
           'onboarding_completed': false,
           'created_at': now.toIso8601String(),
           'updated_at': now.toIso8601String(),
@@ -64,11 +69,6 @@ class ProfileService {
     String? locale,
     bool? onboardingCompleted,
   }) async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) {
-      throw Exception('User not authenticated');
-    }
-
     // Ensure profile exists before updating
     await ensureProfileExists();
 
@@ -82,14 +82,18 @@ class ProfileService {
 
     if (updates.isEmpty) {
       final current = await getCurrentProfile();
-      if (current == null) throw Exception('Profile not found');
+      if (current == null) {
+        throw const AppError.notFound(
+          technicalMessage: 'Profile not found',
+        );
+      }
       return current;
     }
 
     final response = await _client
         .from(_table)
         .update(updates)
-        .eq('user_id', userId)
+        .eq('user_id', _userId)
         .select()
         .single();
 

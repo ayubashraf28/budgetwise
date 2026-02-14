@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'config/theme.dart';
-import 'config/routes.dart';
 import 'config/constants.dart';
+import 'config/routes.dart';
+import 'config/theme.dart';
 import 'providers/providers.dart';
 
 class BudgetWiseApp extends ConsumerWidget {

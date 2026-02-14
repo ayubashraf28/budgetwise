@@ -2,13 +2,20 @@ import 'package:uuid/uuid.dart';
 
 import '../config/supabase_config.dart';
 import '../models/month.dart';
+import '../utils/errors/app_error.dart';
 
 class MonthService {
   final _client = SupabaseConfig.client;
   static const _table = 'months';
   final _uuid = const Uuid();
 
-  String get _userId => _client.auth.currentUser!.id;
+  String get _userId {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AppError.unauthenticated();
+    }
+    return userId;
+  }
 
   /// Get all months for the current user
   Future<List<Month>> getAllMonths() async {
@@ -76,8 +83,7 @@ class MonthService {
     if (isActive) {
       await _client
           .from(_table)
-          .update({'is_active': false})
-          .eq('user_id', _userId);
+          .update({'is_active': false}).eq('user_id', _userId);
     }
 
     final now = DateTime.now();
@@ -93,11 +99,8 @@ class MonthService {
       updatedAt: now,
     );
 
-    final response = await _client
-        .from(_table)
-        .insert(month.toJson())
-        .select()
-        .single();
+    final response =
+        await _client.from(_table).insert(month.toJson()).select().single();
 
     return Month.fromJson(response);
   }
@@ -109,8 +112,18 @@ class MonthService {
     final endDate = DateTime(now.year, now.month + 1, 0); // Last day of month
 
     final monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
     ];
 
     return createMonth(
@@ -147,8 +160,7 @@ class MonthService {
       // Deactivate all other months first
       await _client
           .from(_table)
-          .update({'is_active': false})
-          .eq('user_id', _userId);
+          .update({'is_active': false}).eq('user_id', _userId);
       updates['is_active'] = true;
     } else if (isActive == false) {
       updates['is_active'] = false;
@@ -156,7 +168,11 @@ class MonthService {
 
     if (updates.isEmpty) {
       final current = await getMonthById(monthId);
-      if (current == null) throw Exception('Month not found');
+      if (current == null) {
+        throw const AppError.notFound(
+          technicalMessage: 'Month not found',
+        );
+      }
       return current;
     }
 
@@ -206,8 +222,18 @@ class MonthService {
   /// Returns all 12 months sorted chronologically.
   Future<List<Month>> ensureYearMonths(int year) async {
     final monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
     ];
 
     final now = DateTime.now();
@@ -232,9 +258,7 @@ class MonthService {
 
     // Return all months for this year, sorted chronologically
     final allMonths = await getAllMonths();
-    final yearMonths = allMonths
-        .where((m) => m.startDate.year == year)
-        .toList()
+    final yearMonths = allMonths.where((m) => m.startDate.year == year).toList()
       ..sort((a, b) => a.startDate.compareTo(b.startDate));
 
     return yearMonths;
@@ -247,8 +271,18 @@ class MonthService {
 
     // Create the month
     final monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December'
     ];
     final startDate = DateTime(date.year, date.month, 1);
     final endDate = DateTime(date.year, date.month + 1, 0);

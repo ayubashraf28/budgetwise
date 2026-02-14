@@ -4,8 +4,8 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/theme.dart';
 import '../../models/category.dart';
 import '../../utils/app_icon_registry.dart';
-import 'progress_bar.dart';
 import 'difference_indicator.dart';
+import 'progress_bar.dart';
 
 /// List item widget for displaying a budget category
 class CategoryListItem extends StatelessWidget {

@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/theme.dart';
 import '../../models/income_source.dart';
 import '../../providers/providers.dart';
+import '../../utils/errors/error_mapper.dart';
 import '../../widgets/budget/budget_widgets.dart';
 import '../../widgets/common/neo_page_components.dart';
 import 'income_form_sheet.dart';
@@ -51,15 +52,15 @@ class IncomeScreen extends ConsumerWidget {
                       context, totalProjected, totalActual, currencySymbol),
                 ),
               ),
-              SliverToBoxAdapter(
+              const SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(
+                  padding: EdgeInsets.fromLTRB(
                     NeoLayout.screenPadding,
                     NeoLayout.sectionGap,
                     NeoLayout.screenPadding,
                     AppSpacing.sm,
                   ),
-                  child: const AdaptiveHeadingText(
+                  child: AdaptiveHeadingText(
                     text: 'Income Sources',
                   ),
                 ),
@@ -135,7 +136,10 @@ class IncomeScreen extends ConsumerWidget {
                       padding: const EdgeInsets.symmetric(
                         horizontal: NeoLayout.screenPadding,
                       ),
-                      child: _buildErrorState(context, error.toString()),
+                      child: _buildErrorState(
+                        context,
+                        ErrorMapper.toUserMessage(error, stackTrace: stack),
+                      ),
                     ),
                   ),
                 ],

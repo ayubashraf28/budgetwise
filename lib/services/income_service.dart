@@ -3,13 +3,20 @@ import 'package:uuid/uuid.dart';
 import '../config/supabase_config.dart';
 import '../models/income_source.dart';
 import '../models/month.dart';
+import '../utils/errors/app_error.dart';
 
 class IncomeService {
   final _client = SupabaseConfig.client;
   static const _table = 'income_sources';
   final _uuid = const Uuid();
 
-  String get _userId => _client.auth.currentUser!.id;
+  String get _userId {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AppError.unauthenticated();
+    }
+    return userId;
+  }
 
   /// Get all income sources for a month
   Future<List<IncomeSource>> getIncomeSourcesForMonth(String monthId) async {
@@ -50,7 +57,8 @@ class IncomeService {
       final existing = await getIncomeSourcesForMonth(monthId);
       sortOrder = existing.isEmpty
           ? 0
-          : existing.map((i) => i.sortOrder).reduce((a, b) => a > b ? a : b) + 1;
+          : existing.map((i) => i.sortOrder).reduce((a, b) => a > b ? a : b) +
+              1;
     }
 
     final now = DateTime.now();
@@ -96,7 +104,11 @@ class IncomeService {
 
     if (updates.isEmpty) {
       final current = await getIncomeSourceById(incomeSourceId);
-      if (current == null) throw Exception('Income source not found');
+      if (current == null) {
+        throw const AppError.notFound(
+          technicalMessage: 'Income source not found',
+        );
+      }
       return current;
     }
 

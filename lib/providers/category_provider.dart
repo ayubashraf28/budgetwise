@@ -1,10 +1,11 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/category.dart';
-import '../models/transaction.dart';
 import '../services/category_service.dart';
 import '../services/month_service.dart';
 import '../services/transaction_service.dart';
+import '../utils/actual_calculation_utils.dart';
+import '../utils/errors/app_error.dart';
 import 'auth_provider.dart';
 import 'month_provider.dart';
 
@@ -33,23 +34,7 @@ final categoriesProvider = FutureProvider<List<Category>>((ref) async {
   final transactions =
       await transactionService.getTransactionsForMonth(month.id);
 
-  // Calculate actuals for each item from transactions
-  return categories.map((category) {
-    final visibleItems = category.items?.where((item) => !item.isArchived);
-    final updatedItems = visibleItems?.map((item) {
-      // Sum transactions for this item
-      final itemTransactions = transactions.where(
-        (tx) => tx.itemId == item.id && tx.type == TransactionType.expense,
-      );
-      final actual = itemTransactions.fold<double>(
-        0.0,
-        (sum, tx) => sum + tx.amount,
-      );
-      return item.copyWith(actual: actual);
-    }).toList();
-
-    return category.copyWith(items: updatedItems);
-  }).toList();
+  return withCategoryActuals(categories, transactions);
 });
 
 /// Categories for a specific month (with items and calculated actuals).
@@ -64,21 +49,7 @@ final categoriesForMonthProvider =
   final transactions =
       await transactionService.getTransactionsForMonth(monthId);
 
-  return categories.map((category) {
-    final visibleItems = category.items?.where((item) => !item.isArchived);
-    final updatedItems = visibleItems?.map((item) {
-      final itemTransactions = transactions.where(
-        (tx) => tx.itemId == item.id && tx.type == TransactionType.expense,
-      );
-      final actual = itemTransactions.fold<double>(
-        0.0,
-        (sum, tx) => sum + tx.amount,
-      );
-      return item.copyWith(actual: actual);
-    }).toList();
-
-    return category.copyWith(items: updatedItems);
-  }).toList();
+  return withCategoryActuals(categories, transactions);
 });
 
 /// Get a single category by ID (with calculated actuals from transactions)
@@ -94,20 +65,7 @@ final categoryByIdProvider =
   final transactions =
       await transactionService.getTransactionsForMonth(category.monthId);
 
-  // Calculate actuals for each item from transactions
-  final visibleItems = category.items?.where((item) => !item.isArchived);
-  final updatedItems = visibleItems?.map((item) {
-    final itemTransactions = transactions.where(
-      (tx) => tx.itemId == item.id && tx.type == TransactionType.expense,
-    );
-    final actual = itemTransactions.fold<double>(
-      0.0,
-      (sum, tx) => sum + tx.amount,
-    );
-    return item.copyWith(actual: actual);
-  }).toList();
-
-  return category.copyWith(items: updatedItems);
+  return withCategoryActuals([category], transactions).first;
 });
 
 /// Categories that are over budget (only budgeted categories)
@@ -167,7 +125,9 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
   }) async {
     final user = ref.read(currentUserProvider);
     final month = ref.read(activeMonthProvider).value;
-    if (user == null || month == null) throw Exception('Not ready');
+    if (user == null || month == null) {
+      throw const AppError.validation(technicalMessage: 'Provider not ready');
+    }
 
     final category = await _service.createCategory(
       monthId: month.id,
@@ -245,7 +205,11 @@ class CategoryNotifier extends AsyncNotifier<List<Category>> {
     bool copyItems = true,
   }) async {
     final month = ref.read(activeMonthProvider).value;
-    if (month == null) throw Exception('No active month');
+    if (month == null) {
+      throw const AppError.validation(
+        technicalMessage: 'No active month selected',
+      );
+    }
 
     final categories = await _service.copyCategoriesFromMonth(
       sourceMonthId: sourceMonthId,

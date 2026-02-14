@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../config/constants.dart';
 import '../models/user_profile.dart';
 import '../services/profile_service.dart';
+import '../utils/errors/error_mapper.dart';
 
 /// Provider for the profile service
 final profileServiceProvider = Provider<ProfileService>((ref) {
@@ -44,7 +45,7 @@ class ProfileNotifier extends AsyncNotifier<UserProfile?> {
       );
       state = AsyncValue.data(profile);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      state = AsyncValue.error(ErrorMapper.toAppError(e, stackTrace: st), st);
     }
   }
 
@@ -55,7 +56,7 @@ class ProfileNotifier extends AsyncNotifier<UserProfile?> {
       final profile = await profileService.completeOnboarding();
       state = AsyncValue.data(profile);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      state = AsyncValue.error(ErrorMapper.toAppError(e, stackTrace: st), st);
     }
   }
 
@@ -66,12 +67,13 @@ class ProfileNotifier extends AsyncNotifier<UserProfile?> {
       final profile = await profileService.getCurrentProfile();
       state = AsyncValue.data(profile);
     } catch (e, st) {
-      state = AsyncValue.error(e, st);
+      state = AsyncValue.error(ErrorMapper.toAppError(e, stackTrace: st), st);
     }
   }
 }
 
-final profileNotifierProvider = AsyncNotifierProvider<ProfileNotifier, UserProfile?>(() {
+final profileNotifierProvider =
+    AsyncNotifierProvider<ProfileNotifier, UserProfile?>(() {
   return ProfileNotifier();
 });
 

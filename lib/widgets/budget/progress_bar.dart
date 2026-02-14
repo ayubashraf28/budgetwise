@@ -24,7 +24,7 @@ class BudgetProgressBar extends StatelessWidget {
     final percentage =
         projected > 0 ? (actual / projected).clamp(0.0, 1.0) : 0.0;
     final isOver = actual > projected;
-    final trackColor = backgroundColor ?? color.withOpacity(0.2);
+    final trackColor = backgroundColor ?? color.withValues(alpha: 0.2);
     final danger = NeoTheme.negativeValue(context);
 
     return ClipRRect(

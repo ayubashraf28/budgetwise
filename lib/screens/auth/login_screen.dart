@@ -1,13 +1,14 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/errors/error_mapper.dart';
 import '../../utils/validators/email_validator.dart';
 import '../../widgets/common/app_text_field.dart';
 import '../../widgets/common/neo_page_components.dart';
@@ -56,14 +57,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (mounted) {
         context.go('/home');
       }
-    } catch (e) {
+    } catch (error, stackTrace) {
+      final appError = ErrorMapper.toAppError(
+        error,
+        stackTrace: stackTrace,
+      );
+      final technicalMessage = appError.technicalMessage;
+      final normalizedMessage = technicalMessage.toLowerCase();
       setState(() {
-        _errorMessage = _getErrorMessage(e.toString());
-        _isCredentialError = e
-                .toString()
-                .toLowerCase()
-                .contains('invalid login credentials') ||
-            e.toString().toLowerCase().contains('invalid email or password');
+        _errorMessage = _getErrorMessage(
+          technicalMessage,
+          fallbackMessage: appError.userMessage,
+        );
+        _isCredentialError =
+            normalizedMessage.contains('invalid login credentials') ||
+                normalizedMessage.contains('invalid email or password');
       });
     } finally {
       if (mounted) {
@@ -84,14 +92,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       await ref.read(authNotifierProvider.notifier).signInWithGoogle();
       // OAuth flow completes through deep-link callback and router auth refresh.
-    } catch (e) {
-      final normalized = e.toString().toLowerCase();
+    } catch (error, stackTrace) {
+      final appError = ErrorMapper.toAppError(
+        error,
+        stackTrace: stackTrace,
+      );
+      final technicalMessage = appError.technicalMessage;
+      final normalized = technicalMessage.toLowerCase();
       if (normalized.contains('cancel')) {
         return;
       }
 
       setState(() {
-        _errorMessage = _getErrorMessage(e.toString());
+        _errorMessage = _getErrorMessage(
+          technicalMessage,
+          fallbackMessage: appError.userMessage,
+        );
         _isCredentialError = false;
       });
     } finally {
@@ -103,7 +119,89 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  String _getErrorMessage(String error) {
+  Future<void> _handleForgotPassword() async {
+    final emailController = TextEditingController(
+      text: _emailController.text.trim(),
+    );
+
+    final email = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          backgroundColor: NeoTheme.of(context).surface1,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+            side: BorderSide(color: NeoTheme.of(context).stroke),
+          ),
+          title: Text(
+            'Reset Password',
+            style: AppTypography.h3.copyWith(
+              color: NeoTheme.of(context).textPrimary,
+            ),
+          ),
+          content: TextField(
+            controller: emailController,
+            keyboardType: TextInputType.emailAddress,
+            autofocus: true,
+            decoration: InputDecoration(
+              labelText: 'Email',
+              hintText: 'you@example.com',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                final email = emailController.text.trim();
+                final validationError = EmailValidator.validate(email);
+                if (validationError != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(validationError)),
+                  );
+                  return;
+                }
+                Navigator.of(dialogContext).pop(email);
+              },
+              child: const Text('Send link'),
+            ),
+          ],
+        );
+      },
+    );
+
+    emailController.dispose();
+    if (!mounted || email == null || email.isEmpty) return;
+
+    try {
+      await ref.read(authNotifierProvider.notifier).resetPassword(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Password reset email sent. Check your inbox.'),
+        ),
+      );
+    } catch (error, stackTrace) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
+          ),
+        ),
+      );
+    }
+  }
+
+  String _getErrorMessage(
+    String error, {
+    String? fallbackMessage,
+  }) {
     final errorLower = error.toLowerCase();
 
     if (errorLower.contains('invalid login credentials') ||
@@ -132,7 +230,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (errorLower.contains('google authentication failed')) {
       return 'Google sign-in failed. Please try again.';
     }
-    return 'Unable to sign in. Please try again';
+    return fallbackMessage ?? 'Unable to sign in. Please try again';
   }
 
   @override
@@ -163,8 +261,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ],
                       _buildFormCard(color),
                       const SizedBox(height: AppSpacing.lg),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(
                             "Don't have an account? ",
@@ -429,9 +528,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
-              onPressed: () {
-                // TODO: Navigate to forgot password screen
-              },
+              onPressed: _isBusy ? null : _handleForgotPassword,
               style: TextButton.styleFrom(
                 foregroundColor: color,
                 padding: EdgeInsets.zero,

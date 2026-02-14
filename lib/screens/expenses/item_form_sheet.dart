@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/theme.dart';
 import '../../models/item.dart';
 import '../../providers/providers.dart';
+import '../../utils/errors/error_mapper.dart';
 
 class ItemFormSheet extends ConsumerStatefulWidget {
   final String categoryId;
@@ -269,11 +270,13 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
           );
         }
       }
-    } catch (e) {
+    } catch (error, stackTrace) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text(
+              ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
+            ),
             backgroundColor: NeoTheme.negativeValue(context),
           ),
         );

@@ -7,6 +7,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/theme.dart';
 import '../../models/account.dart';
 import '../../providers/providers.dart';
+import '../../utils/errors/error_mapper.dart';
 import '../../widgets/common/neo_page_components.dart';
 import 'account_form_sheet.dart';
 
@@ -115,7 +116,9 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(AppSpacing.md),
               children: [
-                _buildErrorState(error.toString()),
+                _buildErrorState(
+                  ErrorMapper.toUserMessage(error, stackTrace: stack),
+                ),
               ],
             ),
           ),
@@ -589,11 +592,13 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
       await ref
           .read(accountNotifierProvider.notifier)
           .reorderAccounts(reordered.map((a) => a.id).toList());
-    } catch (e) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to reorder accounts: $e'),
+          content: Text(
+            ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
+          ),
           backgroundColor: NeoTheme.negativeValue(context),
         ),
       );
@@ -624,11 +629,13 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
           }
           break;
       }
-    } catch (e) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: Text(
+            ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
+          ),
           backgroundColor: NeoTheme.negativeValue(context),
         ),
       );

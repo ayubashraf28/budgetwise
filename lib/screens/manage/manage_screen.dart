@@ -10,6 +10,7 @@ import '../../models/subscription.dart';
 import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
+import '../../utils/errors/error_mapper.dart';
 import '../../widgets/common/neo_page_components.dart';
 import '../expenses/category_form_sheet.dart';
 import '../subscriptions/subscription_form_sheet.dart';
@@ -233,7 +234,9 @@ class _ManageScreenState extends ConsumerState<ManageScreen> {
         );
       },
       loading: () => _buildLoadingSection(),
-      error: (error, _) => _buildErrorSection(error.toString()),
+      error: (error, stackTrace) => _buildErrorSection(
+        ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
+      ),
     );
   }
 
@@ -331,7 +334,9 @@ class _ManageScreenState extends ConsumerState<ManageScreen> {
         );
       },
       loading: () => _buildLoadingSection(),
-      error: (error, _) => _buildErrorSection(error.toString()),
+      error: (error, stackTrace) => _buildErrorSection(
+        ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
+      ),
     );
   }
 

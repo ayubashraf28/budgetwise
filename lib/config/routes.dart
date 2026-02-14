@@ -1,33 +1,82 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../providers/providers.dart';
+import '../screens/analysis/analysis_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
-import '../screens/home/home_screen.dart';
-import '../screens/income/income_screen.dart';
-import '../screens/categories/categories_screen.dart';
-import '../screens/manage/manage_screen.dart';
-import '../screens/analysis/analysis_screen.dart';
 import '../screens/budget/budget_overview_screen.dart';
+import '../screens/categories/categories_screen.dart';
+import '../screens/expenses/category_detail_screen.dart';
 import '../screens/expenses/expense_categories_screen.dart';
 import '../screens/expenses/expense_overview_screen.dart';
-import '../screens/expenses/category_detail_screen.dart';
 import '../screens/expenses/item_detail_screen.dart';
-import '../screens/transactions/transactions_screen.dart';
-import '../screens/settings/settings_screen.dart';
-import '../screens/settings/profile_screen.dart';
-import '../screens/settings/accounts_screen.dart';
-import '../screens/subscriptions/subscriptions_screen.dart';
-import '../screens/onboarding/welcome_screen.dart';
-import '../screens/onboarding/template_selection_screen.dart';
+import '../screens/home/home_screen.dart';
+import '../screens/income/income_screen.dart';
+import '../screens/manage/manage_screen.dart';
 import '../screens/onboarding/setup_complete_screen.dart';
+import '../screens/onboarding/template_selection_screen.dart';
+import '../screens/onboarding/welcome_screen.dart';
+import '../screens/settings/accounts_screen.dart';
+import '../screens/settings/profile_screen.dart';
+import '../screens/settings/settings_screen.dart';
+import '../screens/subscriptions/subscriptions_screen.dart';
+import '../screens/transactions/transactions_screen.dart';
 import '../widgets/navigation/app_shell.dart';
-import '../services/profile_service.dart';
-import '../providers/providers.dart';
+
+String? resolveAppRedirect({
+  required bool isLoggedIn,
+  required String matchedLocation,
+  required bool onboardingCompleted,
+}) {
+  final isLoggingIn = matchedLocation == '/login';
+  final isRegistering = matchedLocation == '/register';
+  final isOnboarding = matchedLocation.startsWith('/onboarding');
+
+  if (!isLoggedIn) {
+    if (isLoggingIn || isRegistering) return null;
+    return '/login';
+  }
+
+  if (isLoggingIn || isRegistering) {
+    return onboardingCompleted ? '/home' : '/onboarding';
+  }
+
+  if (!onboardingCompleted && !isOnboarding) {
+    return '/onboarding';
+  }
+
+  if (onboardingCompleted && isOnboarding) {
+    return '/home';
+  }
+
+  return null;
+}
+
+Future<bool> resolveOnboardingCompletedForRedirect({
+  required AsyncValue<bool> cachedValue,
+  required Future<bool> Function() loadOnboardingCompleted,
+  Duration timeout = const Duration(seconds: 4),
+}) async {
+  if (cachedValue.hasValue) {
+    return cachedValue.requireValue;
+  }
+
+  if (cachedValue.hasError) {
+    return true;
+  }
+
+  try {
+    return await loadOnboardingCompleted().timeout(timeout);
+  } catch (_) {
+    // Fail open to keep navigation responsive during transient fetch issues.
+    return true;
+  }
+}
 
 /// A Listenable that notifies when auth state changes
 class GoRouterRefreshStream extends ChangeNotifier {
@@ -62,40 +111,27 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) async {
       final session = Supabase.instance.client.auth.currentSession;
       final isLoggedIn = session != null;
-      final isLoggingIn = state.matchedLocation == '/login';
-      final isRegistering = state.matchedLocation == '/register';
-      final isOnboarding = state.matchedLocation.startsWith('/onboarding');
+      final matchedLocation = state.matchedLocation;
 
-      // If not logged in, redirect to login (unless already there or registering)
       if (!isLoggedIn) {
-        if (isLoggingIn || isRegistering) return null;
-        return '/login';
+        return resolveAppRedirect(
+          isLoggedIn: false,
+          matchedLocation: matchedLocation,
+          onboardingCompleted: false,
+        );
       }
 
-      // If logged in and on auth pages, check onboarding status
-      if (isLoggedIn && (isLoggingIn || isRegistering)) {
-        final profileService = ProfileService();
-        final onboardingCompleted =
-            await profileService.isOnboardingCompleted();
+      final onboardingCompleted = await resolveOnboardingCompletedForRedirect(
+        cachedValue: ref.read(onboardingCompletedProvider),
+        loadOnboardingCompleted: () =>
+            ref.read(onboardingCompletedProvider.future),
+      );
 
-        if (!onboardingCompleted) {
-          return '/onboarding';
-        }
-        return '/home';
-      }
-
-      // If logged in but not on onboarding, check if onboarding is needed
-      if (isLoggedIn && !isOnboarding) {
-        final profileService = ProfileService();
-        final onboardingCompleted =
-            await profileService.isOnboardingCompleted();
-
-        if (!onboardingCompleted) {
-          return '/onboarding';
-        }
-      }
-
-      return null;
+      return resolveAppRedirect(
+        isLoggedIn: true,
+        matchedLocation: matchedLocation,
+        onboardingCompleted: onboardingCompleted,
+      );
     },
     routes: [
       // Auth routes (no bottom navigation)

@@ -3,8 +3,10 @@ import 'dart:developer' as developer;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
-import '../models/subscription.dart';
 import '../config/supabase_config.dart';
+import '../models/subscription.dart';
+import '../utils/errors/app_error.dart';
+import '../utils/errors/error_mapper.dart';
 
 class SubscriptionPaymentResult {
   final String transactionId;
@@ -35,7 +37,9 @@ class SubscriptionPaymentResult {
     DateTime parseDate(dynamic value) {
       if (value is DateTime) return value;
       if (value is String) return DateTime.parse(value);
-      throw Exception('Invalid date value in payment response: $value');
+      throw AppError.validation(
+        technicalMessage: 'Invalid date value in payment response: $value',
+      );
     }
 
     return SubscriptionPaymentResult(
@@ -58,7 +62,13 @@ class SubscriptionService {
   final String _table = 'subscriptions';
   final _uuid = const Uuid();
 
-  String get _userId => _client.auth.currentUser!.id;
+  String get _userId {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AppError.unauthenticated();
+    }
+    return userId;
+  }
 
   /// Get all subscriptions for the current user
   Future<List<Subscription>> getSubscriptions() async {
@@ -215,7 +225,11 @@ class SubscriptionService {
   /// Advance the due date for auto-renewing subscriptions that are past due
   Future<Subscription> advanceDueDate(String subscriptionId) async {
     final sub = await getSubscriptionById(subscriptionId);
-    if (sub == null) throw Exception('Subscription not found');
+    if (sub == null) {
+      throw const AppError.notFound(
+        technicalMessage: 'Subscription not found',
+      );
+    }
 
     final newDate = sub.calculatedNextDueDate;
     return updateSubscription(
@@ -254,18 +268,21 @@ class SubscriptionService {
       } else if (response is Map) {
         payload = Map<String, dynamic>.from(response);
       } else {
-        throw Exception('Failed to mark subscription as paid');
+        throw const AppError.database(
+          technicalMessage: 'Failed to mark subscription as paid',
+        );
       }
 
       return SubscriptionPaymentResult.fromRpc(payload);
     } catch (error, stackTrace) {
+      final mappedError = ErrorMapper.toAppError(error, stackTrace: stackTrace);
       await logPaymentEvent(
         requestId: effectiveRequestId,
         subscriptionId: subscriptionId,
         status: 'failed',
         paidAt: paidAtDate,
         duplicatePrevented: false,
-        errorMessage: error.toString(),
+        errorMessage: mappedError.technicalMessage,
         details: {
           'source': 'subscription_service.mark_subscription_paid_atomic',
         },
@@ -273,10 +290,10 @@ class SubscriptionService {
       developer.log(
         'markSubscriptionPaidAtomic failed',
         name: 'SubscriptionService',
-        error: error,
+        error: mappedError,
         stackTrace: stackTrace,
       );
-      rethrow;
+      throw mappedError;
     }
   }
 

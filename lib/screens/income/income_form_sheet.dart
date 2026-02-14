@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/theme.dart';
 import '../../models/income_source.dart';
 import '../../providers/providers.dart';
+import '../../utils/errors/error_mapper.dart';
 
 class IncomeFormSheet extends ConsumerStatefulWidget {
   final IncomeSource? incomeSource;
@@ -208,7 +209,7 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                           children: [
                             Icon(LucideIcons.repeat,
                                 size: 20, color: palette.textSecondary),
-                            SizedBox(width: AppSpacing.sm),
+                            const SizedBox(width: AppSpacing.sm),
                             Text(
                               'Recurring income',
                               style: AppTypography.bodyLarge.copyWith(
@@ -326,11 +327,13 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
           );
         }
       }
-    } catch (e) {
+    } catch (error, stackTrace) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text(
+              ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
+            ),
             backgroundColor: NeoTheme.negativeValue(context),
           ),
         );

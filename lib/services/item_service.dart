@@ -1,16 +1,23 @@
-import 'package:uuid/uuid.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 import '../config/supabase_config.dart';
 import '../models/item.dart';
 import '../models/subscription.dart';
+import '../utils/errors/app_error.dart';
 
 class ItemService {
   final _client = SupabaseConfig.client;
   static const _table = 'items';
   final _uuid = const Uuid();
 
-  String get _userId => _client.auth.currentUser!.id;
+  String get _userId {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AppError.unauthenticated();
+    }
+    return userId;
+  }
 
   /// Get all items for a category
   Future<List<Item>> getItemsForCategory(
@@ -132,7 +139,11 @@ class ItemService {
 
     if (updates.isEmpty) {
       final current = await getItemById(itemId);
-      if (current == null) throw Exception('Item not found');
+      if (current == null) {
+        throw const AppError.notFound(
+          technicalMessage: 'Item not found',
+        );
+      }
       return current;
     }
 

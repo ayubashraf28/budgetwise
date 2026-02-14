@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/item.dart';
 import '../services/item_service.dart';
+import '../utils/errors/app_error.dart';
 import 'auth_provider.dart';
 import 'category_provider.dart';
 
@@ -42,7 +43,7 @@ class ItemNotifier extends FamilyAsyncNotifier<List<Item>, String> {
     String? notes,
   }) async {
     final user = ref.read(currentUserProvider);
-    if (user == null) throw Exception('Not authenticated');
+    if (user == null) throw const AppError.unauthenticated();
 
     final item = await _service.createItem(
       categoryId: arg,

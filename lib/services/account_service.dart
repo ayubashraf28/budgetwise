@@ -1,11 +1,18 @@
 import '../config/supabase_config.dart';
 import '../models/account.dart';
+import '../utils/errors/app_error.dart';
 
 class AccountService {
   final _client = SupabaseConfig.client;
   static const _table = 'accounts';
 
-  String get _userId => _client.auth.currentUser!.id;
+  String get _userId {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AppError.unauthenticated();
+    }
+    return userId;
+  }
 
   Future<String> _getProfileCurrency() async {
     final response = await _client
@@ -100,7 +107,11 @@ class AccountService {
 
     if (updates.isEmpty) {
       final current = await getAccountById(accountId);
-      if (current == null) throw Exception('Account not found');
+      if (current == null) {
+        throw const AppError.notFound(
+          technicalMessage: 'Account not found',
+        );
+      }
       return current;
     }
 
@@ -131,8 +142,12 @@ class AccountService {
         .eq('account_id', accountId)
         .limit(1);
     if ((txUsage as List).isNotEmpty) {
-      throw Exception(
-          'Cannot delete account with transaction history. Archive it instead.');
+      throw const AppError.conflict(
+        technicalMessage:
+            'Cannot delete account with transaction history. Archive it instead.',
+        userMessage:
+            'This account has transaction history. Archive it instead.',
+      );
     }
 
     final fromUsage = await _client
@@ -142,8 +157,11 @@ class AccountService {
         .eq('from_account_id', accountId)
         .limit(1);
     if ((fromUsage as List).isNotEmpty) {
-      throw Exception(
-          'Cannot delete account with transfer history. Archive it instead.');
+      throw const AppError.conflict(
+        technicalMessage:
+            'Cannot delete account with transfer history. Archive it instead.',
+        userMessage: 'This account has transfer history. Archive it instead.',
+      );
     }
 
     final toUsage = await _client
@@ -153,8 +171,11 @@ class AccountService {
         .eq('to_account_id', accountId)
         .limit(1);
     if ((toUsage as List).isNotEmpty) {
-      throw Exception(
-          'Cannot delete account with transfer history. Archive it instead.');
+      throw const AppError.conflict(
+        technicalMessage:
+            'Cannot delete account with transfer history. Archive it instead.',
+        userMessage: 'This account has transfer history. Archive it instead.',
+      );
     }
 
     await _client

@@ -4,7 +4,7 @@ class AppConstants {
 
   // App Info
   static const String appName = 'BudgetWise';
-  static const String appVersion = '0.07';
+  static const String appVersion = '0.0.7+7';
 
   // Default Settings
   static const String defaultCurrency = 'GBP';

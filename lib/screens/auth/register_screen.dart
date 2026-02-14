@@ -1,13 +1,14 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../utils/errors/error_mapper.dart';
 import '../../utils/validators/email_validator.dart';
 import '../../widgets/common/app_text_field.dart';
 
@@ -59,9 +60,16 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       if (mounted) {
         _showSuccessDialog();
       }
-    } catch (e) {
+    } catch (error, stackTrace) {
+      final appError = ErrorMapper.toAppError(
+        error,
+        stackTrace: stackTrace,
+      );
       setState(() {
-        _errorMessage = _getErrorMessage(e.toString());
+        _errorMessage = _getErrorMessage(
+          appError.technicalMessage,
+          fallbackMessage: appError.userMessage,
+        );
       });
     } finally {
       if (mounted) {
@@ -81,14 +89,22 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     try {
       await ref.read(authNotifierProvider.notifier).signInWithGoogle();
       // OAuth flow completes through deep-link callback and router auth refresh.
-    } catch (e) {
-      final normalized = e.toString().toLowerCase();
+    } catch (error, stackTrace) {
+      final appError = ErrorMapper.toAppError(
+        error,
+        stackTrace: stackTrace,
+      );
+      final technicalMessage = appError.technicalMessage;
+      final normalized = technicalMessage.toLowerCase();
       if (normalized.contains('cancel')) {
         return;
       }
 
       setState(() {
-        _errorMessage = _getErrorMessage(e.toString());
+        _errorMessage = _getErrorMessage(
+          technicalMessage,
+          fallbackMessage: appError.userMessage,
+        );
       });
     } finally {
       if (mounted) {
@@ -99,7 +115,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
   }
 
-  String _getErrorMessage(String error) {
+  String _getErrorMessage(
+    String error, {
+    String? fallbackMessage,
+  }) {
     final errorLower = error.toLowerCase();
 
     if (errorLower.contains('already registered') ||
@@ -129,7 +148,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (errorLower.contains('google authentication failed')) {
       return 'Google sign-in failed. Please try again';
     }
-    return 'Unable to create account. Please try again';
+    return fallbackMessage ?? 'Unable to create account. Please try again';
   }
 
   void _showSuccessDialog() {
@@ -244,8 +263,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   const SizedBox(height: AppSpacing.lg),
 
                   // Login Link
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text(
                         'Already have an account? ',

@@ -1,11 +1,18 @@
 import '../config/supabase_config.dart';
 import '../models/account_transfer.dart';
+import '../utils/errors/app_error.dart';
 
 class TransferService {
   final _client = SupabaseConfig.client;
   static const _table = 'account_transfers';
 
-  String get _userId => _client.auth.currentUser!.id;
+  String get _userId {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) {
+      throw const AppError.unauthenticated();
+    }
+    return userId;
+  }
 
   String get _selectWithJoins =>
       '*, from_account:accounts!account_transfers_from_account_id_fkey(name, type), to_account:accounts!account_transfers_to_account_id_fkey(name, type)';
@@ -93,7 +100,11 @@ class TransferService {
 
     if (updates.isEmpty) {
       final current = await getTransferById(transferId);
-      if (current == null) throw Exception('Transfer not found');
+      if (current == null) {
+        throw const AppError.notFound(
+          technicalMessage: 'Transfer not found',
+        );
+      }
       return current;
     }
 

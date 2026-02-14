@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/theme.dart';
 import '../../models/account.dart';
 import '../../providers/providers.dart';
+import '../../utils/errors/error_mapper.dart';
 import '../../widgets/common/neo_dropdown_form_field.dart';
 
 class AccountFormSheet extends ConsumerStatefulWidget {
@@ -335,11 +336,13 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
           content: Text(isEditing ? 'Account updated' : 'Account created'),
         ),
       );
-    } catch (e) {
+    } catch (error, stackTrace) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error: $e'),
+          content: Text(
+            ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
+          ),
           backgroundColor: NeoTheme.negativeValue(context),
         ),
       );

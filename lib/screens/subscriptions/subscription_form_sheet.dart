@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/constants.dart';
 import '../../config/theme.dart';
@@ -10,6 +10,7 @@ import '../../models/account.dart';
 import '../../models/subscription.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
+import '../../utils/errors/error_mapper.dart';
 import '../../widgets/common/dropdown_menu_item_label.dart';
 import '../../widgets/common/neo_dropdown_form_field.dart';
 
@@ -309,7 +310,7 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
                           children: [
                             Icon(LucideIcons.repeat,
                                 size: 20, color: palette.textSecondary),
-                            SizedBox(width: AppSpacing.sm),
+                            const SizedBox(width: AppSpacing.sm),
                             Text(
                               'Auto-renew',
                               style: AppTypography.bodyLarge.copyWith(
@@ -715,11 +716,13 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
           );
         }
       }
-    } catch (e) {
+    } catch (error, stackTrace) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text(
+              ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
+            ),
             backgroundColor: NeoTheme.negativeValue(context),
           ),
         );
