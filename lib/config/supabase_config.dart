@@ -1,14 +1,67 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Configuration loaded from compile-time --dart-define flags.
+///
+/// Build with:
+///   flutter build apk --release \
+///     --dart-define=SUPABASE_URL=https://your-project.supabase.co \
+///     --dart-define=SUPABASE_ANON_KEY=your-anon-key \
+///     --dart-define=GOOGLE_WEB_CLIENT_ID=... \
+///     --dart-define=GOOGLE_ANDROID_CLIENT_ID_DEBUG=... \
+///     --dart-define=GOOGLE_ANDROID_CLIENT_ID_RELEASE=... \
+///     --obfuscate --split-debug-info=build/symbols
+///
+/// For local development, use a .env file loaded via flutter_dotenv as fallback.
 class SupabaseConfig {
   SupabaseConfig._();
 
   static SupabaseClient get client => Supabase.instance.client;
 
-  static String get supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
-  static String get supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+  // Compile-time constants from --dart-define (preferred, not extractable from APK)
+  static const _dartDefineSupabaseUrl =
+      String.fromEnvironment('SUPABASE_URL');
+  static const _dartDefineSupabaseAnonKey =
+      String.fromEnvironment('SUPABASE_ANON_KEY');
+  static const _dartDefineGoogleWebClientId =
+      String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
+  static const _dartDefineGoogleAndroidClientIdDebug =
+      String.fromEnvironment('GOOGLE_ANDROID_CLIENT_ID_DEBUG');
+  static const _dartDefineGoogleAndroidClientIdRelease =
+      String.fromEnvironment('GOOGLE_ANDROID_CLIENT_ID_RELEASE');
+  static const _dartDefineGoogleIosClientId =
+      String.fromEnvironment('GOOGLE_IOS_CLIENT_ID');
+
+  // Runtime fallbacks (set by main.dart from dotenv for local development)
+  static Map<String, String> _runtimeEnv = {};
+
+  /// Called from main.dart after loading .env (for local development only).
+  static void setRuntimeEnv(Map<String, String> env) {
+    _runtimeEnv = env;
+  }
+
+  static String _env(String key) {
+    // Prefer compile-time --dart-define values
+    switch (key) {
+      case 'SUPABASE_URL':
+        if (_dartDefineSupabaseUrl.isNotEmpty) return _dartDefineSupabaseUrl;
+      case 'SUPABASE_ANON_KEY':
+        if (_dartDefineSupabaseAnonKey.isNotEmpty) return _dartDefineSupabaseAnonKey;
+      case 'GOOGLE_WEB_CLIENT_ID':
+        if (_dartDefineGoogleWebClientId.isNotEmpty) return _dartDefineGoogleWebClientId;
+      case 'GOOGLE_ANDROID_CLIENT_ID_DEBUG':
+        if (_dartDefineGoogleAndroidClientIdDebug.isNotEmpty) return _dartDefineGoogleAndroidClientIdDebug;
+      case 'GOOGLE_ANDROID_CLIENT_ID_RELEASE':
+        if (_dartDefineGoogleAndroidClientIdRelease.isNotEmpty) return _dartDefineGoogleAndroidClientIdRelease;
+      case 'GOOGLE_IOS_CLIENT_ID':
+        if (_dartDefineGoogleIosClientId.isNotEmpty) return _dartDefineGoogleIosClientId;
+    }
+    // Fall back to runtime .env for local development
+    return (_runtimeEnv[key] ?? '').trim();
+  }
+
+  static String get supabaseUrl => _env('SUPABASE_URL');
+  static String get supabaseAnonKey => _env('SUPABASE_ANON_KEY');
   static String get googleWebClientId =>
       _requiredGoogleClientId('GOOGLE_WEB_CLIENT_ID');
   static String get googleAndroidClientId => _resolvedAndroidGoogleClientId();
@@ -26,19 +79,11 @@ class SupabaseConfig {
   static Stream<AuthState> get authStateChanges =>
       client.auth.onAuthStateChange;
 
-  static String _requiredEnv(String key) {
-    final value = (dotenv.env[key] ?? '').trim();
-    if (value.isEmpty) {
-      throw StateError('Missing required environment variable: $key');
-    }
-    return value;
-  }
-
   static String _requiredGoogleClientId(String key) {
-    final value = _requiredEnv(key);
-    if (_isPlaceholderClientId(value) || !_isGoogleClientId(value)) {
+    final value = _env(key);
+    if (value.isEmpty || _isPlaceholderClientId(value) || !_isGoogleClientId(value)) {
       throw StateError(
-        'Invalid environment variable $key. Expected a real Google OAuth client ID.',
+        'Invalid or missing environment variable $key. Expected a real Google OAuth client ID.',
       );
     }
     return value;
@@ -59,7 +104,7 @@ class SupabaseConfig {
   }
 
   static String? _optionalGoogleClientId(String key) {
-    final value = (dotenv.env[key] ?? '').trim();
+    final value = _env(key);
     if (value.isEmpty || _isPlaceholderClientId(value)) {
       return null;
     }

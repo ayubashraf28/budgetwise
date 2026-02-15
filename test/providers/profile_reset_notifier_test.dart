@@ -27,13 +27,16 @@ void main() {
       'deleteAllDataAndSignOut deletes data, signs out, invalidates linked providers',
       () async {
     final profileService = _FakeProfileService();
-    final authNotifier = _FakeAuthNotifier();
+    late _FakeAuthNotifier authNotifier;
     var linkedProviderLoads = 0;
 
     final container = ProviderContainer(
       overrides: [
         profileServiceProvider.overrideWithValue(profileService),
-        authNotifierProvider.overrideWith((ref) => authNotifier),
+        authNotifierProvider.overrideWith((ref) {
+          authNotifier = _FakeAuthNotifier(ref);
+          return authNotifier;
+        }),
         linkedProvidersProvider.overrideWith((ref) async {
           linkedProviderLoads += 1;
           return <String>{'email'};
@@ -41,6 +44,9 @@ void main() {
       ],
     );
     addTearDown(container.dispose);
+
+    // Force authNotifier initialization
+    container.read(authNotifierProvider);
 
     await container.read(linkedProvidersProvider.future);
     expect(linkedProviderLoads, 1);
@@ -64,14 +70,20 @@ void main() {
         technicalMessage: 'delete_all_user_data failed',
       ),
     );
-    final authNotifier = _FakeAuthNotifier();
+    late _FakeAuthNotifier authNotifier;
     final container = ProviderContainer(
       overrides: [
         profileServiceProvider.overrideWithValue(profileService),
-        authNotifierProvider.overrideWith((ref) => authNotifier),
+        authNotifierProvider.overrideWith((ref) {
+          authNotifier = _FakeAuthNotifier(ref);
+          return authNotifier;
+        }),
       ],
     );
     addTearDown(container.dispose);
+
+    // Force authNotifier initialization
+    container.read(authNotifierProvider);
 
     await expectLater(
       () => container
@@ -110,7 +122,7 @@ class _FakeProfileService extends ProfileService {
 }
 
 class _FakeAuthNotifier extends AuthNotifier {
-  _FakeAuthNotifier() : super(_FakeAuthService());
+  _FakeAuthNotifier(Ref ref) : super(_FakeAuthService(), ref);
 
   int signOutCalls = 0;
 

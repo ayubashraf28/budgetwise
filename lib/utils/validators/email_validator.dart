@@ -19,7 +19,7 @@ class EmailValidator {
 }
 
 class PasswordValidator {
-  static const int minLength = 6;
+  static const int minLength = 8;
 
   static String? validate(String? value) {
     if (value == null || value.isEmpty) {
@@ -27,6 +27,15 @@ class PasswordValidator {
     }
     if (value.length < minLength) {
       return 'Password must be at least $minLength characters';
+    }
+    if (!value.contains(RegExp(r'[A-Z]'))) {
+      return 'Password must contain at least one uppercase letter';
+    }
+    if (!value.contains(RegExp(r'[a-z]'))) {
+      return 'Password must contain at least one lowercase letter';
+    }
+    if (!value.contains(RegExp(r'[0-9]'))) {
+      return 'Password must contain at least one number';
     }
     return null;
   }

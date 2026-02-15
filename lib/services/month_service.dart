@@ -79,6 +79,12 @@ class MonthService {
     bool isActive = true,
     String? notes,
   }) async {
+    if (startDate.isAfter(endDate)) {
+      throw const AppError.validation(
+        technicalMessage: 'Start date must be before or equal to end date',
+      );
+    }
+
     // If this month is active, deactivate all other months
     if (isActive) {
       await _client

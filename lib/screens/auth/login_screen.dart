@@ -212,7 +212,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       return 'Please verify your email before logging in';
     }
     if (errorLower.contains('user not found')) {
-      return 'No account found with this email address';
+      return 'The email or password you entered is incorrect.';
     }
     if (errorLower.contains('too many requests')) {
       return 'Too many login attempts. Please try again later';

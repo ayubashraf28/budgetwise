@@ -26,6 +26,10 @@ dependencies:
   shared_preferences: ^2.2.3
   google_sign_in: ^6.3.0
 
+  # Security
+  crypto: ^3.0.0
+  http: ^1.2.0
+
   # UI
   flutter_svg: ^2.0.9
   shimmer: ^3.0.0
@@ -63,6 +67,5 @@ flutter:
   uses-material-design: true
 
   assets:
-    - .env
     - assets/images/
     - assets/icons/

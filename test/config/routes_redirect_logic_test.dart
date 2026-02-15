@@ -67,7 +67,7 @@ void main() {
       expect(loaderCalls, 0);
     });
 
-    test('fails open when loader throws', () async {
+    test('fails closed when loader throws', () async {
       var loaderCalls = 0;
 
       final result = await resolveOnboardingCompletedForRedirect(
@@ -78,11 +78,11 @@ void main() {
         },
       );
 
-      expect(result, isTrue);
+      expect(result, isFalse);
       expect(loaderCalls, 1);
     });
 
-    test('fails open when loader times out', () async {
+    test('fails closed when loader times out', () async {
       final result = await resolveOnboardingCompletedForRedirect(
         cachedValue: const AsyncLoading<bool>(),
         loadOnboardingCompleted: () async {
@@ -92,7 +92,7 @@ void main() {
         timeout: const Duration(milliseconds: 1),
       );
 
-      expect(result, isTrue);
+      expect(result, isFalse);
     });
   });
 }

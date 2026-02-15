@@ -121,6 +121,12 @@ class TransactionService {
     required DateTime date,
     String? note,
   }) async {
+    if (amount <= 0) {
+      throw const AppError.validation(
+        technicalMessage: 'Transaction amount must be greater than zero',
+      );
+    }
+
     final now = DateTime.now();
     final transaction = Transaction(
       id: _uuid.v4(),
@@ -156,6 +162,12 @@ class TransactionService {
     required DateTime date,
     String? note,
   }) async {
+    if (amount <= 0) {
+      throw const AppError.validation(
+        technicalMessage: 'Transaction amount must be greater than zero',
+      );
+    }
+
     final now = DateTime.now();
     final transaction = Transaction(
       id: _uuid.v4(),
