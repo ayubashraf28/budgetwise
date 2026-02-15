@@ -67,6 +67,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final currentThemeMode = ref.watch(themeModeProvider);
     final currentAppFontSize = ref.watch(appFontSizeProvider);
     final currentBudgetStructure = ref.watch(budgetStructureProvider);
+    final stayLoggedIn = ref.watch(stayLoggedInProvider);
 
     return Scaffold(
       backgroundColor: palette.appBg,
@@ -127,6 +128,28 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       hasEmailLinked: hasEmailLinked,
                       hasGoogleLinked: hasGoogleLinked,
                     );
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: NeoLayout.sectionGap),
+            _buildSectionHeader(context, 'Security'),
+            const SizedBox(height: AppSpacing.sm),
+            _buildSettingsCard(
+              context,
+              children: [
+                _buildNotificationToggleTile(
+                  context,
+                  title: 'Stay Logged In',
+                  subtitle: stayLoggedIn
+                      ? 'Auto-logout disabled on inactivity'
+                      : 'Auto-logout after 15 minutes of inactivity',
+                  icon: LucideIcons.shield,
+                  value: stayLoggedIn,
+                  onChanged: (enabled) {
+                    ref
+                        .read(uiPreferencesProvider.notifier)
+                        .setStayLoggedIn(enabled);
                   },
                 ),
               ],

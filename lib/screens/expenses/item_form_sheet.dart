@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
@@ -7,6 +6,7 @@ import '../../config/theme.dart';
 import '../../models/item.dart';
 import '../../providers/providers.dart';
 import '../../utils/errors/error_mapper.dart';
+import '../../utils/validators/input_validator.dart';
 
 class ItemFormSheet extends ConsumerStatefulWidget {
   final String categoryId;
@@ -55,6 +55,8 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
   Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
     final currencySymbol = ref.watch(currencySymbolProvider);
+    final currencyCode = ref.watch(currencyProvider);
+    final decimalPlaces = InputValidator.decimalPlacesForCurrency(currencyCode);
 
     return Container(
       decoration: BoxDecoration(
@@ -111,12 +113,12 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                       hintText: 'e.g., Rent, Groceries, Netflix',
                     ),
                     textCapitalization: TextCapitalization.words,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter a name';
-                      }
-                      return null;
-                    },
+                    maxLength: InputValidator.maxItemNameLength,
+                    validator: (value) => InputValidator.validateBoundedName(
+                      value,
+                      fieldName: 'Name',
+                      maxLength: InputValidator.maxItemNameLength,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   _buildLabel('Planned Amount'),
@@ -130,20 +132,16 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                        RegExp(r'^\d*\.?\d{0,2}'),
+                      InputValidator.amountInputFormatter(
+                        decimalPlaces: decimalPlaces,
                       ),
                     ],
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter an amount';
-                      }
-                      final amount = double.tryParse(value);
-                      if (amount == null || amount < 0) {
-                        return 'Please enter a valid amount';
-                      }
-                      return null;
-                    },
+                    validator: (value) =>
+                        InputValidator.validateNonNegativeAmountInput(
+                      value,
+                      currencyCode: currencyCode,
+                      fieldName: 'Planned amount',
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
                   Container(
@@ -192,6 +190,12 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
                       hintText: 'Add any notes...',
                     ),
                     maxLines: 2,
+                    maxLength: InputValidator.maxFormNoteLength,
+                    validator: (value) => InputValidator.validateNoteLength(
+                      value,
+                      fieldName: 'Notes',
+                      maxLength: InputValidator.maxFormNoteLength,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.xl),
                   SizedBox(
@@ -239,7 +243,12 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
       final notifier =
           ref.read(itemNotifierProvider(widget.categoryId).notifier);
       final name = _nameController.text.trim();
-      final projected = double.tryParse(_projectedController.text.trim()) ?? 0;
+      final projected = InputValidator.normalizeAmount(
+        double.tryParse(_projectedController.text.trim()) ?? 0,
+        decimalPlaces: InputValidator.decimalPlacesForCurrency(
+          ref.read(currencyProvider),
+        ),
+      );
       final notes = _notesController.text.trim();
 
       if (isEditing) {

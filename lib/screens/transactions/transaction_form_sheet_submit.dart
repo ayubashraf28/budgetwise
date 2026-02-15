@@ -13,6 +13,7 @@ extension _TransactionFormSheetSubmit on _TransactionFormSheetState {
   Future<void> _handleSubmit() async {
     final isSimpleMode = ref.read(isSimpleBudgetModeProvider);
     final activeAccounts = await ref.read(accountsProvider.future);
+    final currencyCode = ref.read(currencyProvider);
     if (!mounted) return;
 
     if (activeAccounts.isEmpty) {
@@ -21,12 +22,35 @@ extension _TransactionFormSheetSubmit on _TransactionFormSheetState {
     }
 
     final accountId = _selectedAccountId ?? activeAccounts.first.id;
-    final amount = _resolveAmountForSubmit();
-
-    if (amount <= 0) {
-      _showError('Enter an amount greater than zero');
+    final decimalPlaces = InputValidator.decimalPlacesForCurrency(currencyCode);
+    final amount = InputValidator.normalizeAmount(_resolveAmountForSubmit(),
+        decimalPlaces: decimalPlaces);
+    final amountError = InputValidator.validatePositiveAmountValue(
+      amount,
+      currencyCode: currencyCode,
+    );
+    if (amountError != null) {
+      _showError(amountError);
       return;
     }
+
+    final dateError = InputValidator.validateTransactionDate(_selectedDate);
+    if (dateError != null) {
+      _showError(dateError);
+      return;
+    }
+
+    final note = _noteController.text.trim();
+    final noteError = InputValidator.validateNoteLength(
+      note,
+      fieldName: 'Note',
+      maxLength: InputValidator.maxTransactionNoteLength,
+    );
+    if (noteError != null) {
+      _showError(noteError);
+      return;
+    }
+
     String? expenseItemId = _selectedItemId;
     if (_transactionType == TransactionType.expense) {
       if (_selectedCategoryId == null) {
@@ -56,7 +80,6 @@ extension _TransactionFormSheetSubmit on _TransactionFormSheetState {
 
     try {
       final notifier = ref.read(transactionNotifierProvider.notifier);
-      final note = _noteController.text.trim();
 
       if (isEditing) {
         if (_transactionType == TransactionType.expense) {

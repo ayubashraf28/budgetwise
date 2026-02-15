@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
@@ -10,6 +9,7 @@ import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
 import '../../utils/category_name_utils.dart';
 import '../../utils/errors/error_mapper.dart';
+import '../../utils/validators/input_validator.dart';
 
 class CategoryFormSheet extends ConsumerStatefulWidget {
   final Category? category;
@@ -74,6 +74,8 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
   Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
     final currencySymbol = ref.watch(currencySymbolProvider);
+    final currencyCode = ref.watch(currencyProvider);
+    final decimalPlaces = InputValidator.decimalPlacesForCurrency(currencyCode);
     final isSimpleMode = ref.watch(isSimpleBudgetModeProvider);
     return Container(
       decoration: BoxDecoration(
@@ -138,11 +140,18 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                       hintText: 'e.g., Housing, Food, Transport',
                     ),
                     textCapitalization: TextCapitalization.words,
+                    maxLength: InputValidator.maxCategoryNameLength,
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter a name';
+                      final nameError = InputValidator.validateBoundedName(
+                        value,
+                        fieldName: 'Name',
+                        maxLength: InputValidator.maxCategoryNameLength,
+                      );
+                      if (nameError != null) {
+                        return nameError;
                       }
-                      final rawName = value.trim();
+
+                      final rawName = value?.trim() ?? '';
                       final isCurrentReserved = isEditing &&
                           isReservedCategoryName(widget.category!.name);
                       final isTargetReserved = isReservedCategoryName(rawName);
@@ -226,20 +235,17 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d{0,2}'),
+                        InputValidator.amountInputFormatter(
+                          decimalPlaces: decimalPlaces,
                         ),
                       ],
                       validator: (value) {
                         if (!_isBudgeted) return null;
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter a budget amount';
-                        }
-                        final amount = double.tryParse(value.trim());
-                        if (amount == null || amount < 0) {
-                          return 'Please enter a valid amount';
-                        }
-                        return null;
+                        return InputValidator.validateNonNegativeAmountInput(
+                          value,
+                          currencyCode: currencyCode,
+                          fieldName: 'Budget amount',
+                        );
                       },
                     ),
                     const SizedBox(height: AppSpacing.lg),
@@ -497,7 +503,10 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
   double _parseBudgetAmount() {
     final raw = _budgetAmountController.text.trim();
     if (raw.isEmpty) return 0;
-    return double.tryParse(raw) ?? 0;
+    final amount = double.tryParse(raw) ?? 0;
+    final currencyCode = ref.read(currencyProvider);
+    final decimalPlaces = InputValidator.decimalPlacesForCurrency(currencyCode);
+    return InputValidator.normalizeAmount(amount, decimalPlaces: decimalPlaces);
   }
 
   String _formatAmountForInput(double amount) {

@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../config/supabase_config.dart';
 import '../models/transaction.dart';
 import '../utils/errors/app_error.dart';
+import '../utils/validators/input_validator.dart';
 
 class TransactionService {
   final _client = SupabaseConfig.client;
@@ -121,6 +122,34 @@ class TransactionService {
     required DateTime date,
     String? note,
   }) async {
+    if (amount <= 0) {
+      throw const AppError.validation(
+        technicalMessage: 'Amount must be greater than zero',
+      );
+    }
+    final amountError = InputValidator.validateNonNegativeAmountValue(amount);
+    if (amountError != null) {
+      throw AppError.validation(
+        technicalMessage: amountError,
+      );
+    }
+    final dateError = InputValidator.validateTransactionDate(date);
+    if (dateError != null) {
+      throw AppError.validation(
+        technicalMessage: dateError,
+      );
+    }
+    final noteError = InputValidator.validateNoteLength(
+      note,
+      fieldName: 'Note',
+      maxLength: InputValidator.maxTransactionNoteLength,
+    );
+    if (noteError != null) {
+      throw AppError.validation(
+        technicalMessage: noteError,
+      );
+    }
+
     final now = DateTime.now();
     final transaction = Transaction(
       id: _uuid.v4(),
@@ -156,6 +185,34 @@ class TransactionService {
     required DateTime date,
     String? note,
   }) async {
+    if (amount <= 0) {
+      throw const AppError.validation(
+        technicalMessage: 'Amount must be greater than zero',
+      );
+    }
+    final amountError = InputValidator.validateNonNegativeAmountValue(amount);
+    if (amountError != null) {
+      throw AppError.validation(
+        technicalMessage: amountError,
+      );
+    }
+    final dateError = InputValidator.validateTransactionDate(date);
+    if (dateError != null) {
+      throw AppError.validation(
+        technicalMessage: dateError,
+      );
+    }
+    final noteError = InputValidator.validateNoteLength(
+      note,
+      fieldName: 'Note',
+      maxLength: InputValidator.maxTransactionNoteLength,
+    );
+    if (noteError != null) {
+      throw AppError.validation(
+        technicalMessage: noteError,
+      );
+    }
+
     final now = DateTime.now();
     final transaction = Transaction(
       id: _uuid.v4(),
@@ -192,6 +249,40 @@ class TransactionService {
     DateTime? date,
     String? note,
   }) async {
+    if (amount != null) {
+      if (amount <= 0) {
+        throw const AppError.validation(
+          technicalMessage: 'Amount must be greater than zero',
+        );
+      }
+      final amountError = InputValidator.validateNonNegativeAmountValue(amount);
+      if (amountError != null) {
+        throw AppError.validation(
+          technicalMessage: amountError,
+        );
+      }
+    }
+    if (date != null) {
+      final dateError = InputValidator.validateTransactionDate(date);
+      if (dateError != null) {
+        throw AppError.validation(
+          technicalMessage: dateError,
+        );
+      }
+    }
+    if (note != null) {
+      final noteError = InputValidator.validateNoteLength(
+        note,
+        fieldName: 'Note',
+        maxLength: InputValidator.maxTransactionNoteLength,
+      );
+      if (noteError != null) {
+        throw AppError.validation(
+          technicalMessage: noteError,
+        );
+      }
+    }
+
     final updates = <String, dynamic>{};
     if (categoryId != null) updates['category_id'] = categoryId;
     if (itemId != null) updates['item_id'] = itemId;

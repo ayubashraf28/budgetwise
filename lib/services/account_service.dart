@@ -1,6 +1,8 @@
+import '../config/constants.dart';
 import '../config/supabase_config.dart';
 import '../models/account.dart';
 import '../utils/errors/app_error.dart';
+import '../utils/validators/input_validator.dart';
 
 class AccountService {
   final _client = SupabaseConfig.client;
@@ -58,6 +60,27 @@ class AccountService {
     bool includeInNetWorth = true,
     int sortOrder = 0,
   }) async {
+    final nameError = InputValidator.validateBoundedName(
+      name,
+      fieldName: 'Account name',
+      maxLength: InputValidator.maxAccountNameLength,
+    );
+    if (nameError != null) {
+      throw AppError.validation(technicalMessage: nameError);
+    }
+    if (openingBalance.abs() > AppConstants.maxTransactionAmount) {
+      throw const AppError.validation(
+        technicalMessage: 'Opening balance exceeds supported limits',
+      );
+    }
+    if (creditLimit != null) {
+      final creditLimitError =
+          InputValidator.validateNonNegativeAmountValue(creditLimit);
+      if (creditLimitError != null) {
+        throw AppError.validation(technicalMessage: creditLimitError);
+      }
+    }
+
     final currency = await _getProfileCurrency();
 
     final response = await _client
@@ -91,12 +114,34 @@ class AccountService {
     int? sortOrder,
   }) async {
     final updates = <String, dynamic>{};
-    if (name != null) updates['name'] = name;
+    if (name != null) {
+      final nameError = InputValidator.validateBoundedName(
+        name,
+        fieldName: 'Account name',
+        maxLength: InputValidator.maxAccountNameLength,
+      );
+      if (nameError != null) {
+        throw AppError.validation(technicalMessage: nameError);
+      }
+      updates['name'] = name;
+    }
     if (type != null) updates['type'] = type.value;
-    if (openingBalance != null) updates['opening_balance'] = openingBalance;
+    if (openingBalance != null) {
+      if (openingBalance.abs() > AppConstants.maxTransactionAmount) {
+        throw const AppError.validation(
+          technicalMessage: 'Opening balance exceeds supported limits',
+        );
+      }
+      updates['opening_balance'] = openingBalance;
+    }
     if (clearCreditLimit) {
       updates['credit_limit'] = null;
     } else if (creditLimit != null) {
+      final creditLimitError =
+          InputValidator.validateNonNegativeAmountValue(creditLimit);
+      if (creditLimitError != null) {
+        throw AppError.validation(technicalMessage: creditLimitError);
+      }
       updates['credit_limit'] = creditLimit;
     }
     if (includeInNetWorth != null) {

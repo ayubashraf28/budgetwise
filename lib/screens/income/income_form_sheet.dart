@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
@@ -7,6 +6,7 @@ import '../../config/theme.dart';
 import '../../models/income_source.dart';
 import '../../providers/providers.dart';
 import '../../utils/errors/error_mapper.dart';
+import '../../utils/validators/input_validator.dart';
 
 class IncomeFormSheet extends ConsumerStatefulWidget {
   final IncomeSource? incomeSource;
@@ -60,6 +60,8 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
   Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
     final currencySymbol = ref.watch(currencySymbolProvider);
+    final currencyCode = ref.watch(currencyProvider);
+    final decimalPlaces = InputValidator.decimalPlacesForCurrency(currencyCode);
 
     return Container(
       decoration: BoxDecoration(
@@ -122,12 +124,12 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                       hintText: 'e.g., Salary, Freelance, Bonus',
                     ),
                     textCapitalization: TextCapitalization.words,
-                    validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter a name';
-                      }
-                      return null;
-                    },
+                    maxLength: InputValidator.maxIncomeSourceNameLength,
+                    validator: (value) => InputValidator.validateBoundedName(
+                      value,
+                      fieldName: 'Name',
+                      maxLength: InputValidator.maxIncomeSourceNameLength,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.lg),
 
@@ -153,20 +155,18 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d*\.?\d{0,2}')),
+                        InputValidator.amountInputFormatter(
+                          decimalPlaces: decimalPlaces,
+                        ),
                       ],
                       validator: _isRecurring
-                          ? (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Please enter an amount';
-                              }
-                              final amount = double.tryParse(value);
-                              if (amount == null || amount < 0) {
-                                return 'Please enter a valid amount';
-                              }
-                              return null;
-                            }
+                          ? (value) =>
+                              InputValidator.validateNonNegativeAmountInput(
+                                value,
+                                currencyCode: currencyCode,
+                                fieldName: 'Projected amount',
+                                required: true,
+                              )
                           : null,
                     ),
                   ),
@@ -178,16 +178,24 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                     const SizedBox(height: AppSpacing.sm),
                     TextFormField(
                       controller: _actualController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         hintText: '0.00',
-                        prefixText: '\u00A3 ',
+                        prefixText: '$currencySymbol ',
                       ),
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                            RegExp(r'^\d*\.?\d{0,2}')),
+                        InputValidator.amountInputFormatter(
+                          decimalPlaces: decimalPlaces,
+                        ),
                       ],
+                      validator: (value) =>
+                          InputValidator.validateNonNegativeAmountInput(
+                        value,
+                        currencyCode: currencyCode,
+                        fieldName: 'Actual amount',
+                        required: false,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
                   ],
@@ -242,6 +250,12 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
                       hintText: 'Add any notes...',
                     ),
                     maxLines: 2,
+                    maxLength: InputValidator.maxFormNoteLength,
+                    validator: (value) => InputValidator.validateNoteLength(
+                      value,
+                      fieldName: 'Notes',
+                      maxLength: InputValidator.maxFormNoteLength,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.xl),
 
@@ -292,9 +306,19 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
       final notifier = ref.read(incomeNotifierProvider.notifier);
       final name = _nameController.text.trim();
       final projected = _isRecurring
-          ? (double.tryParse(_projectedController.text) ?? 0)
+          ? InputValidator.normalizeAmount(
+              double.tryParse(_projectedController.text) ?? 0,
+              decimalPlaces: InputValidator.decimalPlacesForCurrency(
+                ref.read(currencyProvider),
+              ),
+            )
           : 0.0;
-      final actual = double.tryParse(_actualController.text) ?? 0;
+      final actual = InputValidator.normalizeAmount(
+        double.tryParse(_actualController.text) ?? 0,
+        decimalPlaces: InputValidator.decimalPlacesForCurrency(
+          ref.read(currencyProvider),
+        ),
+      );
       final notes = _notesController.text.trim();
 
       if (isEditing) {

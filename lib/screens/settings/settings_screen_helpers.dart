@@ -369,8 +369,51 @@ extension _SettingsScreenHelpers on _SettingsScreenState {
 
     if (!mounted) return;
     if (confirmed == true) {
+      final finalConfirmation = await _showFinalDeleteAllDataConfirmation();
+      if (!mounted || !finalConfirmation) return;
       await _deleteAllData();
     }
+  }
+
+  Future<bool> _showFinalDeleteAllDataConfirmation() async {
+    final palette = NeoTheme.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: palette.surface1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          side: BorderSide(color: palette.stroke),
+        ),
+        title: Text(
+          'Final Confirmation',
+          style: AppTypography.h3.copyWith(
+            color: NeoTheme.negativeValue(context),
+          ),
+        ),
+        content: Text(
+          'This will permanently delete all categories, items, transactions, accounts, subscriptions, and reports. This cannot be undone.',
+          style: AppTypography.bodyMedium.copyWith(
+            color: palette.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: NeoTheme.negativeValue(context),
+            ),
+            child: const Text('Delete Permanently'),
+          ),
+        ],
+      ),
+    );
+
+    return confirmed == true;
   }
 
   Future<void> _deleteAllData() async {

@@ -12,6 +12,7 @@ class BudgetWiseApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(notificationBootstrapProvider);
+    final sessionSecurity = ref.watch(sessionSecurityControllerProvider);
 
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
@@ -32,7 +33,11 @@ class BudgetWiseApp extends ConsumerWidget {
           data: MediaQuery.of(context).copyWith(
             textScaler: TextScaler.linear(appFontSize.scaleFactor),
           ),
-          child: child,
+          child: Listener(
+            behavior: HitTestBehavior.translucent,
+            onPointerDown: (_) => sessionSecurity.recordUserInteraction(),
+            child: child,
+          ),
         );
       },
     );

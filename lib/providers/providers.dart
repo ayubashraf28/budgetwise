@@ -15,6 +15,7 @@ export 'notification_provider.dart';
 export 'onboarding_provider.dart';
 export 'profile_provider.dart';
 export 'profile_reset_provider.dart';
+export 'session_security_provider.dart';
 export 'subscription_provider.dart';
 export 'theme_mode_provider.dart';
 export 'transaction_provider.dart';

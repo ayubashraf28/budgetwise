@@ -7,6 +7,7 @@ cd "$ROOT_DIR"
 SKIP_BUILD="${SKIP_BUILD:-0}"
 
 flutter pub get
+flutter pub outdated
 dart format --output=none --set-exit-if-changed lib test
 flutter analyze
 flutter test -j 1

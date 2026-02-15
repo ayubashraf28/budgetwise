@@ -37,6 +37,11 @@ function Invoke-CheckedCommand {
 Write-Host "Running flutter pub get..."
 Invoke-CheckedCommand -Description "flutter pub get" -Command { flutter pub get }
 
+Write-Host "Checking dependency drift..."
+Invoke-CheckedCommand -Description "flutter pub outdated" -Command {
+  flutter pub outdated
+}
+
 Write-Host "Checking formatting..."
 Invoke-CheckedCommand -Description "dart format check" -Command {
   dart format --output=none --set-exit-if-changed lib test

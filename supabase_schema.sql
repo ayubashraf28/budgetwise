@@ -376,7 +376,7 @@ CREATE TABLE IF NOT EXISTS public.transactions (
     income_source_id UUID REFERENCES public.income_sources(id) ON DELETE SET NULL,
     account_id UUID REFERENCES public.accounts(id) ON DELETE RESTRICT,
     type TEXT NOT NULL CHECK (type IN ('expense', 'income')),
-    amount DECIMAL(12,2) NOT NULL,
+    amount DECIMAL(12,2) NOT NULL CHECK (amount > 0 AND amount <= 999999999.99),
     date DATE NOT NULL,
     note TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -389,6 +389,29 @@ ALTER TABLE public.transactions
 ADD COLUMN IF NOT EXISTS subscription_id UUID REFERENCES public.subscriptions(id) ON DELETE SET NULL;
 ALTER TABLE public.transactions
 ADD COLUMN IF NOT EXISTS account_id UUID REFERENCES public.accounts(id) ON DELETE RESTRICT;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'transactions_amount_bounds_check'
+          AND conrelid = 'public.transactions'::regclass
+    ) THEN
+        IF EXISTS (
+            SELECT 1
+            FROM public.transactions t
+            WHERE t.amount <= 0 OR t.amount > 999999999.99
+        ) THEN
+            RAISE EXCEPTION
+                'Cannot enforce transaction amount bounds: existing rows contain amount <= 0 or > 999999999.99';
+        END IF;
+
+        ALTER TABLE public.transactions
+        ADD CONSTRAINT transactions_amount_bounds_check
+        CHECK (amount > 0 AND amount <= 999999999.99);
+    END IF;
+END $$;
 
 DO $$
 BEGIN

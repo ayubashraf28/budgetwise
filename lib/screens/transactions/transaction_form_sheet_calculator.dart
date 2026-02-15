@@ -7,19 +7,34 @@ extension _TransactionFormSheetCalculator on _TransactionFormSheetState {
 
   void _handleDigit(String digit) {
     _dismissKeyboard();
+    final decimalPlaces =
+        InputValidator.decimalPlacesForCurrency(ref.read(currencyProvider));
 
     _updateState(() {
       if (_shouldResetDisplay) {
+        if (digit == '.' && decimalPlaces == 0) {
+          _showError('This currency requires whole numbers only');
+          return;
+        }
         _displayValue = digit == '.' ? '0.' : digit;
         _shouldResetDisplay = false;
         return;
       }
 
       if (digit == '.') {
+        if (decimalPlaces == 0) {
+          _showError('This currency requires whole numbers only');
+          return;
+        }
         if (_displayValue.contains('.')) return;
         if (_displayValue.length >= 12) return;
         _displayValue = '$_displayValue.';
         return;
+      }
+
+      if (_displayValue.contains('.')) {
+        final decimalDigits = _displayValue.split('.').last.length;
+        if (decimalDigits >= decimalPlaces) return;
       }
 
       if (_displayValue == '0') {

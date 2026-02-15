@@ -127,7 +127,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     }
     if (errorLower.contains('weak password') ||
         errorLower.contains('password is too weak')) {
-      return 'Password must be at least 6 characters long';
+      return 'Password must be at least 8 characters and include mixed character types';
     }
     if (errorLower.contains('invalid email')) {
       return 'Please enter a valid email address';
@@ -479,6 +479,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             hintText: 'Create a password',
             obscureText: _obscurePassword,
             textInputAction: TextInputAction.next,
+            onChanged: (_) {
+              if (!mounted) return;
+              setState(() {});
+            },
             prefixIcon: Icon(LucideIcons.lock, size: 18, color: color),
             suffixIcon: IconButton(
               icon: Icon(
@@ -493,6 +497,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
             validator: PasswordValidator.validate,
           ),
+          const SizedBox(height: AppSpacing.xs),
+          _buildPasswordStrengthIndicator(),
           const SizedBox(height: AppSpacing.md),
 
           // Confirm Password Field
@@ -625,6 +631,75 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildPasswordStrengthIndicator() {
+    final value = _passwordController.text;
+    final strength = PasswordValidator.strength(value);
+    final palette = NeoTheme.of(context);
+
+    final Color strengthColor;
+    final String strengthLabel;
+    final double progress;
+
+    switch (strength) {
+      case PasswordStrength.weak:
+        strengthColor = NeoTheme.negativeValue(context);
+        strengthLabel = 'Weak';
+        progress = 0.33;
+        break;
+      case PasswordStrength.medium:
+        strengthColor = NeoTheme.warningValue(context);
+        strengthLabel = 'Medium';
+        progress = 0.66;
+        break;
+      case PasswordStrength.strong:
+        strengthColor = NeoTheme.positiveValue(context);
+        strengthLabel = 'Strong';
+        progress = 1.0;
+        break;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Strength:',
+              style: AppTypography.bodySmall.copyWith(
+                color: palette.textMuted,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              strengthLabel,
+              style: AppTypography.bodySmall.copyWith(
+                color: strengthColor,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(99),
+          child: LinearProgressIndicator(
+            value: value.isEmpty ? 0 : progress,
+            minHeight: 4,
+            backgroundColor: palette.stroke,
+            valueColor: AlwaysStoppedAnimation<Color>(strengthColor),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Use 8+ chars and at least 3 of uppercase, lowercase, number, symbol.',
+          style: AppTypography.bodySmall.copyWith(
+            color: palette.textMuted,
+          ),
+        ),
+      ],
     );
   }
 }
