@@ -10,6 +10,145 @@ extension _SettingsScreenHelpers on _SettingsScreenState {
     );
   }
 
+  void _showBugReportSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const BugReportFormSheet(),
+    );
+  }
+
+  void _showFeedbackSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const BugReportFormSheet(
+        feedbackMode: true,
+        initialCategory: BugReportCategory.feedback,
+      ),
+    );
+  }
+
+  Widget _buildNotificationToggleTile(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    bool enabled = true,
+  }) {
+    final palette = NeoTheme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            size: NeoIconSizes.xl,
+            color: enabled ? palette.textSecondary : palette.textMuted,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: NeoTypography.rowTitle(context).copyWith(
+                    color: enabled ? palette.textPrimary : palette.textMuted,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: NeoTypography.rowSecondary(context).copyWith(
+                    color: enabled ? palette.textSecondary : palette.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: enabled ? onChanged : null,
+            activeTrackColor: palette.accent,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _updateNotificationPreferences({
+    bool? masterEnabled,
+    bool? subscriptionRemindersEnabled,
+    bool? budgetAlertsEnabled,
+    bool? monthlyRemindersEnabled,
+  }) async {
+    final current = ref.read(userProfileProvider).valueOrNull;
+    final currentMaster = current?.notificationsEnabled ?? true;
+
+    try {
+      if (masterEnabled != null) {
+        if (masterEnabled && !currentMaster) {
+          final granted = await ref
+              .read(notificationServiceProvider)
+              .requestPermissionIfNeeded();
+          if (!granted) {
+            await ref.read(profileNotifierProvider.notifier).updateProfile(
+                  notificationsEnabled: false,
+                  subscriptionRemindersEnabled: false,
+                  budgetAlertsEnabled: false,
+                  monthlyRemindersEnabled: false,
+                );
+            ref.invalidate(userProfileProvider);
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                  'Notification permission denied. You can enable it later in system settings.',
+                ),
+                backgroundColor: NeoTheme.warningValue(context),
+              ),
+            );
+            return;
+          }
+        }
+
+        await ref.read(profileNotifierProvider.notifier).updateProfile(
+              notificationsEnabled: masterEnabled,
+              subscriptionRemindersEnabled: masterEnabled ? true : false,
+              budgetAlertsEnabled: masterEnabled ? true : false,
+              monthlyRemindersEnabled: masterEnabled ? true : false,
+            );
+      } else {
+        await ref.read(profileNotifierProvider.notifier).updateProfile(
+              subscriptionRemindersEnabled: subscriptionRemindersEnabled,
+              budgetAlertsEnabled: budgetAlertsEnabled,
+              monthlyRemindersEnabled: monthlyRemindersEnabled,
+            );
+      }
+
+      ref.invalidate(userProfileProvider);
+      ref.invalidate(notificationNotifierProvider);
+    } catch (error, stackTrace) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
+          ),
+          backgroundColor: NeoTheme.negativeValue(context),
+        ),
+      );
+    }
+  }
+
   void _showLinkedAccountsDialog(
     BuildContext context, {
     required bool hasEmailLinked,
@@ -230,8 +369,51 @@ extension _SettingsScreenHelpers on _SettingsScreenState {
 
     if (!mounted) return;
     if (confirmed == true) {
+      final finalConfirmation = await _showFinalDeleteAllDataConfirmation();
+      if (!mounted || !finalConfirmation) return;
       await _deleteAllData();
     }
+  }
+
+  Future<bool> _showFinalDeleteAllDataConfirmation() async {
+    final palette = NeoTheme.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: palette.surface1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          side: BorderSide(color: palette.stroke),
+        ),
+        title: Text(
+          'Final Confirmation',
+          style: AppTypography.h3.copyWith(
+            color: NeoTheme.negativeValue(context),
+          ),
+        ),
+        content: Text(
+          'This will permanently delete all categories, items, transactions, accounts, subscriptions, and reports. This cannot be undone.',
+          style: AppTypography.bodyMedium.copyWith(
+            color: palette.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: NeoTheme.negativeValue(context),
+            ),
+            child: const Text('Delete Permanently'),
+          ),
+        ],
+      ),
+    );
+
+    return confirmed == true;
   }
 
   Future<void> _deleteAllData() async {

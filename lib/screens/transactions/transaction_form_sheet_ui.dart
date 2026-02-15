@@ -225,6 +225,10 @@ extension _TransactionFormSheetUi on _TransactionFormSheetState {
         controller: _noteController,
         minLines: 1,
         maxLines: 2,
+        inputFormatters: [
+          LengthLimitingTextInputFormatter(
+              InputValidator.maxTransactionNoteLength),
+        ],
         style: AppTypography.bodyLarge.copyWith(
           color: palette.textPrimary,
         ),

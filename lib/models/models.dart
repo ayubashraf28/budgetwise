@@ -3,6 +3,8 @@ library;
 
 export 'account.dart';
 export 'account_transfer.dart';
+export 'app_notification.dart';
+export 'bug_report.dart';
 export 'category.dart';
 export 'income_source.dart';
 export 'item.dart';

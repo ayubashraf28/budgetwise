@@ -34,6 +34,10 @@ class ProfileNotifier extends AsyncNotifier<UserProfile?> {
     String? displayName,
     String? currency,
     String? locale,
+    bool? notificationsEnabled,
+    bool? subscriptionRemindersEnabled,
+    bool? budgetAlertsEnabled,
+    bool? monthlyRemindersEnabled,
   }) async {
     final profileService = ref.read(profileServiceProvider);
     state = const AsyncValue.loading();
@@ -42,10 +46,16 @@ class ProfileNotifier extends AsyncNotifier<UserProfile?> {
         displayName: displayName,
         currency: currency,
         locale: locale,
+        notificationsEnabled: notificationsEnabled,
+        subscriptionRemindersEnabled: subscriptionRemindersEnabled,
+        budgetAlertsEnabled: budgetAlertsEnabled,
+        monthlyRemindersEnabled: monthlyRemindersEnabled,
       );
       state = AsyncValue.data(profile);
     } catch (e, st) {
-      state = AsyncValue.error(ErrorMapper.toAppError(e, stackTrace: st), st);
+      final mappedError = ErrorMapper.toAppError(e, stackTrace: st);
+      state = AsyncValue.error(mappedError, st);
+      throw mappedError;
     }
   }
 
@@ -56,7 +66,9 @@ class ProfileNotifier extends AsyncNotifier<UserProfile?> {
       final profile = await profileService.completeOnboarding();
       state = AsyncValue.data(profile);
     } catch (e, st) {
-      state = AsyncValue.error(ErrorMapper.toAppError(e, stackTrace: st), st);
+      final mappedError = ErrorMapper.toAppError(e, stackTrace: st);
+      state = AsyncValue.error(mappedError, st);
+      throw mappedError;
     }
   }
 
@@ -67,7 +79,9 @@ class ProfileNotifier extends AsyncNotifier<UserProfile?> {
       final profile = await profileService.getCurrentProfile();
       state = AsyncValue.data(profile);
     } catch (e, st) {
-      state = AsyncValue.error(ErrorMapper.toAppError(e, stackTrace: st), st);
+      final mappedError = ErrorMapper.toAppError(e, stackTrace: st);
+      state = AsyncValue.error(mappedError, st);
+      throw mappedError;
     }
   }
 }

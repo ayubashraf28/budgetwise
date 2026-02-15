@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../../models/account.dart';
 import '../../providers/providers.dart';
 import '../../utils/errors/error_mapper.dart';
+import '../../utils/validators/input_validator.dart';
 import '../../widgets/common/neo_dropdown_form_field.dart';
 
 class AccountFormSheet extends ConsumerStatefulWidget {
@@ -62,6 +63,7 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
     final palette = NeoTheme.of(context);
     final currencySymbol = ref.watch(currencySymbolProvider);
     final currencyCode = ref.watch(currencyProvider);
+    final decimalPlaces = InputValidator.decimalPlacesForCurrency(currencyCode);
 
     return Container(
       decoration: BoxDecoration(
@@ -116,11 +118,13 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                     decoration: const InputDecoration(
                       hintText: 'e.g. Cash, Monzo Debit, Amex',
                     ),
+                    maxLength: InputValidator.maxAccountNameLength,
                     validator: (value) {
-                      if (value == null || value.trim().isEmpty) {
-                        return 'Please enter an account name';
-                      }
-                      return null;
+                      return InputValidator.validateBoundedName(
+                        value,
+                        fieldName: 'Account name',
+                        maxLength: InputValidator.maxAccountNameLength,
+                      );
                     },
                   ),
                   const SizedBox(height: AppSpacing.lg),
@@ -154,15 +158,21 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: [
-                      FilteringTextInputFormatter.allow(
-                          RegExp(r'^-?\d*\.?\d{0,2}')),
+                      InputValidator.amountInputFormatter(
+                        decimalPlaces: decimalPlaces,
+                        allowNegative: true,
+                      ),
                     ],
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
-                        return 'Please enter opening balance';
+                        return 'Opening balance is required';
                       }
-                      if (double.tryParse(value.trim()) == null) {
+                      final parsed = double.tryParse(value.trim());
+                      if (parsed == null) {
                         return 'Please enter a valid amount';
+                      }
+                      if (parsed.abs() > AppConstants.maxTransactionAmount) {
+                        return 'Amount cannot exceed ${AppConstants.maxTransactionAmount.toStringAsFixed(decimalPlaces)}';
                       }
                       return null;
                     },
@@ -180,17 +190,17 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
                       keyboardType:
                           const TextInputType.numberWithOptions(decimal: true),
                       inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d{0,2}'),
+                        InputValidator.amountInputFormatter(
+                          decimalPlaces: decimalPlaces,
                         ),
                       ],
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) return null;
-                        final parsed = double.tryParse(value.trim());
-                        if (parsed == null || parsed < 0) {
-                          return 'Please enter a valid non-negative amount';
-                        }
-                        return null;
+                        return InputValidator.validateNonNegativeAmountInput(
+                          value,
+                          currencyCode: currencyCode,
+                          fieldName: 'Credit limit',
+                          required: false,
+                        );
                       },
                     ),
                     const SizedBox(height: AppSpacing.lg),

@@ -4,7 +4,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
+import 'config/sentry_config.dart';
 import 'config/supabase_config.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,9 +26,14 @@ void main() async {
   // Initialize Supabase
   await SupabaseConfig.initialize();
 
-  runApp(
-    const ProviderScope(
-      child: BudgetWiseApp(),
-    ),
-  );
+  // Initialize notifications/timezone before app startup.
+  await NotificationService.instance.initialize();
+
+  await SentryConfig.initialize(() async {
+    runApp(
+      const ProviderScope(
+        child: BudgetWiseApp(),
+      ),
+    );
+  });
 }

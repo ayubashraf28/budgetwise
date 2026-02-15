@@ -195,12 +195,22 @@ extension _TransactionFormSheetPickers on _TransactionFormSheetState {
     final palette = NeoTheme.of(context);
     final baseTheme = Theme.of(context);
     final now = DateTime.now();
-    final firstDate = DateTime(now.year - 1, 1, 1);
-    final lastDate = DateTime(now.year + 1, 12, 31);
+    final firstDate = InputValidator.minTransactionDate;
+    final lastDate = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).add(InputValidator.maxFutureTransactionOffset);
+    var initialDate = _selectedDate;
+    if (initialDate.isBefore(firstDate)) {
+      initialDate = firstDate;
+    } else if (initialDate.isAfter(lastDate)) {
+      initialDate = lastDate;
+    }
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: initialDate,
       firstDate: firstDate,
       lastDate: lastDate,
       builder: (context, child) {

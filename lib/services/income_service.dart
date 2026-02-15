@@ -4,6 +4,7 @@ import '../config/supabase_config.dart';
 import '../models/income_source.dart';
 import '../models/month.dart';
 import '../utils/errors/app_error.dart';
+import '../utils/validators/input_validator.dart';
 
 class IncomeService {
   final _client = SupabaseConfig.client;
@@ -52,6 +53,28 @@ class IncomeService {
     int? sortOrder,
     String? notes,
   }) async {
+    final nameError = InputValidator.validateBoundedName(
+      name,
+      fieldName: 'Income source name',
+      maxLength: InputValidator.maxIncomeSourceNameLength,
+    );
+    if (nameError != null) {
+      throw AppError.validation(technicalMessage: nameError);
+    }
+    final projectedError =
+        InputValidator.validateNonNegativeAmountValue(projected);
+    if (projectedError != null) {
+      throw AppError.validation(technicalMessage: projectedError);
+    }
+    final notesError = InputValidator.validateNoteLength(
+      notes,
+      fieldName: 'Notes',
+      maxLength: InputValidator.maxFormNoteLength,
+    );
+    if (notesError != null) {
+      throw AppError.validation(technicalMessage: notesError);
+    }
+
     // Get next sort order if not provided
     if (sortOrder == null) {
       final existing = await getIncomeSourcesForMonth(monthId);
@@ -95,12 +118,45 @@ class IncomeService {
     String? notes,
   }) async {
     final updates = <String, dynamic>{};
-    if (name != null) updates['name'] = name;
-    if (projected != null) updates['projected'] = projected;
-    if (actual != null) updates['actual'] = actual;
+    if (name != null) {
+      final nameError = InputValidator.validateBoundedName(
+        name,
+        fieldName: 'Income source name',
+        maxLength: InputValidator.maxIncomeSourceNameLength,
+      );
+      if (nameError != null) {
+        throw AppError.validation(technicalMessage: nameError);
+      }
+      updates['name'] = name;
+    }
+    if (projected != null) {
+      final projectedError =
+          InputValidator.validateNonNegativeAmountValue(projected);
+      if (projectedError != null) {
+        throw AppError.validation(technicalMessage: projectedError);
+      }
+      updates['projected'] = projected;
+    }
+    if (actual != null) {
+      final actualError = InputValidator.validateNonNegativeAmountValue(actual);
+      if (actualError != null) {
+        throw AppError.validation(technicalMessage: actualError);
+      }
+      updates['actual'] = actual;
+    }
     if (isRecurring != null) updates['is_recurring'] = isRecurring;
     if (sortOrder != null) updates['sort_order'] = sortOrder;
-    if (notes != null) updates['notes'] = notes;
+    if (notes != null) {
+      final notesError = InputValidator.validateNoteLength(
+        notes,
+        fieldName: 'Notes',
+        maxLength: InputValidator.maxFormNoteLength,
+      );
+      if (notesError != null) {
+        throw AppError.validation(technicalMessage: notesError);
+      }
+      updates['notes'] = notes;
+    }
 
     if (updates.isEmpty) {
       final current = await getIncomeSourceById(incomeSourceId);

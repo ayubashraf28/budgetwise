@@ -28,6 +28,8 @@ BEGIN
       AND c.column_name = 'user_id'
       AND c.table_name NOT IN (
           'profiles',
+          'notifications',
+          'bug_reports',
           'subscription_payment_events',
           'transaction_account_backfill_audit',
           'subscription_backfill_audit',
@@ -49,6 +51,12 @@ BEGIN
     END IF;
 
     DELETE FROM public.subscription_payment_events
+    WHERE user_id = v_user_id;
+
+    DELETE FROM public.notifications
+    WHERE user_id = v_user_id;
+
+    DELETE FROM public.bug_reports
     WHERE user_id = v_user_id;
 
     DELETE FROM public.transaction_account_backfill_audit
@@ -99,6 +107,10 @@ BEGIN
       ),
       currency = 'GBP',
       locale = 'en_GB',
+      notifications_enabled = TRUE,
+      subscription_reminders_enabled = TRUE,
+      budget_alerts_enabled = TRUE,
+      monthly_reminders_enabled = TRUE,
       updated_at = NOW()
     WHERE user_id = v_user_id;
 END;

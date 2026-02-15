@@ -520,7 +520,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   });
                 },
               ),
-              validator: PasswordValidator.validate,
+              validator: PasswordValidator.validateForSignIn,
               onSubmitted: (_) => _handleLogin(),
             ),
           ),

@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
 import '../../providers/providers.dart';
+import '../../utils/validators/input_validator.dart';
 import '../../widgets/common/neo_page_components.dart';
 import 'currency_picker_sheet.dart';
 
@@ -135,6 +136,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         Expanded(
                           child: TextFormField(
                             controller: _nameController,
+                            maxLength: InputValidator.maxDisplayNameLength,
                             style: AppTypography.bodyLarge.copyWith(
                               color: _palette.textPrimary,
                             ),
@@ -340,9 +342,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Future<void> _saveProfile() async {
     final name = _nameController.text.trim();
-    if (name.isEmpty) {
+    final nameError = InputValidator.validateBoundedName(
+      name,
+      fieldName: 'Display name',
+      maxLength: InputValidator.maxDisplayNameLength,
+      minLength: 1,
+    );
+    if (nameError != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Display name cannot be empty')),
+        SnackBar(content: Text(nameError)),
       );
       return;
     }

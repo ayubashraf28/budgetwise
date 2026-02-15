@@ -49,6 +49,26 @@ void main() {
 
       expect(redirect, '/home');
     });
+
+    test('allows post-completion onboarding notification step', () {
+      final redirect = resolveAppRedirect(
+        isLoggedIn: true,
+        matchedLocation: '/onboarding/notifications',
+        onboardingCompleted: true,
+      );
+
+      expect(redirect, isNull);
+    });
+
+    test('allows setup complete route when onboarding already completed', () {
+      final redirect = resolveAppRedirect(
+        isLoggedIn: true,
+        matchedLocation: '/onboarding/complete',
+        onboardingCompleted: true,
+      );
+
+      expect(redirect, isNull);
+    });
   });
 
   group('resolveOnboardingCompletedForRedirect', () {

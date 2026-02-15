@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'auth_provider.dart';
 
-const int _uiPreferencesSchemaVersion = 1;
+const int _uiPreferencesSchemaVersion = 2;
 const String _uiPreferencesStoragePrefix = 'ui_preferences_v1';
 const String _legacyThemeModePrefKey = 'app_theme_mode';
 const String _anonymousUserBucket = '__anonymous__';
@@ -70,6 +70,7 @@ class UiPreferencesState {
   final ThemeMode themeMode;
   final AppFontSize appFontSize;
   final bool hideSensitiveAmounts;
+  final bool stayLoggedIn;
   final BudgetViewMode budgetViewMode;
   final BudgetStructure budgetStructure;
   final Map<String, bool> expandedSections;
@@ -80,6 +81,7 @@ class UiPreferencesState {
     required this.themeMode,
     required this.appFontSize,
     required this.hideSensitiveAmounts,
+    required this.stayLoggedIn,
     required this.budgetViewMode,
     required this.budgetStructure,
     required this.expandedSections,
@@ -94,6 +96,7 @@ class UiPreferencesState {
       themeMode: themeMode,
       appFontSize: AppFontSize.medium,
       hideSensitiveAmounts: false,
+      stayLoggedIn: false,
       budgetViewMode: BudgetViewMode.month,
       budgetStructure: BudgetStructure.detailed,
       expandedSections: Map<String, bool>.from(_defaultExpandedSections),
@@ -106,6 +109,7 @@ class UiPreferencesState {
     ThemeMode? themeMode,
     AppFontSize? appFontSize,
     bool? hideSensitiveAmounts,
+    bool? stayLoggedIn,
     BudgetViewMode? budgetViewMode,
     BudgetStructure? budgetStructure,
     Map<String, bool>? expandedSections,
@@ -116,6 +120,7 @@ class UiPreferencesState {
       themeMode: themeMode ?? this.themeMode,
       appFontSize: appFontSize ?? this.appFontSize,
       hideSensitiveAmounts: hideSensitiveAmounts ?? this.hideSensitiveAmounts,
+      stayLoggedIn: stayLoggedIn ?? this.stayLoggedIn,
       budgetViewMode: budgetViewMode ?? this.budgetViewMode,
       budgetStructure: budgetStructure ?? this.budgetStructure,
       expandedSections: expandedSections ?? this.expandedSections,
@@ -139,6 +144,7 @@ class UiPreferencesState {
       'themeMode': _themeModeToStoredValue(themeMode),
       'appFontSize': _appFontSizeToStoredValue(appFontSize),
       'hideSensitiveAmounts': hideSensitiveAmounts,
+      'stayLoggedIn': stayLoggedIn,
       'budgetViewMode': _budgetViewModeToStoredValue(budgetViewMode),
       'budgetStructure': _budgetStructureToStoredValue(budgetStructure),
       'expandedSections': persistedSections,
@@ -174,6 +180,7 @@ class UiPreferencesState {
           _appFontSizeFromStoredValue(json['appFontSize'] as String?) ??
               AppFontSize.medium,
       hideSensitiveAmounts: json['hideSensitiveAmounts'] as bool? ?? false,
+      stayLoggedIn: json['stayLoggedIn'] as bool? ?? false,
       budgetViewMode:
           _budgetViewModeFromStoredValue(json['budgetViewMode'] as String?) ??
               BudgetViewMode.month,
@@ -231,6 +238,10 @@ final budgetYearViewEnabledProvider = Provider<bool>((ref) {
   return ref.watch(budgetViewModeProvider) == BudgetViewMode.year;
 });
 
+final stayLoggedInProvider = Provider<bool>((ref) {
+  return ref.watch(uiPreferencesProvider.select((prefs) => prefs.stayLoggedIn));
+});
+
 class UiPreferencesNotifier extends StateNotifier<UiPreferencesState> {
   final Ref _ref;
   int _loadSequence = 0;
@@ -256,6 +267,11 @@ class UiPreferencesNotifier extends StateNotifier<UiPreferencesState> {
   Future<void> setHideSensitiveAmounts(bool hidden) {
     if (state.hideSensitiveAmounts == hidden) return Future<void>.value();
     return _updateAndPersist(state.copyWith(hideSensitiveAmounts: hidden));
+  }
+
+  Future<void> setStayLoggedIn(bool stayLoggedIn) {
+    if (state.stayLoggedIn == stayLoggedIn) return Future<void>.value();
+    return _updateAndPersist(state.copyWith(stayLoggedIn: stayLoggedIn));
   }
 
   Future<void> setSectionExpanded(String sectionKey, bool expanded) {

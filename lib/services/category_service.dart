@@ -5,6 +5,7 @@ import '../models/category.dart';
 import '../models/month.dart';
 import '../utils/category_name_utils.dart';
 import '../utils/errors/app_error.dart';
+import '../utils/validators/input_validator.dart';
 import 'item_service.dart';
 
 class CategoryService {
@@ -68,6 +69,22 @@ class CategoryService {
     int? sortOrder,
     bool allowReservedName = false,
   }) async {
+    final nameError = InputValidator.validateBoundedName(
+      name,
+      fieldName: 'Category name',
+      maxLength: InputValidator.maxCategoryNameLength,
+    );
+    if (nameError != null) {
+      throw AppError.validation(technicalMessage: nameError);
+    }
+    if (budgetAmount != null) {
+      final budgetError =
+          InputValidator.validateNonNegativeAmountValue(budgetAmount);
+      if (budgetError != null) {
+        throw AppError.validation(technicalMessage: budgetError);
+      }
+    }
+
     final canonicalName = canonicalizeCategoryName(name);
     if (!allowReservedName && isReservedCategoryName(canonicalName)) {
       throw const AppError.validation(
@@ -130,6 +147,15 @@ class CategoryService {
 
     final updates = <String, dynamic>{};
     if (name != null) {
+      final nameError = InputValidator.validateBoundedName(
+        name,
+        fieldName: 'Category name',
+        maxLength: InputValidator.maxCategoryNameLength,
+      );
+      if (nameError != null) {
+        throw AppError.validation(technicalMessage: nameError);
+      }
+
       final isCurrentReserved = isReservedCategoryName(current.name);
       final isTargetReserved = isReservedCategoryName(name);
 
@@ -155,7 +181,14 @@ class CategoryService {
     if (icon != null) updates['icon'] = icon;
     if (color != null) updates['color'] = color;
     if (isBudgeted != null) updates['is_budgeted'] = isBudgeted;
-    if (budgetAmount != null) updates['budget_amount'] = budgetAmount;
+    if (budgetAmount != null) {
+      final budgetError =
+          InputValidator.validateNonNegativeAmountValue(budgetAmount);
+      if (budgetError != null) {
+        throw AppError.validation(technicalMessage: budgetError);
+      }
+      updates['budget_amount'] = budgetAmount;
+    }
     if (sortOrder != null) updates['sort_order'] = sortOrder;
 
     if (updates.isEmpty) {

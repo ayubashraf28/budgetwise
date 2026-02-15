@@ -8,6 +8,10 @@ class UserProfile {
   final String currency;
   final String locale;
   final bool onboardingCompleted;
+  final bool notificationsEnabled;
+  final bool subscriptionRemindersEnabled;
+  final bool budgetAlertsEnabled;
+  final bool monthlyRemindersEnabled;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -18,6 +22,10 @@ class UserProfile {
     this.currency = 'GBP',
     this.locale = 'en_GB',
     this.onboardingCompleted = false,
+    this.notificationsEnabled = true,
+    this.subscriptionRemindersEnabled = true,
+    this.budgetAlertsEnabled = true,
+    this.monthlyRemindersEnabled = true,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -30,6 +38,12 @@ class UserProfile {
       currency: json['currency'] as String? ?? 'GBP',
       locale: json['locale'] as String? ?? 'en_GB',
       onboardingCompleted: json['onboarding_completed'] as bool? ?? false,
+      notificationsEnabled: json['notifications_enabled'] as bool? ?? true,
+      subscriptionRemindersEnabled:
+          json['subscription_reminders_enabled'] as bool? ?? true,
+      budgetAlertsEnabled: json['budget_alerts_enabled'] as bool? ?? true,
+      monthlyRemindersEnabled:
+          json['monthly_reminders_enabled'] as bool? ?? true,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -43,6 +57,10 @@ class UserProfile {
       'currency': currency,
       'locale': locale,
       'onboarding_completed': onboardingCompleted,
+      'notifications_enabled': notificationsEnabled,
+      'subscription_reminders_enabled': subscriptionRemindersEnabled,
+      'budget_alerts_enabled': budgetAlertsEnabled,
+      'monthly_reminders_enabled': monthlyRemindersEnabled,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -55,6 +73,10 @@ class UserProfile {
     String? currency,
     String? locale,
     bool? onboardingCompleted,
+    bool? notificationsEnabled,
+    bool? subscriptionRemindersEnabled,
+    bool? budgetAlertsEnabled,
+    bool? monthlyRemindersEnabled,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -65,6 +87,12 @@ class UserProfile {
       currency: currency ?? this.currency,
       locale: locale ?? this.locale,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+      notificationsEnabled: notificationsEnabled ?? this.notificationsEnabled,
+      subscriptionRemindersEnabled:
+          subscriptionRemindersEnabled ?? this.subscriptionRemindersEnabled,
+      budgetAlertsEnabled: budgetAlertsEnabled ?? this.budgetAlertsEnabled,
+      monthlyRemindersEnabled:
+          monthlyRemindersEnabled ?? this.monthlyRemindersEnabled,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

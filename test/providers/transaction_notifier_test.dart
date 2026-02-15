@@ -5,9 +5,11 @@ import 'package:budgetwise/models/transaction.dart';
 import 'package:budgetwise/providers/auth_provider.dart';
 import 'package:budgetwise/providers/category_provider.dart';
 import 'package:budgetwise/providers/month_provider.dart';
+import 'package:budgetwise/providers/notification_provider.dart';
 import 'package:budgetwise/providers/transaction_provider.dart';
 import 'package:budgetwise/services/category_service.dart';
 import 'package:budgetwise/services/month_service.dart';
+import 'package:budgetwise/services/notification_service.dart';
 import 'package:budgetwise/services/transaction_service.dart';
 import 'package:budgetwise/utils/errors/app_error.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,6 +40,7 @@ void main() {
       sourceCategory: null,
       targetCategories: const <Category>[],
     );
+    final notificationService = _FakeNotificationService();
 
     final container = ProviderContainer(
       overrides: [
@@ -46,6 +49,7 @@ void main() {
         monthServiceProvider.overrideWithValue(monthService),
         transactionServiceProvider.overrideWithValue(txService),
         categoryServiceProvider.overrideWithValue(categoryService),
+        notificationServiceProvider.overrideWith((ref) => notificationService),
       ],
     );
     addTearDown(container.dispose);
@@ -114,6 +118,7 @@ void main() {
       sourceCategory: sourceCategory,
       targetCategories: [targetCategory],
     );
+    final notificationService = _FakeNotificationService();
 
     final container = ProviderContainer(
       overrides: [
@@ -122,6 +127,7 @@ void main() {
         monthServiceProvider.overrideWithValue(monthService),
         transactionServiceProvider.overrideWithValue(txService),
         categoryServiceProvider.overrideWithValue(categoryService),
+        notificationServiceProvider.overrideWith((ref) => notificationService),
       ],
     );
     addTearDown(container.dispose);
@@ -143,6 +149,42 @@ void main() {
     expect(call.itemId, 'item-target');
   });
 
+  test('addExpense remains successful when budget alert generation fails',
+      () async {
+    final activeMonth = _month(id: 'month-active', year: 2026, month: 1);
+    final monthService = _FakeMonthService(activeMonth);
+    final txService = _FakeTransactionService();
+    final categoryService = _FakeCategoryService(
+      sourceCategory: null,
+      targetCategories: const <Category>[],
+    );
+    final notificationService = _FakeNotificationService()
+      ..throwOnBudgetAlert = true;
+
+    final container = ProviderContainer(
+      overrides: [
+        currentUserProvider.overrideWith((ref) => _fakeUser()),
+        activeMonthProvider.overrideWith((ref) async => activeMonth),
+        monthServiceProvider.overrideWithValue(monthService),
+        transactionServiceProvider.overrideWithValue(txService),
+        categoryServiceProvider.overrideWithValue(categoryService),
+        notificationServiceProvider.overrideWith((ref) => notificationService),
+      ],
+    );
+    addTearDown(container.dispose);
+    final notifier = container.read(transactionNotifierProvider.notifier);
+    final tx = await notifier.addExpense(
+      categoryId: 'cat-1',
+      itemId: 'item-1',
+      accountId: 'account-1',
+      amount: 10,
+      date: DateTime.utc(2026, 1, 20),
+      note: 'Still should work',
+    );
+
+    expect(tx.id, 'tx-expense');
+  });
+
   test('addIncome throws validation when user is missing', () async {
     final monthService =
         _FakeMonthService(_month(id: 'month-1', year: 2026, month: 1));
@@ -151,6 +193,7 @@ void main() {
       sourceCategory: null,
       targetCategories: const <Category>[],
     );
+    final notificationService = _FakeNotificationService();
 
     final container = ProviderContainer(
       overrides: [
@@ -158,6 +201,7 @@ void main() {
         monthServiceProvider.overrideWithValue(monthService),
         transactionServiceProvider.overrideWithValue(txService),
         categoryServiceProvider.overrideWithValue(categoryService),
+        notificationServiceProvider.overrideWith((ref) => notificationService),
       ],
     );
     addTearDown(container.dispose);
@@ -320,6 +364,28 @@ class _FakeCategoryService extends CategoryService {
   @override
   Future<List<Category>> getCategoriesForMonth(String monthId) async {
     return targetCategories;
+  }
+}
+
+class _FakeNotificationService extends NotificationService {
+  _FakeNotificationService() : super();
+
+  int budgetAlertCallCount = 0;
+  bool throwOnBudgetAlert = false;
+  String? lastCategoryId;
+  String? lastMonthId;
+
+  @override
+  Future<void> checkAndCreateBudgetAlert({
+    required String categoryId,
+    required String monthId,
+  }) async {
+    budgetAlertCallCount += 1;
+    lastCategoryId = categoryId;
+    lastMonthId = monthId;
+    if (throwOnBudgetAlert) {
+      throw Exception('notification failure');
+    }
   }
 }
 

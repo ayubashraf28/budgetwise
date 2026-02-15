@@ -8,6 +8,7 @@ import 'auth_provider.dart';
 import 'category_provider.dart';
 import 'item_provider.dart';
 import 'month_provider.dart';
+import 'notification_provider.dart';
 import 'transaction_provider.dart';
 
 /// Subscription service provider
@@ -107,6 +108,7 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
     );
 
     await _syncSubscriptionItems();
+    await _scheduleReminderBestEffort(sub);
     _invalidateAll();
     return sub;
   }
@@ -147,12 +149,14 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
     );
 
     await _syncSubscriptionItems();
+    await _scheduleReminderBestEffort(sub);
     _invalidateAll();
     return sub;
   }
 
   Future<void> deleteSubscription(String subscriptionId) async {
     await _service.deleteSubscription(subscriptionId);
+    await _cancelReminderBestEffort(subscriptionId);
     _invalidateAll();
   }
 
@@ -180,11 +184,37 @@ class SubscriptionNotifier extends AsyncNotifier<List<Subscription>> {
         paidAt: DateTime.now(),
         accountId: accountId,
       );
+      final updatedSubscription = await _service.getSubscriptionById(
+        subscriptionId,
+      );
+      if (updatedSubscription != null) {
+        await _scheduleReminderBestEffort(updatedSubscription);
+      }
 
       _invalidateAll();
       return result;
     } finally {
       _inFlightPaymentSubscriptionIds.remove(subscriptionId);
+    }
+  }
+
+  Future<void> _scheduleReminderBestEffort(Subscription subscription) async {
+    try {
+      await ref
+          .read(notificationServiceProvider)
+          .scheduleSubscriptionReminder(subscription);
+    } catch (_) {
+      // Non-blocking side effect.
+    }
+  }
+
+  Future<void> _cancelReminderBestEffort(String subscriptionId) async {
+    try {
+      await ref
+          .read(notificationServiceProvider)
+          .cancelSubscriptionReminder(subscriptionId);
+    } catch (_) {
+      // Non-blocking side effect.
     }
   }
 
