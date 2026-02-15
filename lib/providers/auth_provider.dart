@@ -3,6 +3,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../services/auth_service.dart';
 import '../utils/errors/error_mapper.dart';
+import 'account_provider.dart';
+import 'analysis_metrics_provider.dart';
+import 'category_provider.dart';
+import 'income_provider.dart';
+import 'month_provider.dart';
+import 'onboarding_provider.dart';
+import 'profile_provider.dart';
+import 'subscription_provider.dart';
+import 'transaction_provider.dart';
+import 'yearly_provider.dart';
 
 final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService();
@@ -31,10 +41,44 @@ final linkedProvidersProvider = FutureProvider<Set<String>>((ref) async {
   return authService.getLinkedProviders();
 });
 
+/// Invalidates all user-scoped providers to prevent data leaking
+/// between user sessions on the same device.
+void invalidateAllUserProviders(Ref ref) {
+  // Auth
+  ref.invalidate(linkedProvidersProvider);
+
+  // Profile & onboarding
+  ref.invalidate(userProfileProvider);
+  ref.invalidate(onboardingCompletedProvider);
+
+  // Months
+  ref.invalidate(activeMonthProvider);
+  ref.invalidate(userMonthsProvider);
+  ref.invalidate(ensureMonthSetupProvider);
+
+  // Budget data
+  ref.invalidate(categoriesProvider);
+  ref.invalidate(transactionsProvider);
+  ref.invalidate(incomeSourcesProvider);
+
+  // Accounts
+  ref.invalidate(accountsProvider);
+  ref.invalidate(allAccountsProvider);
+  ref.invalidate(netWorthProvider);
+
+  // Subscriptions
+  ref.invalidate(subscriptionsProvider);
+
+  // Yearly/analysis
+  ref.invalidate(yearMonthsProvider);
+  ref.invalidate(analysisTrendMonthsProvider);
+}
+
 class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
   final AuthService _authService;
+  final Ref _ref;
 
-  AuthNotifier(this._authService)
+  AuthNotifier(this._authService, this._ref)
       : super(AsyncValue.data(_authService.currentUser));
 
   Future<void> signIn({
@@ -79,6 +123,7 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
     state = const AsyncValue.loading();
     try {
       await _authService.signOut();
+      invalidateAllUserProviders(_ref);
       state = const AsyncValue.data(null);
     } catch (e, st) {
       final mappedError = ErrorMapper.toAppError(e, stackTrace: st);
@@ -123,5 +168,5 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
 final authNotifierProvider =
     StateNotifierProvider<AuthNotifier, AsyncValue<User?>>((ref) {
   final authService = ref.watch(authServiceProvider);
-  return AuthNotifier(authService);
+  return AuthNotifier(authService, ref);
 });

@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../utils/errors/error_mapper.dart';
 import 'auth_provider.dart';
-import 'onboarding_provider.dart';
 import 'profile_provider.dart';
 
 class ProfileResetNotifier extends AsyncNotifier<void> {
@@ -14,9 +13,9 @@ class ProfileResetNotifier extends AsyncNotifier<void> {
     try {
       await ref.read(profileServiceProvider).deleteAllUserData();
       await ref.read(authNotifierProvider.notifier).signOut();
-      ref.invalidate(linkedProvidersProvider);
-      ref.invalidate(userProfileProvider);
-      ref.invalidate(onboardingCompletedProvider);
+      // signOut() already calls invalidateAllUserProviders(), but we ensure
+      // complete cleanup by calling it again with our ref as well.
+      invalidateAllUserProviders(ref);
       state = const AsyncData(null);
     } catch (error, stackTrace) {
       final mappedError = ErrorMapper.toAppError(error, stackTrace: stackTrace);

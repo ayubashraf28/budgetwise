@@ -33,6 +33,10 @@ dependencies:
   timezone: ^0.9.4
   flutter_timezone: ^4.1.1
 
+  # Security
+  crypto: ^3.0.0
+  http: ^1.2.0
+
   # UI
   flutter_svg: ^2.0.9
   shimmer: ^3.0.0
@@ -70,6 +74,5 @@ flutter:
   uses-material-design: true
 
   assets:
-    - .env
     - assets/images/
     - assets/icons/

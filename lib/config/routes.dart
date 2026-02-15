@@ -80,8 +80,9 @@ Future<bool> resolveOnboardingCompletedForRedirect({
   try {
     return await loadOnboardingCompleted().timeout(timeout);
   } catch (_) {
-    // Fail open to keep navigation responsive during transient fetch issues.
-    return true;
+    // Fail closed: if we can't determine onboarding status, show onboarding
+    // to prevent users landing in an unconfigured app.
+    return false;
   }
 }
 

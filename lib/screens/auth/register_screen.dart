@@ -125,6 +125,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         errorLower.contains('user already exists')) {
       return 'An account with this email already exists';
     }
+    if (errorLower.contains('data breach')) {
+      return 'This password has appeared in a data breach. Please choose a different one.';
+    }
     if (errorLower.contains('weak password') ||
         errorLower.contains('password is too weak')) {
       return 'Password must be at least 8 characters and include mixed character types';

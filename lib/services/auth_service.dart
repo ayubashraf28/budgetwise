@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../config/sentry_config.dart';
 import '../config/supabase_config.dart';
+import 'password_breach_checker.dart';
 
 class AuthServiceException implements Exception {
   final String message;
@@ -29,6 +30,8 @@ class AuthService {
     required String password,
     String? displayName,
   }) async {
+    await _rejectBreachedPassword(password);
+
     final response = await _client.auth.signUp(
       email: email,
       password: password,
@@ -147,7 +150,18 @@ class AuthService {
   }
 
   Future<UserResponse> updatePassword(String newPassword) async {
+    await _rejectBreachedPassword(newPassword);
+
     return await _client.auth.updateUser(UserAttributes(password: newPassword));
+  }
+
+  Future<void> _rejectBreachedPassword(String password) async {
+    final isBreached = await PasswordBreachChecker.isBreached(password);
+    if (isBreached) {
+      throw const AuthServiceException(
+        'This password has appeared in a data breach. Please choose a different one.',
+      );
+    }
   }
 
   Future<UserResponse> updateProfile({
@@ -211,7 +225,7 @@ class AuthService {
       return 'Google authentication failed because tokens were invalid.';
     }
     if (message.contains('audience') || message.contains('wrong audience')) {
-      return 'Google authentication failed: token audience mismatch. Check GOOGLE_WEB_CLIENT_ID and Android client IDs for the current build mode.';
+      return 'Google authentication failed. Please try again.';
     }
     if (message.contains('cancel')) {
       return 'Google authentication was cancelled.';
