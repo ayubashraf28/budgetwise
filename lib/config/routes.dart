@@ -18,6 +18,8 @@ import '../screens/expenses/item_detail_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/income/income_screen.dart';
 import '../screens/manage/manage_screen.dart';
+import '../screens/notifications/notification_center_screen.dart';
+import '../screens/onboarding/notification_permission_screen.dart';
 import '../screens/onboarding/setup_complete_screen.dart';
 import '../screens/onboarding/template_selection_screen.dart';
 import '../screens/onboarding/welcome_screen.dart';
@@ -36,6 +38,9 @@ String? resolveAppRedirect({
   final isLoggingIn = matchedLocation == '/login';
   final isRegistering = matchedLocation == '/register';
   final isOnboarding = matchedLocation.startsWith('/onboarding');
+  final isAllowedCompletedOnboardingRoute =
+      matchedLocation == '/onboarding/complete' ||
+          matchedLocation == '/onboarding/notifications';
 
   if (!isLoggedIn) {
     if (isLoggingIn || isRegistering) return null;
@@ -50,7 +55,9 @@ String? resolveAppRedirect({
     return '/onboarding';
   }
 
-  if (onboardingCompleted && isOnboarding) {
+  if (onboardingCompleted &&
+      isOnboarding &&
+      !isAllowedCompletedOnboardingRoute) {
     return '/home';
   }
 
@@ -161,6 +168,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'complete',
             name: 'onboarding-complete',
             builder: (context, state) => const SetupCompleteScreen(),
+          ),
+          GoRoute(
+            path: 'notifications',
+            name: 'onboarding-notifications',
+            builder: (context, state) => const NotificationPermissionScreen(),
           ),
         ],
       ),
@@ -316,6 +328,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 ),
               ),
             ],
+          ),
+          GoRoute(
+            path: '/notifications',
+            name: 'notifications',
+            builder: (context, state) => const NotificationCenterScreen(),
           ),
         ],
       ),

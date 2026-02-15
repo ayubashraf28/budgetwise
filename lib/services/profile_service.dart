@@ -32,6 +32,10 @@ class ProfileService {
           'currency': AppConstants.defaultCurrency,
           'locale': AppConstants.defaultLocale,
           'onboarding_completed': false,
+          'notifications_enabled': true,
+          'subscription_reminders_enabled': true,
+          'budget_alerts_enabled': true,
+          'monthly_reminders_enabled': true,
           'created_at': now.toIso8601String(),
           'updated_at': now.toIso8601String(),
         })
@@ -68,6 +72,10 @@ class ProfileService {
     String? currency,
     String? locale,
     bool? onboardingCompleted,
+    bool? notificationsEnabled,
+    bool? subscriptionRemindersEnabled,
+    bool? budgetAlertsEnabled,
+    bool? monthlyRemindersEnabled,
   }) async {
     // Ensure profile exists before updating
     await ensureProfileExists();
@@ -78,6 +86,18 @@ class ProfileService {
     if (locale != null) updates['locale'] = locale;
     if (onboardingCompleted != null) {
       updates['onboarding_completed'] = onboardingCompleted;
+    }
+    if (notificationsEnabled != null) {
+      updates['notifications_enabled'] = notificationsEnabled;
+    }
+    if (subscriptionRemindersEnabled != null) {
+      updates['subscription_reminders_enabled'] = subscriptionRemindersEnabled;
+    }
+    if (budgetAlertsEnabled != null) {
+      updates['budget_alerts_enabled'] = budgetAlertsEnabled;
+    }
+    if (monthlyRemindersEnabled != null) {
+      updates['monthly_reminders_enabled'] = monthlyRemindersEnabled;
     }
 
     if (updates.isEmpty) {

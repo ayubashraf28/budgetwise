@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../config/sentry_config.dart';
 import '../config/supabase_config.dart';
 
 class AuthServiceException implements Exception {
@@ -134,7 +135,11 @@ class AuthService {
   }
 
   Future<void> signOut() async {
-    await _client.auth.signOut();
+    try {
+      await _client.auth.signOut();
+    } finally {
+      await SentryConfig.clearUser();
+    }
   }
 
   Future<void> resetPassword(String email) async {

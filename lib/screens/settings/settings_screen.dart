@@ -6,9 +6,11 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/constants.dart';
 import '../../config/theme.dart';
+import '../../models/bug_report.dart';
 import '../../providers/providers.dart';
 import '../../utils/errors/error_mapper.dart';
 import '../../widgets/common/neo_page_components.dart';
+import 'bug_report_form_sheet.dart';
 import 'currency_picker_sheet.dart';
 
 part 'settings_screen_helpers.dart';
@@ -49,11 +51,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final linkedSet = linkedProviders.valueOrNull ?? <String>{};
     final hasGoogleLinked = linkedSet.contains('google');
     final hasEmailLinked = user?.email != null || linkedSet.contains('email');
+    final profile = ref.watch(userProfileProvider).valueOrNull;
+    final notificationsEnabled = profile?.notificationsEnabled ?? true;
+    final subscriptionRemindersEnabled =
+        profile?.subscriptionRemindersEnabled ?? true;
+    final budgetAlertsEnabled = profile?.budgetAlertsEnabled ?? true;
+    final monthlyRemindersEnabled = profile?.monthlyRemindersEnabled ?? true;
     final linkedSummary = [
       if (hasEmailLinked) 'Email linked',
       if (hasGoogleLinked) 'Google linked',
       if (!hasEmailLinked && !hasGoogleLinked) 'No linked providers',
-    ].join(' • ');
+    ].join(' - ');
     final currentCurrency = ref.watch(currencyProvider);
     final currentSymbol = ref.watch(currencySymbolProvider);
     final currentThemeMode = ref.watch(themeModeProvider);
@@ -88,9 +96,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   icon: LucideIcons.user,
                   title: 'Profile',
                   subtitle:
-                      ref.watch(userProfileProvider).valueOrNull?.displayName ??
-                          user?.email ??
-                          'Not signed in',
+                      profile?.displayName ?? user?.email ?? 'Not signed in',
                   onTap: () {
                     HapticFeedback.selectionClick();
                     context.push('/settings/profile');
@@ -202,6 +208,59 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
             const SizedBox(height: NeoLayout.sectionGap),
+            _buildSectionHeader(context, 'Notifications'),
+            const SizedBox(height: AppSpacing.sm),
+            _buildSettingsCard(
+              context,
+              children: [
+                _buildNotificationToggleTile(
+                  context,
+                  title: 'Enable Notifications',
+                  subtitle: 'Master switch for all reminders and alerts',
+                  icon: LucideIcons.bell,
+                  value: notificationsEnabled,
+                  onChanged: (enabled) =>
+                      _updateNotificationPreferences(masterEnabled: enabled),
+                ),
+                const Divider(height: 1),
+                _buildNotificationToggleTile(
+                  context,
+                  title: 'Subscription Reminders',
+                  subtitle: 'Upcoming recurring payment alerts',
+                  icon: LucideIcons.repeat,
+                  value: notificationsEnabled && subscriptionRemindersEnabled,
+                  enabled: notificationsEnabled,
+                  onChanged: (enabled) => _updateNotificationPreferences(
+                    subscriptionRemindersEnabled: enabled,
+                  ),
+                ),
+                const Divider(height: 1),
+                _buildNotificationToggleTile(
+                  context,
+                  title: 'Budget Alerts',
+                  subtitle: 'Alerts when category spend exceeds budget',
+                  icon: LucideIcons.alertTriangle,
+                  value: notificationsEnabled && budgetAlertsEnabled,
+                  enabled: notificationsEnabled,
+                  onChanged: (enabled) => _updateNotificationPreferences(
+                    budgetAlertsEnabled: enabled,
+                  ),
+                ),
+                const Divider(height: 1),
+                _buildNotificationToggleTile(
+                  context,
+                  title: 'Monthly Reminder',
+                  subtitle: 'Nudge at the start of a new month',
+                  icon: LucideIcons.calendar,
+                  value: notificationsEnabled && monthlyRemindersEnabled,
+                  enabled: notificationsEnabled,
+                  onChanged: (enabled) => _updateNotificationPreferences(
+                    monthlyRemindersEnabled: enabled,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: NeoLayout.sectionGap),
             _buildSectionHeader(context, 'App'),
             const SizedBox(height: AppSpacing.sm),
             _buildSettingsCard(
@@ -213,6 +272,33 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () {
                     HapticFeedback.selectionClick();
                     _showAboutDialog(context);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: NeoLayout.sectionGap),
+            _buildSectionHeader(context, 'Help & Support'),
+            const SizedBox(height: AppSpacing.sm),
+            _buildSettingsCard(
+              context,
+              children: [
+                _SettingsTile(
+                  icon: LucideIcons.bug,
+                  title: 'Report a Bug',
+                  subtitle: 'Share an issue with app and device details',
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    _showBugReportSheet(context);
+                  },
+                ),
+                const Divider(height: 1),
+                _SettingsTile(
+                  icon: LucideIcons.messageSquare,
+                  title: 'Send Feedback',
+                  subtitle: 'Share suggestions and product feedback',
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    _showFeedbackSheet(context);
                   },
                 ),
               ],

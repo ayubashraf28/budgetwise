@@ -16,9 +16,22 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     currency TEXT DEFAULT 'GBP',
     locale TEXT DEFAULT 'en_GB',
     onboarding_completed BOOLEAN DEFAULT FALSE,
+    notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    subscription_reminders_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    budget_alerts_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    monthly_reminders_enabled BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS notifications_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS subscription_reminders_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS budget_alerts_enabled BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS monthly_reminders_enabled BOOLEAN NOT NULL DEFAULT TRUE;
 
 -- Enable RLS
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
@@ -453,9 +466,101 @@ CREATE POLICY "Users can delete own account transfers"
     ON public.account_transfers FOR DELETE
     USING (auth.uid() = user_id);
 
+-- -----------------------------------------------------
+-- 10. BUG REPORTS TABLE
+-- User-submitted bug reports and feedback for support triage
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.bug_reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    title TEXT NOT NULL CHECK (BTRIM(title) <> ''),
+    description TEXT NOT NULL CHECK (BTRIM(description) <> ''),
+    category TEXT NOT NULL CHECK (
+        category IN (
+            'bug',
+            'ui_ux',
+            'performance',
+            'data_sync',
+            'crash',
+            'feedback',
+            'other'
+        )
+    ),
+    severity TEXT NOT NULL DEFAULT 'medium' CHECK (
+        severity IN ('low', 'medium', 'high', 'critical')
+    ),
+    app_version TEXT NOT NULL DEFAULT 'unknown',
+    platform TEXT NOT NULL DEFAULT 'unknown',
+    os_version TEXT NOT NULL DEFAULT 'unknown',
+    device_model TEXT NOT NULL DEFAULT 'unknown',
+    error_stack_trace TEXT,
+    status TEXT NOT NULL DEFAULT 'open' CHECK (
+        status IN ('open', 'in_progress', 'resolved', 'closed')
+    ),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.bug_reports ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own bug reports" ON public.bug_reports;
+CREATE POLICY "Users can view own bug reports"
+    ON public.bug_reports FOR SELECT
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own bug reports" ON public.bug_reports;
+CREATE POLICY "Users can insert own bug reports"
+    ON public.bug_reports FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
 
 -- -----------------------------------------------------
--- 10. SUBSCRIPTION PAYMENT EVENTS TABLE
+-- 11. NOTIFICATIONS TABLE
+-- In-app notification center storage
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+    title TEXT NOT NULL CHECK (BTRIM(title) <> ''),
+    body TEXT NOT NULL CHECK (BTRIM(body) <> ''),
+    type TEXT NOT NULL CHECK (
+        type IN ('subscription_reminder', 'budget_alert', 'monthly_reminder')
+    ),
+    subscription_id UUID REFERENCES public.subscriptions(id) ON DELETE SET NULL,
+    category_id UUID REFERENCES public.categories(id) ON DELETE SET NULL,
+    month_id UUID REFERENCES public.months(id) ON DELETE SET NULL,
+    is_read BOOLEAN NOT NULL DEFAULT FALSE,
+    read_at TIMESTAMPTZ,
+    payload JSONB NOT NULL DEFAULT '{}'::JSONB,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view own notifications" ON public.notifications;
+CREATE POLICY "Users can view own notifications"
+    ON public.notifications FOR SELECT
+    USING (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can insert own notifications" ON public.notifications;
+CREATE POLICY "Users can insert own notifications"
+    ON public.notifications FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can update own notifications" ON public.notifications;
+CREATE POLICY "Users can update own notifications"
+    ON public.notifications FOR UPDATE
+    USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
+
+DROP POLICY IF EXISTS "Users can delete own notifications" ON public.notifications;
+CREATE POLICY "Users can delete own notifications"
+    ON public.notifications FOR DELETE
+    USING (auth.uid() = user_id);
+
+
+-- -----------------------------------------------------
+-- 12. SUBSCRIPTION PAYMENT EVENTS TABLE
 -- Structured payment logs for observability and idempotency
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.subscription_payment_events (
@@ -493,7 +598,7 @@ CREATE POLICY "Users can insert own subscription payment events"
     WITH CHECK (auth.uid() = user_id);
 
 -- -----------------------------------------------------
--- 11. TRANSACTION ACCOUNT BACKFILL AUDIT TABLE
+-- 13. TRANSACTION ACCOUNT BACKFILL AUDIT TABLE
 -- Logs Phase 6 account_id backfills for observability
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.transaction_account_backfill_audit (
@@ -524,7 +629,7 @@ END $$;
 
 
 -- -----------------------------------------------------
--- 12. INDEXES FOR PERFORMANCE
+-- 14. INDEXES FOR PERFORMANCE
 -- -----------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_months_user_id ON public.months(user_id);
 CREATE INDEX IF NOT EXISTS idx_months_active ON public.months(user_id, is_active);
@@ -580,6 +685,24 @@ CREATE INDEX IF NOT EXISTS idx_account_transfers_from_account
     ON public.account_transfers(from_account_id, date);
 CREATE INDEX IF NOT EXISTS idx_account_transfers_to_account
     ON public.account_transfers(to_account_id, date);
+
+CREATE INDEX IF NOT EXISTS idx_bug_reports_user_created
+    ON public.bug_reports(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_bug_reports_user_status
+    ON public.bug_reports(user_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_created
+    ON public.notifications(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_unread
+    ON public.notifications(user_id, is_read, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_notifications_user_type_month
+    ON public.notifications(user_id, type, month_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_budget_alert_once
+    ON public.notifications(user_id, type, category_id, month_id)
+    WHERE type = 'budget_alert' AND category_id IS NOT NULL AND month_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_monthly_once
+    ON public.notifications(user_id, type, month_id)
+    WHERE type = 'monthly_reminder' AND month_id IS NOT NULL;
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_subscription_payment_events_user_request_unique
     ON public.subscription_payment_events(user_id, request_id)
@@ -1090,6 +1213,8 @@ BEGIN
       AND c.column_name = 'user_id'
       AND c.table_name NOT IN (
           'profiles',
+          'notifications',
+          'bug_reports',
           'subscription_payment_events',
           'transaction_account_backfill_audit',
           'subscription_backfill_audit',
@@ -1111,6 +1236,12 @@ BEGIN
     END IF;
 
     DELETE FROM public.subscription_payment_events
+    WHERE user_id = v_user_id;
+
+    DELETE FROM public.notifications
+    WHERE user_id = v_user_id;
+
+    DELETE FROM public.bug_reports
     WHERE user_id = v_user_id;
 
     DELETE FROM public.transaction_account_backfill_audit
@@ -1161,6 +1292,10 @@ BEGIN
       ),
       currency = 'GBP',
       locale = 'en_GB',
+      notifications_enabled = TRUE,
+      subscription_reminders_enabled = TRUE,
+      budget_alerts_enabled = TRUE,
+      monthly_reminders_enabled = TRUE,
       updated_at = NOW()
     WHERE user_id = v_user_id;
 END;
@@ -1183,6 +1318,16 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS update_profiles_updated_at ON public.profiles;
 CREATE TRIGGER update_profiles_updated_at
     BEFORE UPDATE ON public.profiles
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+DROP TRIGGER IF EXISTS update_bug_reports_updated_at ON public.bug_reports;
+CREATE TRIGGER update_bug_reports_updated_at
+    BEFORE UPDATE ON public.bug_reports
+    FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
+
+DROP TRIGGER IF EXISTS update_notifications_updated_at ON public.notifications;
+CREATE TRIGGER update_notifications_updated_at
+    BEFORE UPDATE ON public.notifications
     FOR EACH ROW EXECUTE FUNCTION public.update_updated_at();
 
 DROP TRIGGER IF EXISTS update_months_updated_at ON public.months;

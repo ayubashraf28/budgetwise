@@ -163,7 +163,7 @@ class _SetupCompleteScreenState extends State<SetupCompleteScreen>
                 child: ElevatedButton(
                   onPressed: () {
                     HapticFeedback.mediumImpact();
-                    context.go('/home');
+                    context.go('/onboarding/notifications');
                   },
                   child: const Text('Start Budgeting'),
                 ),

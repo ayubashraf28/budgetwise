@@ -51,6 +51,7 @@ extension _HomeScreenHeaderOverview on _HomeScreenState {
     final displayName =
         (rawName is String && rawName.trim().isNotEmpty) ? rawName.trim() : 'U';
     final profileInitial = displayName[0].toUpperCase();
+    final unreadNotifications = ref.watch(unreadNotificationCountProvider);
 
     return SafeArea(
       bottom: false,
@@ -102,9 +103,8 @@ extension _HomeScreenHeaderOverview on _HomeScreenState {
             const SizedBox(width: AppSpacing.sm),
             _buildHeaderIconButton(
               icon: LucideIcons.bell,
-              onTap: () {
-                // Future: notifications screen.
-              },
+              badgeCount: unreadNotifications,
+              onTap: () => context.push('/notifications'),
             ),
             const SizedBox(width: AppSpacing.sm),
             _buildHeaderIconButton(
@@ -147,22 +147,58 @@ extension _HomeScreenHeaderOverview on _HomeScreenState {
   Widget _buildHeaderIconButton({
     required IconData icon,
     required VoidCallback onTap,
+    int badgeCount = 0,
   }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-      child: Container(
+      child: SizedBox(
         width: 40,
         height: 40,
-        decoration: BoxDecoration(
-          color: _neoSurface2,
-          borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-          border: Border.all(color: _neoStroke),
-        ),
-        child: Icon(
-          icon,
-          size: NeoIconSizes.lg,
-          color: _neoTextSecondary,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: _neoSurface2,
+                borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                border: Border.all(color: _neoStroke),
+              ),
+              child: Icon(
+                icon,
+                size: NeoIconSizes.lg,
+                color: _neoTextSecondary,
+              ),
+            ),
+            if (badgeCount > 0)
+              Positioned(
+                top: -4,
+                right: -4,
+                child: Container(
+                  constraints: const BoxConstraints(
+                    minWidth: 18,
+                    minHeight: 18,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  decoration: BoxDecoration(
+                    color: _warningColor,
+                    borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+                    border: Border.all(color: _neoAppBg, width: 1.5),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    badgeCount > 99 ? '99+' : '$badgeCount',
+                    style: AppTypography.bodySmall.copyWith(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );

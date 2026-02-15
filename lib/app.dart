@@ -11,6 +11,8 @@ class BudgetWiseApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(notificationBootstrapProvider);
+
     final router = ref.watch(routerProvider);
     final themeMode = ref.watch(themeModeProvider);
     final appFontSize = ref.watch(appFontSizeProvider);

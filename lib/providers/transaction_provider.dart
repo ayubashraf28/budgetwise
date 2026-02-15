@@ -12,6 +12,7 @@ import 'auth_provider.dart';
 import 'category_provider.dart';
 import 'income_provider.dart';
 import 'month_provider.dart';
+import 'notification_provider.dart';
 
 /// Transaction service provider
 final transactionServiceProvider = Provider<TransactionService>((ref) {
@@ -141,9 +142,27 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
       date: date,
       note: note,
     );
+    await _createBudgetAlertBestEffort(
+      categoryId: resolvedCategoryId,
+      monthId: targetMonth.id,
+    );
 
     _invalidateAll();
     return tx;
+  }
+
+  Future<void> _createBudgetAlertBestEffort({
+    required String categoryId,
+    required String monthId,
+  }) async {
+    try {
+      await ref.read(notificationServiceProvider).checkAndCreateBudgetAlert(
+            categoryId: categoryId,
+            monthId: monthId,
+          );
+    } catch (_) {
+      // Non-blocking side effect.
+    }
   }
 
   /// Add an income transaction.

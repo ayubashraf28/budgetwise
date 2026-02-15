@@ -53,7 +53,10 @@ void main() {
     addTearDown(container.dispose);
 
     final notifier = container.read(profileNotifierProvider.notifier);
-    await notifier.updateProfile(displayName: '');
+    await expectLater(
+      () => notifier.updateProfile(displayName: ''),
+      throwsA(isA<AppError>()),
+    );
 
     final state = container.read(profileNotifierProvider);
     expect(state.hasError, isTrue);
@@ -136,6 +139,10 @@ class _FakeProfileService extends ProfileService {
     String? currency,
     String? locale,
     bool? onboardingCompleted,
+    bool? notificationsEnabled,
+    bool? subscriptionRemindersEnabled,
+    bool? budgetAlertsEnabled,
+    bool? monthlyRemindersEnabled,
   }) async {
     if (updateError != null) {
       throw updateError!;
@@ -145,6 +152,10 @@ class _FakeProfileService extends ProfileService {
       currency: currency,
       locale: locale,
       onboardingCompleted: onboardingCompleted,
+      notificationsEnabled: notificationsEnabled,
+      subscriptionRemindersEnabled: subscriptionRemindersEnabled,
+      budgetAlertsEnabled: budgetAlertsEnabled,
+      monthlyRemindersEnabled: monthlyRemindersEnabled,
     );
     return current;
   }
