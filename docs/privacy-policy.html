@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BudgetWise - Privacy Policy</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+            line-height: 1.7;
+            color: #1a1a2e;
+            background: #fafafa;
+            padding: 2rem 1rem;
+        }
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 2.5rem 2rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        }
+        h1 {
+            font-size: 1.75rem;
+            margin-bottom: 0.25rem;
+            color: #1a1a2e;
+        }
+        .last-updated {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+        h2 {
+            font-size: 1.2rem;
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            color: #1a1a2e;
+        }
+        p, li {
+            color: #333;
+            margin-bottom: 0.75rem;
+        }
+        ul {
+            padding-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        li { margin-bottom: 0.4rem; }
+        a { color: #6366f1; }
+        .highlight {
+            background: #f0f0ff;
+            border-left: 3px solid #6366f1;
+            padding: 1rem 1.25rem;
+            border-radius: 0 8px 8px 0;
+            margin: 1rem 0;
+        }
+        @media (max-width: 600px) {
+            body { padding: 1rem 0.5rem; }
+            .container { padding: 1.5rem 1.25rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Privacy Policy</h1>
+        <p class="last-updated">Last updated: 27 February 2026</p>
+
+        <p>BudgetWise ("we", "our", or "the app") is a personal budgeting application. Your privacy is important to us. This policy explains what information we collect, how we use it, and your rights.</p>
+
+        <div class="highlight">
+            <strong>Summary:</strong> We collect only the data necessary to provide the budgeting service. We do not sell your data. You can delete your account and all associated data at any time from within the app.
+        </div>
+
+        <h2>1. Information We Collect</h2>
+
+        <p><strong>Account Information</strong></p>
+        <ul>
+            <li><strong>Email address</strong> - used for account creation, login, and password recovery</li>
+            <li><strong>Display name</strong> - optional, shown in your profile</li>
+            <li><strong>Google account info</strong> - if you choose to sign in with Google (name and email only)</li>
+        </ul>
+
+        <p><strong>Financial Data (User-Provided)</strong></p>
+        <ul>
+            <li>Budget categories, items, and projected amounts</li>
+            <li>Income sources and amounts</li>
+            <li>Expense transactions (amounts, dates, notes)</li>
+            <li>Subscription tracking details (names, amounts, billing cycles)</li>
+            <li>Account names, types, and balances</li>
+        </ul>
+
+        <p><strong>Device & Crash Data (Automatic)</strong></p>
+        <ul>
+            <li>Device model, operating system version, and app version - collected for crash reporting</li>
+            <li>Crash logs and error reports - sent to Firebase Crashlytics to improve app stability</li>
+            <li>Anonymous usage analytics - sent to Firebase Analytics</li>
+        </ul>
+
+        <h2>2. How We Use Your Information</h2>
+        <ul>
+            <li><strong>Provide the service</strong> - your financial data powers the budgeting features you use</li>
+            <li><strong>Authentication</strong> - email and Google account info are used to securely sign you in</li>
+            <li><strong>Notifications</strong> - subscription reminders, budget alerts, and monthly nudges (configurable in Settings)</li>
+            <li><strong>Crash reporting</strong> - device info and error logs help us fix bugs and improve stability</li>
+            <li><strong>Analytics</strong> - anonymous usage patterns help us improve the app experience</li>
+        </ul>
+
+        <h2>3. Data Storage & Security</h2>
+        <ul>
+            <li>Your data is stored securely on <a href="https://supabase.com" target="_blank">Supabase</a> (hosted on AWS, EU-West-1 region)</li>
+            <li>All data is transmitted over HTTPS (TLS encryption in transit)</li>
+            <li>Database access is protected by Row Level Security - each user can only access their own data</li>
+            <li>Passwords are hashed server-side; we never store plaintext passwords</li>
+            <li>Passwords are checked against known breached databases (via <a href="https://haveibeenpwned.com/API/v3#PwnedPasswords" target="_blank">HaveIBeenPwned</a>) using k-anonymity - your full password never leaves your device</li>
+            <li>Session auto-logout after 15 minutes of inactivity (configurable)</li>
+        </ul>
+
+        <h2>4. Third-Party Services</h2>
+        <p>We use the following third-party services:</p>
+        <ul>
+            <li><strong>Supabase</strong> - database hosting and authentication (<a href="https://supabase.com/privacy" target="_blank">Privacy Policy</a>)</li>
+            <li><strong>Firebase Crashlytics</strong> - crash reporting (<a href="https://firebase.google.com/support/privacy" target="_blank">Privacy Policy</a>)</li>
+            <li><strong>Firebase Analytics</strong> - anonymous usage analytics (<a href="https://firebase.google.com/support/privacy" target="_blank">Privacy Policy</a>)</li>
+            <li><strong>Google Sign-In</strong> - optional OAuth authentication (<a href="https://policies.google.com/privacy" target="_blank">Privacy Policy</a>)</li>
+            <li><strong>HaveIBeenPwned</strong> - password breach checking (only partial password hashes are sent, via k-anonymity)</li>
+        </ul>
+
+        <h2>5. Data Sharing</h2>
+        <div class="highlight">
+            We do <strong>not</strong> sell, rent, or share your personal or financial data with any third parties for marketing or advertising purposes.
+        </div>
+        <p>Data is only shared with the third-party services listed above, solely for the purpose of providing the app's functionality (authentication, crash reporting, analytics).</p>
+
+        <h2>6. Your Rights</h2>
+        <ul>
+            <li><strong>Access</strong> - all your data is visible within the app at all times</li>
+            <li><strong>Correction</strong> - you can edit your profile, transactions, and budgets at any time</li>
+            <li><strong>Deletion</strong> - you can delete all your data via Settings > Delete All Data, or permanently delete your entire account via Settings > Delete Account</li>
+            <li><strong>Portability</strong> - contact us to request an export of your data</li>
+            <li><strong>Withdraw consent</strong> - you can disable notifications, analytics, or delete your account at any time</li>
+        </ul>
+
+        <h2>7. Data Retention</h2>
+        <ul>
+            <li>Your data is retained for as long as your account is active</li>
+            <li>When you delete your account, all personal and financial data is permanently removed from our servers</li>
+            <li>Crash reports are retained by Firebase for up to 90 days</li>
+            <li>Anonymous analytics data may be retained by Firebase per their retention policies</li>
+        </ul>
+
+        <h2>8. Children's Privacy</h2>
+        <p>BudgetWise is not intended for use by children under the age of 13. We do not knowingly collect personal information from children under 13. If you believe a child has provided us with personal data, please contact us and we will delete it promptly.</p>
+
+        <h2>9. Changes to This Policy</h2>
+        <p>We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated "Last updated" date. Continued use of the app after changes constitutes acceptance of the updated policy.</p>
+
+        <h2>10. Contact Us</h2>
+        <p>If you have questions about this Privacy Policy or wish to exercise your data rights, please contact us at:</p>
+        <p><strong>Email:</strong> budgetwise.app@gmail.com</p>
+    </div>
+</body>
+</html>

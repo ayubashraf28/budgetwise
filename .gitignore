@@ -57,8 +57,9 @@ app.*.map.json
 /android/app/*.jks
 /android/app/*.keystore
 
-# Documentation / implementation plans
-docs/
+# Documentation / implementation plans (keep docs/*.html for GitHub Pages legal pages)
+docs/*.md
+docs/*.txt
 FINCUBE_INSPIRED_UI_GUIDELINES.md
 ACCOUNTS_FEATURE_INTEGRATION_PLAN.md
 ANALYSIS_PAGE_IMPLEMENTATION_PLAN.md
