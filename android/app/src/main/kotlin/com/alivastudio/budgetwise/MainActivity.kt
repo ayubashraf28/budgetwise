@@ -1,4 +1,4 @@
-package com.budgetwise.budgetwise
+package com.alivastudio.budgetwise
 
 import io.flutter.embedding.android.FlutterActivity
 

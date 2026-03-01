@@ -1,7 +1,7 @@
 name: budgetwise
 description: Personal budgeting app with projected vs actual tracking
 publish_to: 'none'
-version: 0.0.7+7
+version: 1.0.0+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -25,7 +25,9 @@ dependencies:
   uuid: ^4.2.1
   shared_preferences: ^2.2.3
   google_sign_in: ^6.3.0
-  sentry_flutter: ^8.9.0
+  firebase_core: ^3.15.2
+  firebase_crashlytics: ^4.1.5
+  firebase_analytics: ^11.3.5
   package_info_plus: ^8.0.0
   device_info_plus: ^11.0.0
   flutter_local_notifications: ^17.2.3
@@ -36,6 +38,9 @@ dependencies:
   # Security
   crypto: ^3.0.0
   http: ^1.2.0
+
+  # URL handling
+  url_launcher: ^6.2.5
 
   # UI
   flutter_svg: ^2.0.9

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-import '../config/sentry_config.dart';
+import '../config/crash_reporter.dart';
 import '../models/app_notification.dart';
 import '../services/notification_service.dart';
 import '../utils/errors/error_mapper.dart';
@@ -23,28 +23,32 @@ final notificationBootstrapProvider = Provider<void>((ref) {
         nextUserId: nextUser?.id,
       );
     } catch (error, stackTrace) {
-      await SentryConfig.captureException(
+      await CrashReporter.recordError(
         error,
         stackTrace,
-        hint: 'Notification auth sync failed',
+        reason: 'Notification auth sync failed',
+        context: const <String, Object?>{
+          'feature_area': 'notifications',
+        },
       );
     }
 
     try {
       if (nextUser == null) {
-        await SentryConfig.clearUser();
+        await CrashReporter.clearUser();
       } else {
-        await SentryConfig.setUser(
+        await CrashReporter.setUser(
           id: nextUser.id,
-          email: nextUser.email,
-          username: (nextUser.userMetadata?['display_name'] as String?)?.trim(),
         );
       }
     } catch (error, stackTrace) {
-      await SentryConfig.captureException(
+      await CrashReporter.recordError(
         error,
         stackTrace,
-        hint: 'Sentry user context sync failed',
+        reason: 'CrashReporter user context sync failed',
+        context: const <String, Object?>{
+          'feature_area': 'notifications',
+        },
       );
     }
 

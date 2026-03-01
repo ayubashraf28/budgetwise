@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 
+import '../config/crash_reporter.dart';
 import '../config/supabase_config.dart';
 import '../models/transaction.dart';
 import '../utils/errors/app_error.dart';
@@ -167,13 +168,37 @@ class TransactionService {
       updatedAt: now,
     );
 
-    final response = await _client
-        .from(_table)
-        .insert(transaction.toJson())
-        .select(_selectWithJoins)
-        .single();
-
-    return Transaction.fromJson(response);
+    try {
+      final response = await _client
+          .from(_table)
+          .insert(transaction.toJson())
+          .select(_selectWithJoins)
+          .single();
+      await CrashReporter.recordBreadcrumb(
+        'bw_txn_create_success',
+        parameters: const <String, Object?>{
+          'type': 'expense',
+        },
+      );
+      return Transaction.fromJson(response);
+    } catch (error, stackTrace) {
+      await CrashReporter.recordError(
+        error,
+        stackTrace,
+        reason: 'Create expense transaction failed',
+        context: const <String, Object?>{
+          'feature_area': 'transactions',
+          'operation': 'create_expense',
+        },
+      );
+      await CrashReporter.recordBreadcrumb(
+        'bw_txn_create_failed',
+        parameters: const <String, Object?>{
+          'type': 'expense',
+        },
+      );
+      rethrow;
+    }
   }
 
   /// Create an income transaction
@@ -228,13 +253,37 @@ class TransactionService {
       updatedAt: now,
     );
 
-    final response = await _client
-        .from(_table)
-        .insert(transaction.toJson())
-        .select(_selectWithJoins)
-        .single();
-
-    return Transaction.fromJson(response);
+    try {
+      final response = await _client
+          .from(_table)
+          .insert(transaction.toJson())
+          .select(_selectWithJoins)
+          .single();
+      await CrashReporter.recordBreadcrumb(
+        'bw_txn_create_success',
+        parameters: const <String, Object?>{
+          'type': 'income',
+        },
+      );
+      return Transaction.fromJson(response);
+    } catch (error, stackTrace) {
+      await CrashReporter.recordError(
+        error,
+        stackTrace,
+        reason: 'Create income transaction failed',
+        context: const <String, Object?>{
+          'feature_area': 'transactions',
+          'operation': 'create_income',
+        },
+      );
+      await CrashReporter.recordBreadcrumb(
+        'bw_txn_create_failed',
+        parameters: const <String, Object?>{
+          'type': 'income',
+        },
+      );
+      rethrow;
+    }
   }
 
   /// Update a transaction
@@ -305,24 +354,73 @@ class TransactionService {
       return current;
     }
 
-    final response = await _client
-        .from(_table)
-        .update(updates)
-        .eq('id', transactionId)
-        .eq('user_id', _userId)
-        .select(_selectWithJoins)
-        .single();
-
-    return Transaction.fromJson(response);
+    try {
+      final response = await _client
+          .from(_table)
+          .update(updates)
+          .eq('id', transactionId)
+          .eq('user_id', _userId)
+          .select(_selectWithJoins)
+          .single();
+      await CrashReporter.recordBreadcrumb(
+        'bw_txn_update_success',
+        parameters: const <String, Object?>{
+          'operation': 'update_transaction',
+        },
+      );
+      return Transaction.fromJson(response);
+    } catch (error, stackTrace) {
+      await CrashReporter.recordError(
+        error,
+        stackTrace,
+        reason: 'Update transaction failed',
+        context: const <String, Object?>{
+          'feature_area': 'transactions',
+          'operation': 'update_transaction',
+        },
+      );
+      await CrashReporter.recordBreadcrumb(
+        'bw_txn_update_failed',
+        parameters: const <String, Object?>{
+          'operation': 'update_transaction',
+        },
+      );
+      rethrow;
+    }
   }
 
   /// Delete a transaction
   Future<void> deleteTransaction(String transactionId) async {
-    await _client
-        .from(_table)
-        .delete()
-        .eq('id', transactionId)
-        .eq('user_id', _userId);
+    try {
+      await _client
+          .from(_table)
+          .delete()
+          .eq('id', transactionId)
+          .eq('user_id', _userId);
+      await CrashReporter.recordBreadcrumb(
+        'bw_txn_delete_success',
+        parameters: const <String, Object?>{
+          'operation': 'delete_transaction',
+        },
+      );
+    } catch (error, stackTrace) {
+      await CrashReporter.recordError(
+        error,
+        stackTrace,
+        reason: 'Delete transaction failed',
+        context: const <String, Object?>{
+          'feature_area': 'transactions',
+          'operation': 'delete_transaction',
+        },
+      );
+      await CrashReporter.recordBreadcrumb(
+        'bw_txn_delete_failed',
+        parameters: const <String, Object?>{
+          'operation': 'delete_transaction',
+        },
+      );
+      rethrow;
+    }
   }
 
   /// Get total expenses for a month

@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   analyze_and_test:
@@ -59,3 +60,87 @@ jobs:
 
       - name: Android debug smoke build
         run: flutter build apk --debug
+
+  android_release_crashlytics:
+    if: ${{ vars.ENABLE_RELEASE_PIPELINE == 'true' }}
+    runs-on: ubuntu-latest
+    needs: analyze_and_test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Android prod release bundle
+        run: >
+          flutter build appbundle --release --flavor prod
+          --dart-define=APP_ENV=prod
+          --dart-define=CRASH_REPORTING_ENABLED=true
+          --dart-define=APP_REDIRECT_SCHEME=com.alivastudio.budgetwise
+          --dart-define=FIREBASE_PROD_ANDROID_API_KEY=${{ secrets.FIREBASE_PROD_ANDROID_API_KEY }}
+          --dart-define=FIREBASE_PROD_ANDROID_APP_ID=${{ secrets.FIREBASE_PROD_ANDROID_APP_ID }}
+          --dart-define=FIREBASE_PROD_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_PROD_MESSAGING_SENDER_ID }}
+          --dart-define=FIREBASE_PROD_PROJECT_ID=${{ secrets.FIREBASE_PROD_PROJECT_ID }}
+          --dart-define=FIREBASE_PROD_STORAGE_BUCKET=${{ secrets.FIREBASE_PROD_STORAGE_BUCKET }}
+          --obfuscate --split-debug-info=build/symbols/prod
+
+      - name: Upload Crashlytics mapping (Android)
+        run: ./gradlew app:uploadCrashlyticsMappingFileProdRelease
+        working-directory: android
+
+      - name: Upload Android symbols artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-symbols-prod-${{ github.sha }}
+          path: build/symbols/prod
+          retention-days: 30
+
+  ios_release_symbols:
+    if: ${{ vars.ENABLE_RELEASE_PIPELINE == 'true' }}
+    runs-on: macos-latest
+    needs: analyze_and_test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build iOS release (no codesign)
+        run: >
+          flutter build ios --release --no-codesign
+          --dart-define=APP_ENV=prod
+          --dart-define=CRASH_REPORTING_ENABLED=true
+          --dart-define=APP_REDIRECT_SCHEME=com.alivastudio.budgetwise
+          --dart-define=FIREBASE_PROD_IOS_API_KEY=${{ secrets.FIREBASE_PROD_IOS_API_KEY }}
+          --dart-define=FIREBASE_PROD_IOS_APP_ID=${{ secrets.FIREBASE_PROD_IOS_APP_ID }}
+          --dart-define=FIREBASE_PROD_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_PROD_MESSAGING_SENDER_ID }}
+          --dart-define=FIREBASE_PROD_PROJECT_ID=${{ secrets.FIREBASE_PROD_PROJECT_ID }}
+          --dart-define=FIREBASE_PROD_STORAGE_BUCKET=${{ secrets.FIREBASE_PROD_STORAGE_BUCKET }}
+          --dart-define=FIREBASE_PROD_IOS_BUNDLE_ID=com.alivastudio.budgetwise
+          --dart-define=FIREBASE_PROD_IOS_CLIENT_ID=${{ secrets.FIREBASE_PROD_IOS_CLIENT_ID }}
+          --obfuscate --split-debug-info=build/symbols/prod_ios
+
+      - name: Upload iOS symbols artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-symbols-prod-${{ github.sha }}
+          path: build/symbols/prod_ios
+          retention-days: 30

@@ -10,7 +10,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import 'package:timezone/timezone.dart' as tz;
 
-import '../config/sentry_config.dart';
+import '../config/crash_reporter.dart';
 import '../config/supabase_config.dart';
 import '../models/app_notification.dart';
 import '../models/subscription.dart';
@@ -91,10 +91,13 @@ class NotificationService {
       tz.setLocalLocation(tz.getLocation(timezoneName));
     } catch (error, stackTrace) {
       tz.setLocalLocation(tz.UTC);
-      await SentryConfig.captureException(
+      await CrashReporter.recordError(
         error,
         stackTrace,
-        hint: 'Falling back to UTC timezone for notifications',
+        reason: 'Falling back to UTC timezone for notifications',
+        context: const <String, Object?>{
+          'feature_area': 'notifications',
+        },
       );
     }
   }
@@ -294,10 +297,19 @@ class NotificationService {
         await scheduleSubscriptionReminder(subscription);
       }
     } catch (error, stackTrace) {
-      await SentryConfig.captureException(
+      await CrashReporter.recordError(
         error,
         stackTrace,
-        hint: 'Failed to reschedule subscription reminders',
+        reason: 'Failed to reschedule subscription reminders',
+        context: const <String, Object?>{
+          'feature_area': 'notifications',
+        },
+      );
+      await CrashReporter.recordBreadcrumb(
+        'bw_notification_sync_failed',
+        parameters: const <String, Object?>{
+          'operation': 'reschedule_subscription_reminders',
+        },
       );
     }
   }

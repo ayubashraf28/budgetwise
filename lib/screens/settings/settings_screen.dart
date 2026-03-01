@@ -3,8 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/constants.dart';
+import '../../config/supabase_config.dart';
 import '../../config/theme.dart';
 import '../../models/bug_report.dart';
 import '../../providers/providers.dart';
@@ -25,6 +27,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isLinkingGoogle = false;
   bool _isDeletingAllData = false;
+  bool _isDeletingAccount = false;
 
   void _setIsLinkingGoogle(bool value) {
     if (!mounted) {
@@ -40,6 +43,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       return;
     }
     setState(() => _isDeletingAllData = value);
+  }
+
+  void _setIsDeletingAccount(bool value) {
+    if (!mounted) {
+      _isDeletingAccount = value;
+      return;
+    }
+    setState(() => _isDeletingAccount = value);
   }
 
   @override
@@ -297,6 +308,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     _showAboutDialog(context);
                   },
                 ),
+                const Divider(height: 1),
+                _SettingsTile(
+                  icon: LucideIcons.shieldCheck,
+                  title: 'Privacy Policy',
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    _launchUrl(AppConstants.privacyPolicyUrl);
+                  },
+                ),
+                const Divider(height: 1),
+                _SettingsTile(
+                  icon: LucideIcons.fileText,
+                  title: 'Terms of Service',
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    _launchUrl(AppConstants.termsOfServiceUrl);
+                  },
+                ),
               ],
             ),
             const SizedBox(height: NeoLayout.sectionGap),
@@ -349,6 +378,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         )
                       : null,
                   onTap: _isDeletingAllData ? () {} : _confirmDeleteAllData,
+                ),
+                const Divider(height: 1),
+                _SettingsTile(
+                  icon: LucideIcons.userX,
+                  title: 'Delete Account',
+                  subtitle: 'Permanently delete your account and all data',
+                  titleColor: NeoTheme.negativeValue(context),
+                  showChevron: false,
+                  trailing: _isDeletingAccount
+                      ? SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: NeoTheme.negativeValue(context),
+                          ),
+                        )
+                      : null,
+                  onTap: _isDeletingAccount ? () {} : _confirmDeleteAccount,
                 ),
               ],
             ),

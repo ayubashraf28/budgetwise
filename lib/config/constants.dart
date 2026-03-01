@@ -4,7 +4,14 @@ class AppConstants {
 
   // App Info
   static const String appName = 'BudgetWise';
-  static const String appVersion = '0.0.7+7';
+  static const String appVersion = '1.0.0+1';
+
+  // Legal URLs (hosted on GitHub Pages)
+  static const String privacyPolicyUrl =
+      'https://ayubashraf28.github.io/budgetwise/privacy-policy.html';
+  static const String termsOfServiceUrl =
+      'https://ayubashraf28.github.io/budgetwise/terms-of-service.html';
+  static const String supportEmail = 'hello.alivastudio@gmail.com';
 
   // Default Settings
   static const String defaultCurrency = 'GBP';

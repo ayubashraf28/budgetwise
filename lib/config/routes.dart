@@ -29,6 +29,7 @@ import '../screens/settings/settings_screen.dart';
 import '../screens/subscriptions/subscriptions_screen.dart';
 import '../screens/transactions/transactions_screen.dart';
 import '../widgets/navigation/app_shell.dart';
+import 'crash_reporter.dart';
 
 String? resolveAppRedirect({
   required bool isLoggedIn,
@@ -102,6 +103,44 @@ class GoRouterRefreshStream extends ChangeNotifier {
   }
 }
 
+class CrashReporterRouteObserver extends NavigatorObserver {
+  String? _lastRoute;
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _track(route);
+    super.didPush(route, previousRoute);
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    _track(newRoute);
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    _track(previousRoute);
+    super.didPop(route, previousRoute);
+  }
+
+  void _track(Route<dynamic>? route) {
+    final routeName = route?.settings.name?.trim();
+    if (routeName == null || routeName.isEmpty || routeName == _lastRoute) {
+      return;
+    }
+    _lastRoute = routeName;
+    unawaited(
+      CrashReporter.recordBreadcrumb(
+        'bw_route_view',
+        parameters: <String, Object?>{
+          'route': routeName,
+        },
+      ),
+    );
+  }
+}
+
 /// Provider for the auth refresh listenable
 final routerRefreshProvider = Provider<GoRouterRefreshStream>((ref) {
   final stream = Supabase.instance.client.auth.onAuthStateChange;
@@ -116,6 +155,9 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/login',
     debugLogDiagnostics: false,
     refreshListenable: refreshListenable,
+    observers: <NavigatorObserver>[
+      CrashReporterRouteObserver(),
+    ],
     redirect: (context, state) async {
       final session = Supabase.instance.client.auth.currentSession;
       final isLoggedIn = session != null;

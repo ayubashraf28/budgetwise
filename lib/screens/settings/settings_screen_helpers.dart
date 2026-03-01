@@ -292,6 +292,161 @@ extension _SettingsScreenHelpers on _SettingsScreenState {
     }
   }
 
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Could not open link'),
+          backgroundColor: NeoTheme.negativeValue(context),
+        ),
+      );
+    }
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    final palette = NeoTheme.of(context);
+    final controller = TextEditingController();
+    bool canDelete = false;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          return AlertDialog(
+            backgroundColor: palette.surface1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+              side: BorderSide(color: palette.stroke),
+            ),
+            title: Text(
+              'Delete Account',
+              style: AppTypography.h3.copyWith(
+                color: NeoTheme.negativeValue(context),
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'This will permanently delete your account and all associated data. This action cannot be undone.',
+                  style: AppTypography.bodyMedium
+                      .copyWith(color: palette.textSecondary),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'You will be signed out and will not be able to recover your data.',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: NeoTheme.negativeValue(context),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Type DELETE to confirm:',
+                  style: AppTypography.bodySmall
+                      .copyWith(color: palette.textMuted),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                TextField(
+                  controller: controller,
+                  onChanged: (value) {
+                    setDialogState(() => canDelete = value.trim() == 'DELETE');
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'DELETE',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: _isDeletingAccount
+                    ? null
+                    : () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: (!canDelete || _isDeletingAccount)
+                    ? null
+                    : () => Navigator.of(dialogContext).pop(true),
+                style: TextButton.styleFrom(
+                  foregroundColor: NeoTheme.negativeValue(context),
+                ),
+                child: const Text('Delete Account'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    controller.dispose();
+
+    if (!mounted) return;
+    if (confirmed == true) {
+      await _deleteAccount();
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    if (_isDeletingAccount) return;
+    _setIsDeletingAccount(true);
+
+    var loadingDialogShown = false;
+    if (mounted) {
+      loadingDialogShown = true;
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    try {
+      await SupabaseConfig.client.functions.invoke('delete-user');
+
+      if (!mounted) return;
+      if (loadingDialogShown) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      // Sign out locally and navigate to login
+      await ref.read(authNotifierProvider.notifier).signOut();
+
+      if (!mounted) return;
+      context.go('/login');
+    } catch (e) {
+      if (!mounted) return;
+      if (loadingDialogShown) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ErrorMapper.toUserMessage(
+              e,
+              fallbackMessage:
+                  'Failed to delete account. Please try again.',
+            ),
+          ),
+          backgroundColor: NeoTheme.negativeValue(context),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        _setIsDeletingAccount(false);
+      }
+    }
+  }
+
   Future<void> _confirmDeleteAllData() async {
     final palette = NeoTheme.of(context);
     final controller = TextEditingController();

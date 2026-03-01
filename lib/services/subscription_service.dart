@@ -3,6 +3,7 @@ import 'dart:developer' as developer;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import '../config/crash_reporter.dart';
 import '../config/supabase_config.dart';
 import '../models/subscription.dart';
 import '../utils/errors/app_error.dart';
@@ -273,9 +274,31 @@ class SubscriptionService {
         );
       }
 
-      return SubscriptionPaymentResult.fromRpc(payload);
+      final result = SubscriptionPaymentResult.fromRpc(payload);
+      await CrashReporter.recordBreadcrumb(
+        'bw_subscription_payment_success',
+        parameters: <String, Object?>{
+          'duplicate_prevented': result.duplicatePrevented,
+        },
+      );
+      return result;
     } catch (error, stackTrace) {
       final mappedError = ErrorMapper.toAppError(error, stackTrace: stackTrace);
+      await CrashReporter.recordError(
+        mappedError,
+        stackTrace,
+        reason: 'Mark subscription paid failed',
+        context: const <String, Object?>{
+          'feature_area': 'subscriptions',
+          'operation': 'mark_subscription_paid_atomic',
+        },
+      );
+      await CrashReporter.recordBreadcrumb(
+        'bw_subscription_payment_failed',
+        parameters: const <String, Object?>{
+          'operation': 'mark_subscription_paid_atomic',
+        },
+      );
       await logPaymentEvent(
         requestId: effectiveRequestId,
         subscriptionId: subscriptionId,

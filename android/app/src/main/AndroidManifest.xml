@@ -37,7 +37,7 @@
                 <category android:name="android.intent.category.BROWSABLE" />
 
                 <data
-                    android:scheme="com.budgetwise.budgetwise"
+                    android:scheme="${authRedirectScheme}"
                     android:host="login-callback" />
             </intent-filter>
         </activity>

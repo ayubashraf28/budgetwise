@@ -18,3 +18,8 @@
 
 # Keep notification receiver classes
 -keep class com.dexterous.flutterlocalnotifications.** { *; }
+
+# Play Core deferred components (referenced by Flutter engine but not used)
+-dontwarn com.google.android.play.core.splitcompat.SplitCompatApplication
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**

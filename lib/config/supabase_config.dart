@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///     --dart-define=GOOGLE_WEB_CLIENT_ID=... \
 ///     --dart-define=GOOGLE_ANDROID_CLIENT_ID_DEBUG=... \
 ///     --dart-define=GOOGLE_ANDROID_CLIENT_ID_RELEASE=... \
+///     --dart-define=APP_REDIRECT_SCHEME=com.alivastudio.budgetwise \
 ///     --obfuscate --split-debug-info=build/symbols
 ///
 /// For local development, use a .env file loaded via flutter_dotenv as fallback.
@@ -31,6 +32,8 @@ class SupabaseConfig {
       String.fromEnvironment('GOOGLE_ANDROID_CLIENT_ID_RELEASE');
   static const _dartDefineGoogleIosClientId =
       String.fromEnvironment('GOOGLE_IOS_CLIENT_ID');
+  static const _dartDefineAppRedirectScheme =
+      String.fromEnvironment('APP_REDIRECT_SCHEME');
 
   // Runtime fallbacks (set by main.dart from dotenv for local development)
   static Map<String, String> _runtimeEnv = {};
@@ -55,6 +58,8 @@ class SupabaseConfig {
         if (_dartDefineGoogleAndroidClientIdRelease.isNotEmpty) return _dartDefineGoogleAndroidClientIdRelease;
       case 'GOOGLE_IOS_CLIENT_ID':
         if (_dartDefineGoogleIosClientId.isNotEmpty) return _dartDefineGoogleIosClientId;
+      case 'APP_REDIRECT_SCHEME':
+        if (_dartDefineAppRedirectScheme.isNotEmpty) return _dartDefineAppRedirectScheme;
     }
     // Fall back to runtime .env for local development
     return (_runtimeEnv[key] ?? '').trim();
@@ -67,6 +72,13 @@ class SupabaseConfig {
   static String get googleAndroidClientId => _resolvedAndroidGoogleClientId();
   static String? get googleIosClientId =>
       _optionalGoogleClientId('GOOGLE_IOS_CLIENT_ID');
+  static String get appRedirectScheme {
+    final value = _env('APP_REDIRECT_SCHEME');
+    if (value.isEmpty) {
+      return 'com.alivastudio.budgetwise';
+    }
+    return value;
+  }
 
   static Future<void> initialize() async {
     await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);

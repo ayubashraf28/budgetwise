@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "222222222222",
+    "project_id": "budgetwise-stg",
+    "storage_bucket": "budgetwise-stg.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:222222222222:android:stgreplace",
+        "android_client_info": {
+          "package_name": "com.alivastudio.budgetwise.stg"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "REPLACE_WITH_REAL_FIREBASE_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

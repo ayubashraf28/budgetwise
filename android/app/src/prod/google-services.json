@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "288550144254",
+    "project_id": "budgetwise-d367d",
+    "storage_bucket": "budgetwise-d367d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:288550144254:android:c07e550dea62d3889d3daf",
+        "android_client_info": {
+          "package_name": "com.alivastudio.budgetwise"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDnQ_PH6rtLiMDag3xVTkdkTsHub-LNc90"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
