@@ -18,7 +18,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///   stg -> com.alivastudio.budgetwise.stg
 ///   prod -> com.alivastudio.budgetwise
 ///
-/// For local development, use a .env file loaded via flutter_dotenv as fallback.
+/// Repo-managed .env values are used as a runtime fallback when dart-defines
+/// are not supplied, which keeps manual dev/test builds functional on web and
+/// mobile. Dart-defines still take precedence.
 class SupabaseConfig {
   SupabaseConfig._();
 
@@ -83,8 +85,8 @@ class SupabaseConfig {
     return (_runtimeEnv[key] ?? '').trim();
   }
 
-  static String get supabaseUrl => _env('SUPABASE_URL');
-  static String get supabaseAnonKey => _env('SUPABASE_ANON_KEY');
+  static String get supabaseUrl => _requiredSupabaseUrl();
+  static String get supabaseAnonKey => _requiredSupabaseAnonKey();
   static String get googleWebClientId =>
       _requiredGoogleClientId('GOOGLE_WEB_CLIENT_ID');
   static String get googleAndroidClientId => _resolvedAndroidGoogleClientId();
@@ -108,6 +110,27 @@ class SupabaseConfig {
 
   static Stream<AuthState> get authStateChanges =>
       client.auth.onAuthStateChange;
+
+  static String _requiredSupabaseUrl() {
+    final value = _env('SUPABASE_URL');
+    final uri = Uri.tryParse(value);
+    if (value.isEmpty || uri == null || !uri.hasScheme || uri.host.isEmpty) {
+      throw StateError(
+        'Invalid or missing SUPABASE_URL. Provide a valid https://<project>.supabase.co URL via --dart-define or .env.',
+      );
+    }
+    return value;
+  }
+
+  static String _requiredSupabaseAnonKey() {
+    final value = _env('SUPABASE_ANON_KEY');
+    if (value.isEmpty || _isPlaceholderClientId(value)) {
+      throw StateError(
+        'Invalid or missing SUPABASE_ANON_KEY. Provide a real publishable/anon key via --dart-define or .env.',
+      );
+    }
+    return value;
+  }
 
   static String _requiredGoogleClientId(String key) {
     final value = _env(key);
