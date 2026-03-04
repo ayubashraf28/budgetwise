@@ -11,7 +11,12 @@ import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
 import '../../utils/errors/error_mapper.dart';
 import '../../widgets/budget/budget_widgets.dart';
+import '../../widgets/common/neo_modal_sheet.dart';
 import '../../widgets/common/neo_page_components.dart';
+import '../../widgets/common/neo_snackbar.dart';
+import '../../widgets/motion/animated_amount_text.dart';
+import '../../widgets/motion/neo_pressable.dart';
+import '../../widgets/motion/neo_staggered_reveal.dart';
 import 'category_form_sheet.dart';
 
 class ExpenseCategoriesScreen extends ConsumerWidget {
@@ -63,11 +68,15 @@ class ExpenseCategoriesScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(
                     horizontal: NeoLayout.screenPadding,
                   ),
-                  child: _buildSummaryCard(
-                    context,
-                    totalProjected,
-                    totalActual,
-                    currencySymbol,
+                  child: NeoStaggeredReveal(
+                    revealKey: 'expense.sections',
+                    index: 0,
+                    child: _buildSummaryCard(
+                      context,
+                      totalProjected,
+                      totalActual,
+                      currencySymbol,
+                    ),
                   ),
                 ),
               ),
@@ -111,9 +120,13 @@ class ExpenseCategoriesScreen extends ConsumerWidget {
                           NeoLayout.screenPadding,
                           AppSpacing.sm,
                         ),
-                        child: _buildAddExpenseCategoryRow(
-                          context: context,
-                          onTap: () => _showAddSheet(context),
+                        child: NeoStaggeredReveal(
+                          revealKey: 'expense.sections',
+                          index: 1,
+                          child: _buildAddExpenseCategoryRow(
+                            context: context,
+                            onTap: () => _showAddSheet(context),
+                          ),
                         ),
                       ),
                     ),
@@ -128,14 +141,18 @@ class ExpenseCategoriesScreen extends ConsumerWidget {
                             return Padding(
                               padding:
                                   const EdgeInsets.only(bottom: AppSpacing.sm),
-                              child: _buildCategoryCard(
-                                context,
-                                ref,
-                                category,
-                                currencySymbol,
-                                isSimpleMode: isSimpleMode,
-                                transactionCount:
-                                    txCountByCategory[category.id] ?? 0,
+                              child: NeoStaggeredReveal(
+                                revealKey: 'expense.categories',
+                                index: index,
+                                child: _buildCategoryCard(
+                                  context,
+                                  ref,
+                                  category,
+                                  currencySymbol,
+                                  isSimpleMode: isSimpleMode,
+                                  transactionCount:
+                                      txCountByCategory[category.id] ?? 0,
+                                ),
                               ),
                             );
                           },
@@ -222,32 +239,29 @@ class ExpenseCategoriesScreen extends ConsumerWidget {
     final addColor = NeoTheme.positiveValue(context);
     final borderColor = NeoTheme.of(context).stroke;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        child: Container(
-          padding: AppSpacing.cardPadding,
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-            border: Border.all(color: borderColor),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(LucideIcons.plus, color: addColor, size: NeoIconSizes.lg),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                'Add Expense Category',
-                style: AppTypography.bodyLarge.copyWith(
-                  color: addColor,
-                  fontWeight: FontWeight.w600,
-                ),
+    return NeoPressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+      child: Container(
+        padding: AppSpacing.cardPadding,
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          border: Border.all(color: borderColor),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(LucideIcons.plus, color: addColor, size: NeoIconSizes.lg),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              'Add Expense Category',
+              style: AppTypography.bodyLarge.copyWith(
+                color: addColor,
+                fontWeight: FontWeight.w600,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -270,8 +284,9 @@ class ExpenseCategoriesScreen extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: NeoTypography.rowSecondary(context)),
-          Text(
-            '$currencySymbol${_formatAmount(amount)}',
+          AnimatedAmountText(
+            value: amount,
+            formatter: (value) => '$currencySymbol${_formatAmount(value)}',
             style: NeoTypography.rowAmount(
               context,
               NeoTheme.of(context).textPrimary,
@@ -343,11 +358,9 @@ class ExpenseCategoriesScreen extends ConsumerWidget {
       confirmDismiss: (direction) => _showDeleteConfirmation(context),
       onDismissed: (direction) {
         ref.read(categoryNotifierProvider.notifier).deleteCategory(category.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${category.name} deleted')),
-        );
+        showNeoSuccessSnackBar(context, '${category.name} deleted');
       },
-      child: InkWell(
+      child: NeoPressable(
         onTap: () => context.push('/budget/category/${category.id}'),
         borderRadius: BorderRadius.circular(NeoLayout.cardRadius),
         child: NeoGlassCard(
@@ -540,10 +553,8 @@ class ExpenseCategoriesScreen extends ConsumerWidget {
   }
 
   void _showAddSheet(BuildContext context) {
-    showModalBottomSheet(
+    showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => const CategoryFormSheet(),
     );
   }

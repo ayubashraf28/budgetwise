@@ -7,10 +7,8 @@ extension _TransactionFormSheetPickers on _TransactionFormSheetState {
       return;
     }
 
-    final selectedId = await showModalBottomSheet<String>(
+    final selectedId = await showNeoModalBottomSheet<String>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) {
         final palette = NeoTheme.of(context);
         return SelectionPickerSheet<String>(
@@ -45,10 +43,8 @@ extension _TransactionFormSheetPickers on _TransactionFormSheetState {
     required bool isSimpleMode,
   }) async {
     final previousCategoryId = _selectedCategoryId;
-    final selectedCategoryId = await showModalBottomSheet<String>(
+    final selectedCategoryId = await showNeoModalBottomSheet<String>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => SelectionPickerSheet<String>(
         title: 'Select Category',
         selectedValue: _selectedCategoryId,
@@ -106,10 +102,8 @@ extension _TransactionFormSheetPickers on _TransactionFormSheetState {
       }
     });
 
-    final selectedItemId = await showModalBottomSheet<String>(
+    final selectedItemId = await showNeoModalBottomSheet<String>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => SelectionPickerSheet<String>(
         title: 'Select Item',
         selectedValue: initialItemId,
@@ -163,10 +157,8 @@ extension _TransactionFormSheetPickers on _TransactionFormSheetState {
   }
 
   Future<void> _pickIncomeSource(List<IncomeSource> incomeSources) async {
-    final selectedId = await showModalBottomSheet<String>(
+    final selectedId = await showNeoModalBottomSheet<String>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => SelectionPickerSheet<String>(
         title: 'Select Source',
         selectedValue: _selectedIncomeSourceId,
@@ -281,10 +273,8 @@ extension _TransactionFormSheetPickers on _TransactionFormSheetState {
   }
 
   Future<void> _handleAddCategory(BuildContext context) async {
-    final newCategoryId = await showModalBottomSheet<String>(
+    final newCategoryId = await showNeoModalBottomSheet<String>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => const CategoryFormSheet(),
     );
 
@@ -317,10 +307,8 @@ extension _TransactionFormSheetPickers on _TransactionFormSheetState {
     BuildContext context, {
     required String categoryId,
   }) async {
-    final newItemId = await showModalBottomSheet<String>(
+    final newItemId = await showNeoModalBottomSheet<String>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => ItemFormSheet(
         categoryId: categoryId,
       ),
@@ -339,10 +327,8 @@ extension _TransactionFormSheetPickers on _TransactionFormSheetState {
   }
 
   Future<void> _handleAddIncomeSource(BuildContext context) async {
-    final newSourceId = await showModalBottomSheet<String>(
+    final newSourceId = await showNeoModalBottomSheet<String>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => const IncomeFormSheet(),
     );
 

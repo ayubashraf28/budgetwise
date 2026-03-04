@@ -47,6 +47,8 @@ dependencies:
   shimmer: ^3.0.0
   fl_chart: ^0.69.0
   dropdown_button2: ^2.3.9
+  flutter_animate: ^4.5.2
+  animations: ^2.0.11
 
   # Icons
   lucide_icons: ^0.257.0

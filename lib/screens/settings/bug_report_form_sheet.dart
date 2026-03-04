@@ -6,6 +6,7 @@ import '../../config/theme.dart';
 import '../../models/bug_report.dart';
 import '../../providers/providers.dart';
 import '../../utils/errors/error_mapper.dart';
+import '../../widgets/common/neo_snackbar.dart';
 
 class BugReportFormSheet extends ConsumerStatefulWidget {
   final BugReportCategory initialCategory;
@@ -230,27 +231,20 @@ class _BugReportFormSheetState extends ConsumerState<BugReportFormSheet> {
           );
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.feedbackMode
-                ? 'Feedback sent successfully'
-                : 'Bug report submitted successfully',
-          ),
-        ),
+      showNeoSuccessSnackBar(
+        context,
+        widget.feedbackMode
+            ? 'Feedback sent successfully'
+            : 'Bug report submitted successfully',
       );
     } catch (error, stackTrace) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ErrorMapper.toUserMessage(
-              error,
-              stackTrace: stackTrace,
-              fallbackMessage: 'Unable to submit right now.',
-            ),
-          ),
-          backgroundColor: NeoTheme.negativeValue(context),
+      showNeoErrorSnackBar(
+        context,
+        ErrorMapper.toUserMessage(
+          error,
+          stackTrace: stackTrace,
+          fallbackMessage: 'Unable to submit right now.',
         ),
       );
     } finally {

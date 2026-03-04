@@ -177,9 +177,7 @@ extension _SubscriptionsScreenHelpers on SubscriptionsScreen {
         ref
             .read(subscriptionNotifierProvider.notifier)
             .deleteSubscription(sub.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${sub.name} deleted')),
-        );
+        showNeoSuccessSnackBar(context, '${sub.name} deleted');
       },
       child: NeoGlassCard(
         child: Row(
@@ -267,8 +265,9 @@ extension _SubscriptionsScreenHelpers on SubscriptionsScreen {
                           ref
                               .read(subscriptionNotifierProvider.notifier)
                               .deleteSubscription(sub.id);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('${sub.name} deleted')),
+                          showNeoSuccessSnackBar(
+                            context,
+                            '${sub.name} deleted',
                           );
                         }
                       });
@@ -426,19 +425,15 @@ extension _SubscriptionsScreenHelpers on SubscriptionsScreen {
   }
 
   void _showAddSheet(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
+    showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => const SubscriptionFormSheet(),
     );
   }
 
   void _showEditSheet(BuildContext context, WidgetRef ref, Subscription sub) {
-    showModalBottomSheet(
+    showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => SubscriptionFormSheet(subscription: sub),
     );
   }
@@ -468,7 +463,8 @@ extension _SubscriptionsScreenHelpers on SubscriptionsScreen {
           duplicatePrevented: result.duplicatePrevented,
         );
 
-        ScaffoldMessenger.of(context).showSnackBar(
+        showNeoSnackBar(
+          context,
           SnackBar(
             content: Text(feedback.message),
             action: feedback.showViewMonthAction
@@ -494,17 +490,11 @@ extension _SubscriptionsScreenHelpers on SubscriptionsScreen {
         final inFlightDuplicate = appError.technicalMessage
             .toLowerCase()
             .contains('already being processed');
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              inFlightDuplicate
-                  ? 'Payment already in progress'
-                  : appError.userMessage,
-            ),
-            backgroundColor:
-                inFlightDuplicate ? null : NeoTheme.negativeValue(context),
-          ),
-        );
+        if (inFlightDuplicate) {
+          showNeoInfoSnackBar(context, 'Payment already in progress');
+        } else {
+          showNeoErrorSnackBar(context, appError.userMessage);
+        }
       }
     }
   }
@@ -516,13 +506,9 @@ extension _SubscriptionsScreenHelpers on SubscriptionsScreen {
   ) async {
     if (activeAccounts.isEmpty) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text(
-              'Create an account before marking a subscription paid',
-            ),
-            backgroundColor: NeoTheme.negativeValue(context),
-          ),
+        showNeoErrorSnackBar(
+          context,
+          'Create an account before marking a subscription paid',
         );
       }
       return null;
@@ -543,9 +529,8 @@ extension _SubscriptionsScreenHelpers on SubscriptionsScreen {
   ) async {
     String selectedId = accounts.first.id;
 
-    return showModalBottomSheet<String>(
+    return showNeoModalBottomSheet<String>(
       context: context,
-      backgroundColor: Colors.transparent,
       builder: (context) {
         final palette = NeoTheme.of(context);
         return SafeArea(
@@ -681,21 +666,16 @@ extension _SubscriptionsScreenHelpers on SubscriptionsScreen {
             isActive: !sub.isActive,
           );
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${sub.name} ${sub.isActive ? 'paused' : 'resumed'}'),
-          ),
+        showNeoSuccessSnackBar(
+          context,
+          '${sub.name} ${sub.isActive ? 'paused' : 'resumed'}',
         );
       }
     } catch (error, stackTrace) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
-            ),
-            backgroundColor: NeoTheme.negativeValue(context),
-          ),
+        showNeoErrorSnackBar(
+          context,
+          ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
         );
       }
     }

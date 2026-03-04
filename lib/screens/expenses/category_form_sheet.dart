@@ -10,6 +10,7 @@ import '../../utils/app_icon_registry.dart';
 import '../../utils/category_name_utils.dart';
 import '../../utils/errors/error_mapper.dart';
 import '../../utils/validators/input_validator.dart';
+import '../../widgets/common/neo_snackbar.dart';
 
 class CategoryFormSheet extends ConsumerStatefulWidget {
   final Category? category;
@@ -455,9 +456,7 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
         }
         if (mounted) {
           Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Category updated')),
-          );
+          showNeoSuccessSnackBar(context, 'Category updated');
         }
       } else {
         final newCategory = await notifier.addCategory(
@@ -477,20 +476,14 @@ class _CategoryFormSheetState extends ConsumerState<CategoryFormSheet> {
         if (mounted) {
           Navigator.of(context)
               .pop(newCategory.id); // Return ID for transaction form
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Category added')),
-          );
+          showNeoSuccessSnackBar(context, 'Category added');
         }
       }
     } catch (error, stackTrace) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
-            ),
-            backgroundColor: NeoTheme.negativeValue(context),
-          ),
+        showNeoErrorSnackBar(
+          context,
+          ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
         );
       }
     } finally {

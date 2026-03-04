@@ -2,12 +2,7 @@ part of 'transaction_form_sheet.dart';
 
 extension _TransactionFormSheetSubmit on _TransactionFormSheetState {
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: NeoTheme.negativeValue(context),
-      ),
-    );
+    showNeoErrorSnackBar(context, message);
   }
 
   Future<void> _handleSubmit() async {
@@ -167,11 +162,9 @@ extension _TransactionFormSheetSubmit on _TransactionFormSheetState {
 
       if (!mounted) return;
       Navigator.of(context).pop();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:
-              Text(isEditing ? 'Transaction updated' : 'Transaction added'),
-        ),
+      showNeoSuccessSnackBar(
+        context,
+        isEditing ? 'Transaction updated' : 'Transaction added',
       );
     } catch (error, stackTrace) {
       if (!mounted) return;
@@ -187,8 +180,7 @@ extension _TransactionFormSheetSubmit on _TransactionFormSheetState {
     List<({Account account, double balance})> warnings,
     String currencyCode,
   ) async {
-    final decimalPlaces =
-        InputValidator.decimalPlacesForCurrency(currencyCode);
+    final decimalPlaces = InputValidator.decimalPlacesForCurrency(currencyCode);
     final currencySymbol = ref.read(currencySymbolProvider);
     final title =
         warnings.length == 1 ? 'Negative Balance Warning' : 'Negative Balances';

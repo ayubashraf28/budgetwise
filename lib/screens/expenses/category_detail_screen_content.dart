@@ -377,9 +377,7 @@ extension _CategoryDetailContent on CategoryDetailScreen {
         ref.read(itemNotifierProvider(categoryId).notifier).deleteItem(item.id);
         // Refresh the category data after delete
         ref.invalidate(categoryByIdProvider(categoryId));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${item.name} deleted')),
-        );
+        showNeoSuccessSnackBar(context, '${item.name} deleted');
       },
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -591,9 +589,7 @@ extension _CategoryDetailContent on CategoryDetailScreen {
                           .read(transactionNotifierProvider.notifier)
                           .deleteTransaction(tx.id);
                       _invalidateAfterTransactionChange(ref, category.id);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Transaction deleted')),
-                      );
+                      showNeoSuccessSnackBar(context, 'Transaction deleted');
                     },
                     child: TransactionListItem(
                       transaction: tx,
@@ -640,10 +636,8 @@ extension _CategoryDetailContent on CategoryDetailScreen {
     String categoryId,
     Transaction tx,
   ) async {
-    await showModalBottomSheet(
+    await showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => TransactionFormSheet(transaction: tx),
     );
     _invalidateAfterTransactionChange(ref, categoryId);

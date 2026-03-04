@@ -6,6 +6,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
 import '../../providers/providers.dart';
+import '../../widgets/common/neo_modal_sheet.dart';
 import '../../widgets/common/neo_page_components.dart';
 import 'currency_picker_sheet.dart';
 import 'settings_screen_helpers.dart';
@@ -97,9 +98,8 @@ class SettingsAccountPage extends ConsumerWidget {
                   ),
                   onTap: () {
                     HapticFeedback.selectionClick();
-                    showModalBottomSheet<void>(
+                    showNeoModalBottomSheet<void>(
                       context: context,
-                      backgroundColor: Colors.transparent,
                       builder: (context) => const CurrencyPickerSheet(),
                     );
                   },

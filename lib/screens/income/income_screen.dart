@@ -8,7 +8,12 @@ import '../../models/income_source.dart';
 import '../../providers/providers.dart';
 import '../../utils/errors/error_mapper.dart';
 import '../../widgets/budget/budget_widgets.dart';
+import '../../widgets/common/neo_modal_sheet.dart';
 import '../../widgets/common/neo_page_components.dart';
+import '../../widgets/common/neo_snackbar.dart';
+import '../../widgets/motion/animated_amount_text.dart';
+import '../../widgets/motion/neo_pressable.dart';
+import '../../widgets/motion/neo_staggered_reveal.dart';
 import 'income_form_sheet.dart';
 
 class IncomeScreen extends ConsumerWidget {
@@ -48,8 +53,16 @@ class IncomeScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(
                     horizontal: NeoLayout.screenPadding,
                   ),
-                  child: _buildSummaryCard(
-                      context, totalProjected, totalActual, currencySymbol),
+                  child: NeoStaggeredReveal(
+                    revealKey: 'income.sections',
+                    index: 0,
+                    child: _buildSummaryCard(
+                      context,
+                      totalProjected,
+                      totalActual,
+                      currencySymbol,
+                    ),
+                  ),
                 ),
               ),
               const SliverToBoxAdapter(
@@ -89,9 +102,13 @@ class IncomeScreen extends ConsumerWidget {
                           NeoLayout.screenPadding,
                           AppSpacing.sm,
                         ),
-                        child: _buildAddIncomeSourceRow(
-                          context: context,
-                          onTap: () => _showAddSheet(context, ref),
+                        child: NeoStaggeredReveal(
+                          revealKey: 'income.sections',
+                          index: 1,
+                          child: _buildAddIncomeSourceRow(
+                            context: context,
+                            onTap: () => _showAddSheet(context, ref),
+                          ),
                         ),
                       ),
                     ),
@@ -106,11 +123,15 @@ class IncomeScreen extends ConsumerWidget {
                             return Padding(
                               padding:
                                   const EdgeInsets.only(bottom: AppSpacing.sm),
-                              child: _buildIncomeSourceItem(
-                                context,
-                                ref,
-                                source,
-                                currencySymbol,
+                              child: NeoStaggeredReveal(
+                                revealKey: 'income.sources',
+                                index: index,
+                                child: _buildIncomeSourceItem(
+                                  context,
+                                  ref,
+                                  source,
+                                  currencySymbol,
+                                ),
                               ),
                             );
                           },
@@ -194,32 +215,29 @@ class IncomeScreen extends ConsumerWidget {
     final addColor = NeoTheme.positiveValue(context);
     final borderColor = NeoTheme.of(context).stroke;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        child: Container(
-          padding: AppSpacing.cardPadding,
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-            border: Border.all(color: borderColor),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(LucideIcons.plus, color: addColor, size: NeoIconSizes.lg),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                'Add Income Source',
-                style: AppTypography.bodyLarge.copyWith(
-                  color: addColor,
-                  fontWeight: FontWeight.w600,
-                ),
+    return NeoPressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+      child: Container(
+        padding: AppSpacing.cardPadding,
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          border: Border.all(color: borderColor),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(LucideIcons.plus, color: addColor, size: NeoIconSizes.lg),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              'Add Income Source',
+              style: AppTypography.bodyLarge.copyWith(
+                color: addColor,
+                fontWeight: FontWeight.w600,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -242,8 +260,9 @@ class IncomeScreen extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: NeoTypography.rowSecondary(context)),
-          Text(
-            '$currencySymbol${_formatAmount(amount)}',
+          AnimatedAmountText(
+            value: amount,
+            formatter: (value) => '$currencySymbol${_formatAmount(value)}',
             style: NeoTypography.rowAmount(
                 context, NeoTheme.of(context).textPrimary),
           ),
@@ -311,11 +330,9 @@ class IncomeScreen extends ConsumerWidget {
       },
       onDismissed: (direction) {
         ref.read(incomeNotifierProvider.notifier).deleteIncomeSource(source.id);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${source.name} deleted')),
-        );
+        showNeoSuccessSnackBar(context, '${source.name} deleted');
       },
-      child: InkWell(
+      child: NeoPressable(
         onTap: () => _showEditSheet(context, ref, source),
         borderRadius: BorderRadius.circular(NeoLayout.cardRadius),
         child: NeoGlassCard(
@@ -490,20 +507,16 @@ class IncomeScreen extends ConsumerWidget {
   }
 
   void _showAddSheet(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
+    showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => const IncomeFormSheet(),
     );
   }
 
   void _showEditSheet(
       BuildContext context, WidgetRef ref, IncomeSource source) {
-    showModalBottomSheet(
+    showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => IncomeFormSheet(incomeSource: source),
     );
   }

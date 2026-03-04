@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
+import '../motion/neo_pressable.dart';
 
 class NeoPageBackground extends StatelessWidget {
   final Widget child;
@@ -175,18 +176,24 @@ class NeoSectionActionButton extends StatelessWidget {
     );
 
     if (icon == null) {
-      return OutlinedButton(
-        onPressed: onPressed,
-        style: style,
-        child: Text(label, style: NeoTypography.sectionAction(context)),
+      return NeoPressable(
+        enabled: true,
+        child: OutlinedButton(
+          onPressed: onPressed,
+          style: style,
+          child: Text(label, style: NeoTypography.sectionAction(context)),
+        ),
       );
     }
 
-    return OutlinedButton.icon(
-      onPressed: onPressed,
-      style: style,
-      icon: Icon(icon, size: NeoIconSizes.sm, color: palette.accent),
-      label: Text(label, style: NeoTypography.sectionAction(context)),
+    return NeoPressable(
+      enabled: true,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        style: style,
+        icon: Icon(icon, size: NeoIconSizes.sm, color: palette.accent),
+        label: Text(label, style: NeoTypography.sectionAction(context)),
+      ),
     );
   }
 }
@@ -212,30 +219,27 @@ class NeoCircleIconButton extends StatelessWidget {
     final palette = NeoTheme.of(context);
     final isLight = NeoTheme.isLight(context);
 
-    final button = Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onPressed,
-        borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-        child: Ink(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: isLight
-                ? palette.accent.withValues(alpha: 0.10)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(AppSizing.radiusFull),
-            border: Border.all(
-              color: palette.accent.withValues(alpha: isLight ? 0.55 : 0.4),
-              width: 1,
-            ),
+    final button = NeoPressable(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+      child: Ink(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: isLight
+              ? palette.accent.withValues(alpha: 0.10)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+          border: Border.all(
+            color: palette.accent.withValues(alpha: isLight ? 0.55 : 0.4),
+            width: 1,
           ),
-          child: Center(
-            child: Icon(
-              icon,
-              size: iconSize,
-              color: palette.accent,
-            ),
+        ),
+        child: Center(
+          child: Icon(
+            icon,
+            size: iconSize,
+            color: palette.accent,
           ),
         ),
       ),
@@ -265,28 +269,25 @@ class NeoSettingsHeaderButton extends StatelessWidget {
     return Semantics(
       button: true,
       label: 'Open settings',
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () {
-            final location = GoRouterState.of(context).matchedLocation;
-            if (location == '/settings') return;
-            context.push('/settings');
-          },
-          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          child: Container(
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              color: palette.surface2,
-              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-              border: Border.all(color: palette.stroke),
-            ),
-            child: Icon(
-              LucideIcons.settings,
-              size: NeoIconSizes.lg,
-              color: palette.textSecondary,
-            ),
+      child: NeoPressable(
+        onTap: () {
+          final location = GoRouterState.of(context).matchedLocation;
+          if (location == '/settings') return;
+          context.push('/settings');
+        },
+        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: palette.surface2,
+            borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+            border: Border.all(color: palette.stroke),
+          ),
+          child: Icon(
+            LucideIcons.settings,
+            size: NeoIconSizes.lg,
+            color: palette.textSecondary,
           ),
         ),
       ),
@@ -321,7 +322,7 @@ class NeoSectionChevronButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
-    return InkWell(
+    return NeoPressable(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(AppSizing.radiusFull),
       child: Container(
@@ -367,7 +368,7 @@ class NeoHubRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
-    return InkWell(
+    return NeoPressable(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(

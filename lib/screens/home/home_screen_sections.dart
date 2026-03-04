@@ -54,11 +54,15 @@ extension _HomeScreenSections on _HomeScreenState {
             if (isExpanded) ...[
               const SizedBox(height: AppSpacing.sm),
               for (var i = 0; i < visible.length; i++) ...[
-                _buildAccountPreviewRow(
-                  visible[i],
-                  accountBalances[visible[i].id] ?? visible[i].openingBalance,
-                  currencySymbol,
-                  onTap: () => context.push('/accounts/${visible[i].id}'),
+                NeoStaggeredReveal(
+                  revealKey: 'home.accounts',
+                  index: i,
+                  child: _buildAccountPreviewRow(
+                    visible[i],
+                    accountBalances[visible[i].id] ?? visible[i].openingBalance,
+                    currencySymbol,
+                    onTap: () => context.push('/accounts/${visible[i].id}'),
+                  ),
                 ),
                 if (i < visible.length - 1)
                   Divider(
@@ -80,7 +84,7 @@ extension _HomeScreenSections on _HomeScreenState {
     final amountColor = isNegative ? _negativeColor : _positiveColor;
     final showWarning = shouldWarnNegativeBalance(account.type, balance);
 
-    return InkWell(
+    return NeoPressable(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
       child: Padding(
@@ -183,135 +187,135 @@ extension _HomeScreenSections on _HomeScreenState {
       fontFeatures: const [FontFeature.tabularFigures()],
     );
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(_HomeScreenState._homeCardRadius),
-        child: SizedBox(
-          height: cardHeight,
-          child: _buildGlassCard(
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
-            tintColor: gradientColors.first,
-            gradientColors: gradientColors,
-            borderColor: isLight
-                ? lightAccent.withValues(alpha: 0.46)
-                : darkAccent.withValues(alpha: 0.40),
-            borderRadius:
-                BorderRadius.circular(_HomeScreenState._homeCardRadius),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  height: headerHeight,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 20,
-                        height: 20,
-                        decoration: BoxDecoration(
-                          color: iconBgColor,
-                          borderRadius:
-                              BorderRadius.circular(AppSizing.radiusSm),
-                          border: Border.all(
-                            color: isLight
-                                ? lightAccent.withValues(alpha: 0.42)
-                                : darkAccent.withValues(alpha: 0.34),
-                          ),
-                        ),
-                        child: Icon(
-                          icon,
-                          size: NeoIconSizes.xs,
-                          color: textColor,
+    return NeoPressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(_HomeScreenState._homeCardRadius),
+      child: SizedBox(
+        height: cardHeight,
+        child: _buildGlassCard(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+          tintColor: gradientColors.first,
+          gradientColors: gradientColors,
+          borderColor: isLight
+              ? lightAccent.withValues(alpha: 0.46)
+              : darkAccent.withValues(alpha: 0.40),
+          borderRadius: BorderRadius.circular(_HomeScreenState._homeCardRadius),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: headerHeight,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: iconBgColor,
+                        borderRadius: BorderRadius.circular(AppSizing.radiusSm),
+                        border: Border.all(
+                          color: isLight
+                              ? lightAccent.withValues(alpha: 0.42)
+                              : darkAccent.withValues(alpha: 0.34),
                         ),
                       ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: textColor,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            height: 1.02,
-                          ),
-                        ),
-                      ),
-                      if (showCornerLabel) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: chipBgColor,
-                            borderRadius:
-                                BorderRadius.circular(AppSizing.radiusFull),
-                            border: Border.all(color: chipBorderColor),
-                          ),
-                          child: Text(
-                            cornerText,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: _rowSecondaryStyle.copyWith(
-                              color: footerColor.withValues(alpha: 0.9),
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w700,
-                              height: 1.0,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.topLeft,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        isAmountVisible
-                            ? '$currencySymbol${_formatAmount(amount)}'
-                            : '\u2022\u2022\u2022\u2022',
-                        style: amountStyle,
+                      child: Icon(
+                        icon,
+                        size: NeoIconSizes.xs,
+                        color: textColor,
                       ),
                     ),
-                  ),
-                ),
-                SizedBox(
-                  height: footerHeight,
-                  child: Row(
-                    children: [
-                      Icon(
-                        footerIcon,
-                        size: 10,
-                        color: footerColor,
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: textColor,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          height: 1.02,
+                        ),
                       ),
-                      const SizedBox(width: 4),
-                      Expanded(
+                    ),
+                    if (showCornerLabel) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: chipBgColor,
+                          borderRadius:
+                              BorderRadius.circular(AppSizing.radiusFull),
+                          border: Border.all(color: chipBorderColor),
+                        ),
                         child: Text(
-                          footerLabel,
-                          maxLines: 2,
+                          cornerText,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: footerColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            height: 1.05,
+                          style: _rowSecondaryStyle.copyWith(
+                            color: footerColor.withValues(alpha: 0.9),
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                            height: 1.0,
                           ),
                         ),
                       ),
                     ],
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: isAmountVisible
+                        ? AnimatedAmountText(
+                            value: amount,
+                            formatter: (value) =>
+                                '$currencySymbol${_formatAmount(value)}',
+                            style: amountStyle,
+                          )
+                        : Text(
+                            '\u2022\u2022\u2022\u2022',
+                            style: amountStyle,
+                          ),
                   ),
                 ),
-              ],
-            ),
+              ),
+              SizedBox(
+                height: footerHeight,
+                child: Row(
+                  children: [
+                    Icon(
+                      footerIcon,
+                      size: 10,
+                      color: footerColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        footerLabel,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: footerColor,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          height: 1.05,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -441,7 +445,12 @@ extension _HomeScreenSections on _HomeScreenState {
                     _buildNoUpcomingPaymentsState()
                   else ...[
                     for (var index = 0; index < visible.length; index++) ...[
-                      _buildUpcomingPaymentTile(visible[index], currencySymbol),
+                      NeoStaggeredReveal(
+                        revealKey: 'home.upcoming',
+                        index: index,
+                        child: _buildUpcomingPaymentTile(
+                            visible[index], currencySymbol),
+                      ),
                       if (index < visible.length - 1)
                         Divider(
                           height: 16,
@@ -534,7 +543,7 @@ extension _HomeScreenSections on _HomeScreenState {
             ? _warningColor
             : _positiveColor;
 
-    return InkWell(
+    return NeoPressable(
       onTap: () => context.push('/subscriptions'),
       borderRadius: BorderRadius.circular(12),
       child: Padding(

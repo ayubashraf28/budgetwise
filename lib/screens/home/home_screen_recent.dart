@@ -58,17 +58,25 @@ extension _HomeScreenRecent on _HomeScreenState {
                 if (isExpanded) ...[
                   const SizedBox(height: AppSpacing.sm),
                   if (visible.isEmpty)
-                    _buildEmptyRecentTransactions()
+                    NeoStaggeredReveal(
+                      revealKey: 'home.recent.empty',
+                      index: 0,
+                      child: _buildEmptyRecentTransactions(),
+                    )
                   else
                     Column(
                       children: [
                         for (var index = 0;
                             index < visible.length;
                             index++) ...[
-                          _buildRecentTransactionRow(
-                            visible[index],
-                            currencySymbol,
-                            isSimpleMode: isSimpleMode,
+                          NeoStaggeredReveal(
+                            revealKey: 'home.recent',
+                            index: index,
+                            child: _buildRecentTransactionRow(
+                              visible[index],
+                              currencySymbol,
+                              isSimpleMode: isSimpleMode,
+                            ),
                           ),
                           if (index < visible.length - 1)
                             Divider(
@@ -202,7 +210,7 @@ extension _HomeScreenRecent on _HomeScreenState {
   }) {
     final amountColor = transaction.isIncome ? _positiveColor : _negativeColor;
 
-    return InkWell(
+    return NeoPressable(
       onTap: () => context.push('/transactions'),
       borderRadius: BorderRadius.circular(12),
       child: Padding(
@@ -342,10 +350,8 @@ extension _HomeScreenRecent on _HomeScreenState {
   }
 
   void _showAddTransaction(BuildContext context) {
-    showModalBottomSheet(
+    showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => const TransactionFormSheet(),
     );
   }

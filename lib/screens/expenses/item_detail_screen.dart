@@ -10,7 +10,9 @@ import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../utils/errors/error_mapper.dart';
 import '../../widgets/budget/transaction_list_item.dart';
+import '../../widgets/common/neo_modal_sheet.dart';
 import '../../widgets/common/neo_page_components.dart';
+import '../../widgets/common/neo_snackbar.dart';
 import '../transactions/transaction_form_sheet.dart';
 import 'item_form_sheet.dart';
 
@@ -448,9 +450,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
                           .read(transactionNotifierProvider.notifier)
                           .deleteTransaction(tx.id);
                       _invalidateAfterTransactionChange(ref);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Transaction deleted')),
-                      );
+                      showNeoSuccessSnackBar(context, 'Transaction deleted');
                     },
                     child: TransactionListItem(
                       transaction: tx,
@@ -464,9 +464,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
                             .read(transactionNotifierProvider.notifier)
                             .deleteTransaction(tx.id);
                         _invalidateAfterTransactionChange(ref);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Transaction deleted')),
-                        );
+                        showNeoSuccessSnackBar(context, 'Transaction deleted');
                       },
                     ),
                   ),
@@ -537,19 +535,15 @@ class _ItemDetailScaffold extends ConsumerWidget {
     WidgetRef ref,
     Transaction tx,
   ) {
-    showModalBottomSheet(
+    showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => TransactionFormSheet(transaction: tx),
     ).then((_) => _invalidateAfterTransactionChange(ref));
   }
 
   void _showEditItemSheet(BuildContext context, WidgetRef ref, Item item) {
-    showModalBottomSheet(
+    showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => ItemFormSheet(
         categoryId: categoryId,
         item: item,
@@ -602,9 +596,7 @@ class _ItemDetailScaffold extends ConsumerWidget {
 
     if (!context.mounted) return;
     Navigator.of(context).pop(); // Back to category detail
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${item.name} deleted')),
-    );
+    showNeoSuccessSnackBar(context, '${item.name} deleted');
   }
 
   Future<bool> _confirmDeleteTransaction(BuildContext context) async {

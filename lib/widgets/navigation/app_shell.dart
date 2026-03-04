@@ -1,9 +1,12 @@
+import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
+import '../../config/motion.dart';
 import '../../config/theme.dart';
+import '../motion/neo_pressable.dart';
 
 /// Main app shell with bottom navigation bar.
 class AppShell extends StatelessWidget {
@@ -13,15 +16,72 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final location = GoRouterState.of(context).matchedLocation;
+    final sectionBucket = _sectionBucketForLocation(location);
+
     return Scaffold(
-      body: child,
+      body: PageTransitionSwitcher(
+        duration: NeoMotionDuration.medium,
+        reverse: false,
+        transitionBuilder: (child, primaryAnimation, secondaryAnimation) {
+          if (!neoAnimationsEnabled(context)) {
+            return child;
+          }
+
+          return FadeThroughTransition(
+            animation: primaryAnimation,
+            secondaryAnimation: secondaryAnimation,
+            fillColor: Colors.transparent,
+            child: child,
+          );
+        },
+        child: KeyedSubtree(
+          key: ValueKey<String>(sectionBucket),
+          child: child,
+        ),
+      ),
       bottomNavigationBar: const _BottomNavBar(),
     );
   }
 }
 
-class _BottomNavBar extends StatelessWidget {
+String _sectionBucketForLocation(String location) {
+  if (location.startsWith('/home')) {
+    return 'home';
+  }
+  if (location.startsWith('/analysis') ||
+      location.startsWith('/budget') ||
+      location.startsWith('/expenses')) {
+    return 'analysis';
+  }
+  if (location.startsWith('/categories') || location.startsWith('/income')) {
+    return 'categories';
+  }
+  return 'manage';
+}
+
+class _BottomNavBar extends StatefulWidget {
   const _BottomNavBar();
+
+  @override
+  State<_BottomNavBar> createState() => _BottomNavBarState();
+}
+
+class _BottomNavBarState extends State<_BottomNavBar> {
+  bool _showFab = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _showFab = true;
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +200,7 @@ class _BottomNavBar extends StatelessWidget {
                             isSelected: location.startsWith('/manage') ||
                                 location.startsWith('/subscriptions') ||
                                 location.startsWith('/accounts/') ||
-                                location.startsWith('/settings/accounts') ||
+                                location.startsWith('/settings') ||
                                 location.startsWith('/budget-overview'),
                             onTap: () {
                               HapticFeedback.selectionClick();
@@ -157,11 +217,21 @@ class _BottomNavBar extends StatelessWidget {
           ),
           Positioned(
             top: -16,
-            child: _AddButton(
-              onTap: () {
-                HapticFeedback.mediumImpact();
-                context.go('/transactions/new');
-              },
+            child: AnimatedScale(
+              scale: _showFab && neoAnimationsEnabled(context) ? 1 : 0.92,
+              duration: NeoMotionDuration.standard,
+              curve: NeoMotionCurve.entrance,
+              child: AnimatedOpacity(
+                opacity: _showFab && neoAnimationsEnabled(context) ? 1 : 0,
+                duration: NeoMotionDuration.standard,
+                curve: NeoMotionCurve.entrance,
+                child: _AddButton(
+                  onTap: () {
+                    HapticFeedback.mediumImpact();
+                    context.go('/transactions/new');
+                  },
+                ),
+              ),
             ),
           ),
         ],
@@ -183,31 +253,28 @@ class _AddButton extends StatelessWidget {
     final buttonStroke = palette.stroke;
     final iconColor = palette.textPrimary;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
-        child: Ink(
-          width: 56,
-          height: 56,
-          decoration: BoxDecoration(
-            color: buttonBg,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: buttonStroke),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isLight ? 0.18 : 0.35),
-                blurRadius: 18,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Icon(
-            LucideIcons.plus,
-            size: 26,
-            color: iconColor,
-          ),
+    return NeoPressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Ink(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: buttonBg,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: buttonStroke),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isLight ? 0.18 : 0.35),
+              blurRadius: 18,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Icon(
+          LucideIcons.plus,
+          size: 26,
+          color: iconColor,
         ),
       ),
     );
@@ -237,36 +304,67 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
     final isLight = NeoTheme.isLight(context);
-    final color = isSelected
-        ? palette.accent.withValues(alpha: isLight ? 0.92 : 0.88)
-        : palette.textMuted.withValues(alpha: isLight ? 0.82 : 0.9);
+    final activeColor = palette.accent.withValues(alpha: isLight ? 0.92 : 0.88);
+    final inactiveColor =
+        palette.textMuted.withValues(alpha: isLight ? 0.82 : 0.9);
+    final targetColor = isSelected ? activeColor : inactiveColor;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: SizedBox(
-          height: itemHeight,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, color: color, size: iconSize),
-              const SizedBox(height: 4),
-              Text(
+    return NeoPressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: NeoMotionCurve.emphasis,
+        height: itemHeight,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? palette.accent.withValues(alpha: isLight ? 0.12 : 0.16)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? palette.accent.withValues(alpha: isLight ? 0.30 : 0.24)
+                : Colors.transparent,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TweenAnimationBuilder<Color?>(
+              tween: ColorTween(end: targetColor),
+              duration: const Duration(milliseconds: 220),
+              curve: NeoMotionCurve.emphasis,
+              builder: (context, iconColor, _) {
+                return AnimatedScale(
+                  scale: isSelected ? 1.02 : 1,
+                  duration: const Duration(milliseconds: 220),
+                  curve: NeoMotionCurve.emphasis,
+                  child: Icon(
+                    icon,
+                    color: iconColor,
+                    size: iconSize,
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 4),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 220),
+              curve: NeoMotionCurve.emphasis,
+              style: TextStyle(
+                color: targetColor,
+                fontSize: labelSize,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                height: 1.0,
+              ),
+              child: Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: color,
-                  fontSize: labelSize,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  height: 1.0,
-                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 
 import '../../config/theme.dart';
+import 'neo_snackbar.dart';
 
 /// Reusable error state widget
 class ErrorState extends StatelessWidget {
@@ -70,63 +71,15 @@ class ErrorState extends StatelessWidget {
 
 /// Shows an error snackbar with the given message
 void showErrorSnackBar(BuildContext context, String message) {
-  final danger = NeoTheme.negativeValue(context);
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Row(
-        children: [
-          const Icon(LucideIcons.alertCircle, color: Colors.white, size: 20),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(child: Text(message)),
-        ],
-      ),
-      backgroundColor: danger,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-      ),
-    ),
-  );
+  showNeoErrorSnackBar(context, message);
 }
 
 /// Shows a success snackbar with the given message
 void showSuccessSnackBar(BuildContext context, String message) {
-  final success = NeoTheme.positiveValue(context);
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Row(
-        children: [
-          const Icon(LucideIcons.checkCircle, color: Colors.white, size: 20),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(child: Text(message)),
-        ],
-      ),
-      backgroundColor: success,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-      ),
-    ),
-  );
+  showNeoSuccessSnackBar(context, message);
 }
 
 /// Shows an info snackbar with the given message
 void showInfoSnackBar(BuildContext context, String message) {
-  final info = NeoTheme.infoValue(context);
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Row(
-        children: [
-          const Icon(LucideIcons.info, color: Colors.white, size: 20),
-          const SizedBox(width: AppSpacing.sm),
-          Expanded(child: Text(message)),
-        ],
-      ),
-      backgroundColor: info,
-      behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-      ),
-    ),
-  );
+  showNeoInfoSnackBar(context, message);
 }

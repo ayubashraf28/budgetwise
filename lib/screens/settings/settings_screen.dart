@@ -9,6 +9,7 @@ import '../../config/theme.dart';
 import '../../providers/providers.dart';
 import '../../utils/errors/error_mapper.dart';
 import '../../widgets/common/neo_page_components.dart';
+import '../../widgets/common/neo_snackbar.dart';
 import 'settings_screen_helpers.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -96,9 +97,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 SettingsGroupTile(
                   icon: LucideIcons.bell,
                   title: 'Notifications',
-                  subtitle: (profile?.notificationsEnabled ?? true)
-                      ? 'On'
-                      : 'Off',
+                  subtitle:
+                      (profile?.notificationsEnabled ?? true) ? 'On' : 'Off',
                   onTap: () => context.push('/settings/notifications-settings'),
                 ),
                 const Divider(height: 1),
@@ -308,16 +308,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (loadingDialogShown) {
         Navigator.of(context, rootNavigator: true).pop();
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ErrorMapper.toUserMessage(
-              error,
-              stackTrace: stackTrace,
-              fallbackMessage: 'Failed to delete account. Please try again.',
-            ),
-          ),
-          backgroundColor: NeoTheme.negativeValue(context),
+      showNeoErrorSnackBar(
+        context,
+        ErrorMapper.toUserMessage(
+          error,
+          stackTrace: stackTrace,
+          fallbackMessage: 'Failed to delete account. Please try again.',
         ),
       );
     } finally {
@@ -468,7 +464,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
 
     try {
-      await ref.read(profileResetNotifierProvider.notifier).deleteAllDataAndSignOut();
+      await ref
+          .read(profileResetNotifierProvider.notifier)
+          .deleteAllDataAndSignOut();
       if (!mounted) return;
 
       if (loadingDialogShown) {
@@ -480,16 +478,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       if (loadingDialogShown) {
         Navigator.of(context, rootNavigator: true).pop();
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ErrorMapper.toUserMessage(
-              error,
-              stackTrace: stackTrace,
-              fallbackMessage: 'Failed to delete data. Please try again.',
-            ),
-          ),
-          backgroundColor: NeoTheme.negativeValue(context),
+      showNeoErrorSnackBar(
+        context,
+        ErrorMapper.toUserMessage(
+          error,
+          stackTrace: stackTrace,
+          fallbackMessage: 'Failed to delete data. Please try again.',
         ),
       );
     } finally {

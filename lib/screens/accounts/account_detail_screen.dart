@@ -10,7 +10,12 @@ import '../../providers/providers.dart';
 import '../../utils/account_balance_warning_utils.dart';
 import '../../utils/app_icon_registry.dart';
 import '../../utils/errors/error_mapper.dart';
+import '../../widgets/common/neo_modal_sheet.dart';
 import '../../widgets/common/neo_page_components.dart';
+import '../../widgets/common/neo_snackbar.dart';
+import '../../widgets/motion/animated_amount_text.dart';
+import '../../widgets/motion/neo_pressable.dart';
+import '../../widgets/motion/neo_staggered_reveal.dart';
 import '../settings/account_form_sheet.dart';
 import '../transactions/transaction_form_sheet.dart';
 
@@ -39,9 +44,8 @@ class AccountDetailScreen extends ConsumerWidget {
         );
       },
       loading: () => _buildLoadingState(context),
-      error: (error, stackTrace) =>
-          _buildErrorState(context, ErrorMapper.toUserMessage(error,
-              stackTrace: stackTrace)),
+      error: (error, stackTrace) => _buildErrorState(
+          context, ErrorMapper.toUserMessage(error, stackTrace: stackTrace)),
     );
   }
 
@@ -103,7 +107,8 @@ class _AccountDetailView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = NeoTheme.of(context);
-    final transactionsAsync = ref.watch(transactionsByAccountProvider(accountId));
+    final transactionsAsync =
+        ref.watch(transactionsByAccountProvider(accountId));
     final balances = ref.watch(allAccountBalancesProvider).valueOrNull ??
         const <String, double>{};
     final balance = balances[account.id] ?? account.openingBalance;
@@ -206,6 +211,7 @@ class _AccountDetailView extends ConsumerWidget {
                         context,
                         ref,
                         date: date,
+                        groupIndex: index,
                         transactions: groupedTransactions[date]!,
                       );
                     },
@@ -311,8 +317,10 @@ class _AccountDetailView extends ConsumerWidget {
             Row(
               children: [
                 Flexible(
-                  child: Text(
-                    '$currencySymbol${_formatAmount(balance)}',
+                  child: AnimatedAmountText(
+                    value: balance,
+                    formatter: (value) =>
+                        '$currencySymbol${_formatAmount(value)}',
                     style: AppTypography.amountMedium.copyWith(
                       color: amountColor,
                       fontWeight: FontWeight.w700,
@@ -360,9 +368,8 @@ class _AccountDetailView extends ConsumerWidget {
                 child: LinearProgressIndicator(
                   value: utilization == null ? 0 : utilization.clamp(0, 1),
                   minHeight: 8,
-                  backgroundColor: NeoTheme.of(context)
-                      .surface2
-                      .withValues(alpha: 0.8),
+                  backgroundColor:
+                      NeoTheme.of(context).surface2.withValues(alpha: 0.8),
                   valueColor: AlwaysStoppedAnimation<Color>(accentColor),
                 ),
               ),
@@ -386,6 +393,7 @@ class _AccountDetailView extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref, {
     required DateTime date,
+    required int groupIndex,
     required List<Transaction> transactions,
   }) {
     final palette = NeoTheme.of(context);
@@ -406,66 +414,70 @@ class _AccountDetailView extends ConsumerWidget {
                 .copyWith(color: palette.textSecondary),
           ),
         ),
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          decoration: BoxDecoration(
-            color: palette.surface1,
-            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          ),
-          child: Column(
-            children: transactions.asMap().entries.map((entry) {
-              final index = entry.key;
-              final transaction = entry.value;
-              final isLast = index == transactions.length - 1;
+        NeoStaggeredReveal(
+          revealKey: 'account_detail.$accountId.${date.toIso8601String()}',
+          index: groupIndex,
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            decoration: BoxDecoration(
+              color: palette.surface1,
+              borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+            ),
+            child: Column(
+              children: transactions.asMap().entries.map((entry) {
+                final index = entry.key;
+                final transaction = entry.value;
+                final isLast = index == transactions.length - 1;
 
-              return Column(
-                children: [
-                  Dismissible(
-                    key: Key(transaction.id),
-                    direction: DismissDirection.endToStart,
-                    background: Container(
-                      alignment: Alignment.centerRight,
-                      padding: const EdgeInsets.only(right: AppSpacing.md),
-                      decoration: BoxDecoration(
-                        color: NeoTheme.negativeValue(context),
-                        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+                return Column(
+                  children: [
+                    Dismissible(
+                      key: Key(transaction.id),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: AppSpacing.md),
+                        decoration: BoxDecoration(
+                          color: NeoTheme.negativeValue(context),
+                          borderRadius:
+                              BorderRadius.circular(AppSizing.radiusLg),
+                        ),
+                        child:
+                            const Icon(LucideIcons.trash2, color: Colors.white),
                       ),
-                      child:
-                          const Icon(LucideIcons.trash2, color: Colors.white),
-                    ),
-                    confirmDismiss: (_) =>
-                        _confirmDeleteTransaction(context),
-                    onDismissed: (_) async {
-                      await ref
-                          .read(transactionNotifierProvider.notifier)
-                          .deleteTransaction(transaction.id);
-                      _invalidateTransactionState(ref);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Transaction deleted')),
-                        );
-                      }
-                    },
-                    child: _AccountTransactionRow(
-                      transaction: transaction,
-                      currencySymbol: currencySymbol,
-                      onTap: () => _showEditTransactionSheet(
-                        context,
-                        ref,
-                        transaction,
+                      confirmDismiss: (_) => _confirmDeleteTransaction(context),
+                      onDismissed: (_) async {
+                        await ref
+                            .read(transactionNotifierProvider.notifier)
+                            .deleteTransaction(transaction.id);
+                        _invalidateTransactionState(ref);
+                        if (context.mounted) {
+                          showNeoSuccessSnackBar(
+                            context,
+                            'Transaction deleted',
+                          );
+                        }
+                      },
+                      child: _AccountTransactionRow(
+                        transaction: transaction,
+                        currencySymbol: currencySymbol,
+                        onTap: () => _showEditTransactionSheet(
+                          context,
+                          ref,
+                          transaction,
+                        ),
                       ),
                     ),
-                  ),
-                  if (!isLast)
-                    Divider(
-                      height: 1,
-                      indent: AppSpacing.md + 44 + AppSpacing.md,
-                      color: palette.stroke.withValues(alpha: 0.85),
-                    ),
-                ],
-              );
-            }).toList(),
+                    if (!isLast)
+                      Divider(
+                        height: 1,
+                        indent: AppSpacing.md + 44 + AppSpacing.md,
+                        color: palette.stroke.withValues(alpha: 0.85),
+                      ),
+                  ],
+                );
+              }).toList(),
+            ),
           ),
         ),
       ],
@@ -475,35 +487,39 @@ class _AccountDetailView extends ConsumerWidget {
   Widget _buildEmptyState(BuildContext context) {
     final palette = NeoTheme.of(context);
 
-    return Center(
-      child: Container(
-        margin: const EdgeInsets.all(AppSpacing.md),
-        padding: const EdgeInsets.all(AppSpacing.xl),
-        decoration: BoxDecoration(
-          color: palette.surface1,
-          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-          border: Border.all(color: palette.stroke.withValues(alpha: 0.7)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              _accountTypeIcon(account.type),
-              size: 48,
-              color: palette.textMuted,
-            ),
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              'No transactions yet',
-              style: NeoTypography.rowTitle(context),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'Transactions for this account will appear here.',
-              style: NeoTypography.rowSecondary(context),
-              textAlign: TextAlign.center,
-            ),
-          ],
+    return NeoStaggeredReveal(
+      revealKey: 'account_detail.$accountId.empty',
+      index: 0,
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.all(AppSpacing.md),
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          decoration: BoxDecoration(
+            color: palette.surface1,
+            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+            border: Border.all(color: palette.stroke.withValues(alpha: 0.7)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _accountTypeIcon(account.type),
+                size: 48,
+                color: palette.textMuted,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Text(
+                'No transactions yet',
+                style: NeoTypography.rowTitle(context),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Transactions for this account will appear here.',
+                style: NeoTypography.rowSecondary(context),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -532,11 +548,10 @@ class _AccountDetailView extends ConsumerWidget {
     return DateFormat('d MMMM yyyy').format(date);
   }
 
-  Future<void> _showEditAccountSheet(BuildContext context, WidgetRef ref) async {
-    await showModalBottomSheet<void>(
+  Future<void> _showEditAccountSheet(
+      BuildContext context, WidgetRef ref) async {
+    await showNeoModalBottomSheet<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => AccountFormSheet(account: account),
     );
     ref.invalidate(accountByIdProvider(accountId));
@@ -550,10 +565,8 @@ class _AccountDetailView extends ConsumerWidget {
     WidgetRef ref,
     Transaction transaction,
   ) async {
-    await showModalBottomSheet<void>(
+    await showNeoModalBottomSheet<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => TransactionFormSheet(transaction: transaction),
     );
     _invalidateTransactionState(ref);
@@ -672,110 +685,106 @@ class _AccountTransactionRow extends StatelessWidget {
         ? NeoTheme.positiveValue(context)
         : _parseColor(transaction.categoryColor);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
-          ),
-          child: Row(
-            children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
+    return NeoPressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.sm,
+        ),
+        child: Row(
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: palette.surface2,
+                    borderRadius: BorderRadius.circular(11),
+                    border: Border.all(color: palette.stroke),
+                  ),
+                  child: Icon(
+                    isIncome
+                        ? LucideIcons.arrowDownLeft
+                        : transaction.categoryIcon != null
+                            ? resolveAppIcon(
+                                transaction.categoryIcon!,
+                                fallback: _fallbackExpenseIcon(
+                                  transaction.categoryName,
+                                ),
+                              )
+                            : _fallbackExpenseIcon(transaction.categoryName),
+                    color: chipColor,
+                    size: NeoIconSizes.lg,
+                  ),
+                ),
+                Positioned(
+                  top: -2,
+                  right: -2,
+                  child: Container(
+                    width: 14,
+                    height: 14,
                     decoration: BoxDecoration(
-                      color: palette.surface2,
-                      borderRadius: BorderRadius.circular(11),
-                      border: Border.all(color: palette.stroke),
+                      color: amountColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: palette.surface1, width: 2),
                     ),
-                    child: Icon(
-                      isIncome
-                          ? LucideIcons.arrowDownLeft
-                          : transaction.categoryIcon != null
-                              ? resolveAppIcon(
-                                  transaction.categoryIcon!,
-                                  fallback: _fallbackExpenseIcon(
-                                    transaction.categoryName,
-                                  ),
-                                )
-                              : _fallbackExpenseIcon(transaction.categoryName),
-                      color: chipColor,
-                      size: NeoIconSizes.lg,
+                    child: Center(
+                      child: Icon(
+                        isIncome ? LucideIcons.plus : LucideIcons.minus,
+                        size: NeoIconSizes.xxs,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
-                  Positioned(
-                    top: -2,
-                    right: -2,
-                    child: Container(
-                      width: 14,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: amountColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: palette.surface1, width: 2),
+                ),
+              ],
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _primaryLabel,
+                    style: NeoTypography.rowTitle(context),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: chipColor.withValues(alpha: 0.14),
+                      borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+                      border: Border.all(
+                        color: chipColor.withValues(alpha: 0.25),
                       ),
-                      child: Center(
-                        child: Icon(
-                          isIncome ? LucideIcons.plus : LucideIcons.minus,
-                          size: NeoIconSizes.xxs,
-                          color: Colors.white,
-                        ),
+                    ),
+                    child: Text(
+                      _secondaryLabel,
+                      style: AppTypography.bodySmall.copyWith(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: chipColor,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(width: AppSpacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      _primaryLabel,
-                      style: NeoTypography.rowTitle(context),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: chipColor.withValues(alpha: 0.14),
-                        borderRadius:
-                            BorderRadius.circular(AppSizing.radiusFull),
-                        border: Border.all(
-                          color: chipColor.withValues(alpha: 0.25),
-                        ),
-                      ),
-                      child: Text(
-                        _secondaryLabel,
-                        style: AppTypography.bodySmall.copyWith(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: chipColor,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                transaction.formattedAmount(currencySymbol),
-                style: NeoTypography.rowAmount(context, amountColor),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              transaction.formattedAmount(currencySymbol),
+              style: NeoTypography.rowAmount(context, amountColor),
+            ),
+          ],
         ),
       ),
     );

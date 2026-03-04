@@ -7,6 +7,7 @@ import '../../models/income_source.dart';
 import '../../providers/providers.dart';
 import '../../utils/errors/error_mapper.dart';
 import '../../utils/validators/input_validator.dart';
+import '../../widgets/common/neo_snackbar.dart';
 
 class IncomeFormSheet extends ConsumerStatefulWidget {
   final IncomeSource? incomeSource;
@@ -332,9 +333,7 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
         );
         if (mounted) {
           Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Income source updated')),
-          );
+          showNeoSuccessSnackBar(context, 'Income source updated');
         }
       } else {
         final newSource = await notifier.addIncomeSource(
@@ -346,20 +345,14 @@ class _IncomeFormSheetState extends ConsumerState<IncomeFormSheet> {
         if (mounted) {
           Navigator.of(context)
               .pop(newSource.id); // Return ID for transaction form
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Income source added')),
-          );
+          showNeoSuccessSnackBar(context, 'Income source added');
         }
       }
     } catch (error, stackTrace) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
-            ),
-            backgroundColor: NeoTheme.negativeValue(context),
-          ),
+        showNeoErrorSnackBar(
+          context,
+          ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
         );
       }
     } finally {

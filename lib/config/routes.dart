@@ -38,6 +38,7 @@ import '../screens/subscriptions/subscriptions_screen.dart';
 import '../screens/transactions/transactions_screen.dart';
 import '../widgets/navigation/app_shell.dart';
 import 'crash_reporter.dart';
+import 'route_transitions.dart';
 
 String? resolveAppRedirect({
   required bool isLoggedIn,
@@ -166,6 +167,25 @@ final routerRefreshProvider = Provider<GoRouterRefreshStream>((ref) {
   return GoRouterRefreshStream(stream);
 });
 
+GoRoute _neoRoute({
+  required String path,
+  required String name,
+  required Widget Function(BuildContext context, GoRouterState state) builder,
+  NeoRouteStyle style = NeoRouteStyle.standard,
+  List<RouteBase> routes = const <RouteBase>[],
+}) {
+  return GoRoute(
+    path: path,
+    name: name,
+    pageBuilder: (context, state) => buildNeoPage<void>(
+      state: state,
+      child: builder(context, state),
+      style: style,
+    ),
+    routes: routes,
+  );
+}
+
 /// Main router provider
 final routerProvider = Provider<GoRouter>((ref) {
   final refreshListenable = ref.watch(routerRefreshProvider);
@@ -207,39 +227,39 @@ final routerProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       // Auth routes (no bottom navigation)
-      GoRoute(
+      _neoRoute(
         path: '/login',
         name: 'login',
         builder: (context, state) => const LoginScreen(),
       ),
-      GoRoute(
+      _neoRoute(
         path: '/register',
         name: 'register',
         builder: (context, state) => const RegisterScreen(),
       ),
-      GoRoute(
+      _neoRoute(
         path: '/reset-password',
         name: 'reset-password',
         builder: (context, state) => const ResetPasswordScreen(),
       ),
 
       // Onboarding routes (no bottom navigation)
-      GoRoute(
+      _neoRoute(
         path: '/onboarding',
         name: 'onboarding',
         builder: (context, state) => const WelcomeScreen(),
         routes: [
-          GoRoute(
+          _neoRoute(
             path: 'template',
             name: 'onboarding-template',
             builder: (context, state) => const TemplateSelectionScreen(),
           ),
-          GoRoute(
+          _neoRoute(
             path: 'complete',
             name: 'onboarding-complete',
             builder: (context, state) => const SetupCompleteScreen(),
           ),
-          GoRoute(
+          _neoRoute(
             path: 'notifications',
             name: 'onboarding-notifications',
             builder: (context, state) => const NotificationPermissionScreen(),
@@ -251,43 +271,48 @@ final routerProvider = Provider<GoRouter>((ref) {
       ShellRoute(
         builder: (context, state, child) => AppShell(child: child),
         routes: [
-          GoRoute(
+          _neoRoute(
             path: '/home',
             name: 'home',
             builder: (context, state) => const HomeScreen(),
+            style: NeoRouteStyle.none,
           ),
-          GoRoute(
+          _neoRoute(
             path: '/analysis',
             name: 'analysis',
             builder: (context, state) => const AnalysisScreen(),
+            style: NeoRouteStyle.none,
           ),
-          GoRoute(
+          _neoRoute(
             path: '/categories',
             name: 'categories',
             builder: (context, state) => const CategoriesScreen(),
+            style: NeoRouteStyle.none,
           ),
-          GoRoute(
+          _neoRoute(
             path: '/manage',
             name: 'manage',
             builder: (context, state) => const ManageScreen(),
+            style: NeoRouteStyle.none,
           ),
-          GoRoute(
+          _neoRoute(
             path: '/income',
             name: 'income',
             builder: (context, state) => const IncomeScreen(),
           ),
-          GoRoute(
+          _neoRoute(
             path: '/transactions/new',
             name: 'transactions-new',
             builder: (context, state) =>
                 const TransactionsScreen(openComposerOnLoad: true),
+            style: NeoRouteStyle.modal,
           ),
-          GoRoute(
+          _neoRoute(
             path: '/transactions',
             name: 'transactions',
             builder: (context, state) => const TransactionsScreen(),
           ),
-          GoRoute(
+          _neoRoute(
             path: '/accounts/:id',
             name: 'account-detail',
             builder: (context, state) {
@@ -295,12 +320,12 @@ final routerProvider = Provider<GoRouter>((ref) {
               return AccountDetailScreen(accountId: id);
             },
           ),
-          GoRoute(
+          _neoRoute(
             path: '/budget',
             name: 'budget',
             builder: (context, state) => const ExpenseCategoriesScreen(),
             routes: [
-              GoRoute(
+              _neoRoute(
                 path: 'category/:id',
                 name: 'category',
                 builder: (context, state) {
@@ -314,7 +339,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   );
                 },
                 routes: [
-                  GoRoute(
+                  _neoRoute(
                     path: 'item/:itemId',
                     name: 'item-detail',
                     builder: (context, state) {
@@ -336,18 +361,18 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          GoRoute(
+          _neoRoute(
             path: '/budget-overview',
             name: 'budget-overview',
             builder: (context, state) => const BudgetOverviewScreen(),
           ),
           // Expense overview screen
-          GoRoute(
+          _neoRoute(
             path: '/expenses',
             name: 'expenses',
             builder: (context, state) => const ExpenseOverviewScreen(),
             routes: [
-              GoRoute(
+              _neoRoute(
                 path: 'category/:id',
                 name: 'expense-category',
                 builder: (context, state) {
@@ -361,7 +386,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                   );
                 },
                 routes: [
-                  GoRoute(
+                  _neoRoute(
                     path: 'item/:itemId',
                     name: 'expense-item-detail',
                     builder: (context, state) {
@@ -383,61 +408,61 @@ final routerProvider = Provider<GoRouter>((ref) {
               ),
             ],
           ),
-          GoRoute(
+          _neoRoute(
             path: '/subscriptions',
             name: 'subscriptions',
             builder: (context, state) => const SubscriptionsScreen(),
           ),
-          GoRoute(
+          _neoRoute(
             path: '/settings',
             name: 'settings',
             builder: (context, state) => const SettingsScreen(),
             routes: [
-              GoRoute(
+              _neoRoute(
                 path: 'profile',
                 name: 'profile',
                 builder: (context, state) => const ProfileScreen(),
               ),
-              GoRoute(
+              _neoRoute(
                 path: 'accounts',
                 name: 'accounts',
                 builder: (context, state) => AccountsScreen(
                   initialAccountId: state.uri.queryParameters['accountId'],
                 ),
               ),
-              GoRoute(
+              _neoRoute(
                 path: 'account',
                 name: 'settings-account',
                 builder: (context, state) => const SettingsAccountPage(),
               ),
-              GoRoute(
+              _neoRoute(
                 path: 'budget',
                 name: 'settings-budget',
                 builder: (context, state) => const SettingsBudgetPage(),
               ),
-              GoRoute(
+              _neoRoute(
                 path: 'appearance',
                 name: 'settings-appearance',
                 builder: (context, state) => const SettingsAppearancePage(),
               ),
-              GoRoute(
+              _neoRoute(
                 path: 'notifications-settings',
                 name: 'settings-notifications',
                 builder: (context, state) => const SettingsNotificationsPage(),
               ),
-              GoRoute(
+              _neoRoute(
                 path: 'about',
                 name: 'settings-about',
                 builder: (context, state) => const SettingsAboutPage(),
               ),
-              GoRoute(
+              _neoRoute(
                 path: 'support',
                 name: 'settings-support',
                 builder: (context, state) => const SettingsSupportPage(),
               ),
             ],
           ),
-          GoRoute(
+          _neoRoute(
             path: '/notifications',
             name: 'notifications',
             builder: (context, state) => const NotificationCenterScreen(),

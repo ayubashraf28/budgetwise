@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../config/theme.dart';
+import '../motion/neo_pressable.dart';
 
 enum AppButtonVariant { primary, secondary, outline, text }
 
@@ -82,17 +83,23 @@ class AppButton extends StatelessWidget {
     }
 
     if (isFullWidth) {
-      return SizedBox(
-        width: width ?? double.infinity,
-        height: height ?? 48,
-        child: button,
+      return NeoPressable(
+        enabled: !isLoading && onPressed != null,
+        child: SizedBox(
+          width: width ?? double.infinity,
+          height: height ?? 48,
+          child: button,
+        ),
       );
     }
 
-    return SizedBox(
-      width: width,
-      height: height ?? 48,
-      child: button,
+    return NeoPressable(
+      enabled: !isLoading && onPressed != null,
+      child: SizedBox(
+        width: width,
+        height: height ?? 48,
+        child: button,
+      ),
     );
   }
 }

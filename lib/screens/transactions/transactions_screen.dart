@@ -12,7 +12,12 @@ import '../../providers/providers.dart';
 import '../../utils/errors/error_mapper.dart';
 import '../../utils/transaction_display_utils.dart';
 import '../../widgets/budget/budget_widgets.dart';
+import '../../widgets/common/neo_modal_sheet.dart';
 import '../../widgets/common/neo_page_components.dart';
+import '../../widgets/common/neo_snackbar.dart';
+import '../../widgets/motion/animated_amount_text.dart';
+import '../../widgets/motion/neo_pressable.dart';
+import '../../widgets/motion/neo_staggered_reveal.dart';
 import 'transaction_form_sheet.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
@@ -272,7 +277,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          InkWell(
+          NeoPressable(
             onTap: () => _showFilterOptions(accounts),
             borderRadius: BorderRadius.circular(AppSizing.radiusMd),
             child: Container(
@@ -304,10 +309,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 
   void _showFilterOptions(List<Account> accounts) {
-    showModalBottomSheet(
+    showNeoModalBottomSheet(
       context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
       builder: (context) {
         return SafeArea(
           child: Padding(
@@ -503,8 +506,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             children: [
               Text(title, style: NeoTypography.rowSecondary(context)),
               const SizedBox(height: 2),
-              Text(
-                '$currencySymbol${_formatAmount(amount)}',
+              AnimatedAmountText(
+                value: amount,
+                formatter: (value) => '$currencySymbol${_formatAmount(value)}',
                 style: NeoTypography.rowAmount(context, color),
               ),
             ],
@@ -513,14 +517,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       ],
     );
 
+    final card = NeoGlassCard(child: content);
     if (onTap == null) {
-      return NeoGlassCard(child: content);
+      return card;
     }
 
-    return InkWell(
+    return NeoPressable(
       onTap: onTap,
       borderRadius: BorderRadius.circular(NeoLayout.cardRadius),
-      child: NeoGlassCard(child: content),
+      child: card,
     );
   }
 
@@ -585,68 +590,73 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
       slivers.add(
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: NeoLayout.screenPadding,
-            ),
-            child: NeoGlassCard(
-              padding: EdgeInsets.zero,
-              child: Column(
-                children: transactions.asMap().entries.map((entry) {
-                  final txIndex = entry.key;
-                  final transaction = entry.value;
-                  final isLast = txIndex == transactions.length - 1;
+          child: NeoStaggeredReveal(
+            revealKey: 'transactions.list',
+            index: slivers.length,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: NeoLayout.screenPadding,
+              ),
+              child: NeoGlassCard(
+                padding: EdgeInsets.zero,
+                child: Column(
+                  children: transactions.asMap().entries.map((entry) {
+                    final txIndex = entry.key;
+                    final transaction = entry.value;
+                    final isLast = txIndex == transactions.length - 1;
 
-                  return Column(
-                    children: [
-                      Dismissible(
-                        key: Key(transaction.id),
-                        direction: DismissDirection.endToStart,
-                        background: Container(
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: AppSpacing.md),
-                          margin: const EdgeInsets.symmetric(
-                            horizontal: 2,
-                            vertical: 4,
+                    return Column(
+                      children: [
+                        Dismissible(
+                          key: Key(transaction.id),
+                          direction: DismissDirection.endToStart,
+                          background: Container(
+                            alignment: Alignment.centerRight,
+                            padding:
+                                const EdgeInsets.only(right: AppSpacing.md),
+                            margin: const EdgeInsets.symmetric(
+                              horizontal: 2,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: NeoTheme.negativeValue(context),
+                              borderRadius:
+                                  BorderRadius.circular(AppSizing.radiusMd),
+                            ),
+                            child: const Icon(
+                              LucideIcons.trash2,
+                              color: Colors.white,
+                            ),
                           ),
-                          decoration: BoxDecoration(
-                            color: NeoTheme.negativeValue(context),
-                            borderRadius:
-                                BorderRadius.circular(AppSizing.radiusMd),
-                          ),
-                          child: const Icon(
-                            LucideIcons.trash2,
-                            color: Colors.white,
+                          confirmDismiss: (direction) async {
+                            return await _showDeleteConfirmation();
+                          },
+                          onDismissed: (direction) {
+                            ref
+                                .read(transactionNotifierProvider.notifier)
+                                .deleteTransaction(transaction.id);
+                            showNeoSuccessSnackBar(
+                              context,
+                              'Transaction deleted',
+                            );
+                          },
+                          child: TransactionListItem(
+                            transaction: transaction,
+                            currencySymbol: currencySymbol,
+                            useSimpleLabel: isSimpleMode,
+                            onTap: () => _showEditSheet(transaction),
                           ),
                         ),
-                        confirmDismiss: (direction) async {
-                          return await _showDeleteConfirmation();
-                        },
-                        onDismissed: (direction) {
-                          ref
-                              .read(transactionNotifierProvider.notifier)
-                              .deleteTransaction(transaction.id);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Transaction deleted')),
-                          );
-                        },
-                        child: TransactionListItem(
-                          transaction: transaction,
-                          currencySymbol: currencySymbol,
-                          useSimpleLabel: isSimpleMode,
-                          onTap: () => _showEditSheet(transaction),
-                        ),
-                      ),
-                      if (!isLast)
-                        Divider(
-                          height: 1,
-                          indent: AppSpacing.md + 44 + AppSpacing.md,
-                          color: _palette.stroke.withValues(alpha: 0.85),
-                        ),
-                    ],
-                  );
-                }).toList(),
+                        if (!isLast)
+                          Divider(
+                            height: 1,
+                            indent: AppSpacing.md + 44 + AppSpacing.md,
+                            color: _palette.stroke.withValues(alpha: 0.85),
+                          ),
+                      ],
+                    );
+                  }).toList(),
+                ),
               ),
             ),
           ),
@@ -661,53 +671,57 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         _filterType != null ||
         _filterAccountId != null;
 
-    return NeoGlassCard(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-        child: Column(
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: _palette.surface2,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _palette.stroke),
-              ),
-              child: Icon(
-                hasFilters ? LucideIcons.searchX : LucideIcons.receipt,
-                color: _palette.textSecondary,
-                size: NeoIconSizes.xl,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.sm),
-            Text(
-              hasFilters ? 'No matching transactions' : 'No transactions yet',
-              style: NeoTypography.rowTitle(context),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              hasFilters
-                  ? 'Try adjusting search or filters.'
-                  : 'Add your first transaction to start tracking.',
-              style: NeoTypography.rowSecondary(context),
-              textAlign: TextAlign.center,
-            ),
-            if (!hasFilters) ...[
-              const SizedBox(height: AppSpacing.md),
-              ElevatedButton.icon(
-                onPressed: () => _showAddSheet(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _palette.accent,
-                  foregroundColor: NeoTheme.isLight(context)
-                      ? _palette.textPrimary
-                      : _palette.surface1,
+    return NeoStaggeredReveal(
+      revealKey: 'transactions.empty',
+      index: 0,
+      child: NeoGlassCard(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+          child: Column(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: _palette.surface2,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _palette.stroke),
                 ),
-                icon: const Icon(LucideIcons.plus, size: NeoIconSizes.md),
-                label: const Text('Add transaction'),
+                child: Icon(
+                  hasFilters ? LucideIcons.searchX : LucideIcons.receipt,
+                  color: _palette.textSecondary,
+                  size: NeoIconSizes.xl,
+                ),
               ),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                hasFilters ? 'No matching transactions' : 'No transactions yet',
+                style: NeoTypography.rowTitle(context),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                hasFilters
+                    ? 'Try adjusting search or filters.'
+                    : 'Add your first transaction to start tracking.',
+                style: NeoTypography.rowSecondary(context),
+                textAlign: TextAlign.center,
+              ),
+              if (!hasFilters) ...[
+                const SizedBox(height: AppSpacing.md),
+                ElevatedButton.icon(
+                  onPressed: () => _showAddSheet(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _palette.accent,
+                    foregroundColor: NeoTheme.isLight(context)
+                        ? _palette.textPrimary
+                        : _palette.surface1,
+                  ),
+                  icon: const Icon(LucideIcons.plus, size: NeoIconSizes.md),
+                  label: const Text('Add transaction'),
+                ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -755,19 +769,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 
   Future<void> _showAddSheet() async {
-    await showModalBottomSheet(
+    await showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => const TransactionFormSheet(),
     );
   }
 
   void _showEditSheet(Transaction transaction) {
-    showModalBottomSheet(
+    showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => TransactionFormSheet(transaction: transaction),
     );
   }

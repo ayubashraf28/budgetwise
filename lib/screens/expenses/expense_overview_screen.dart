@@ -10,6 +10,7 @@ import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
 import '../../utils/errors/error_mapper.dart';
+import '../../widgets/common/neo_modal_sheet.dart';
 import '../../widgets/common/neo_page_components.dart';
 import 'category_form_sheet.dart';
 
@@ -368,19 +369,15 @@ class _ExpenseOverviewScreenState extends ConsumerState<ExpenseOverviewScreen> {
   }
 
   void _showAddSheet() {
-    showModalBottomSheet(
+    showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => const CategoryFormSheet(),
     );
   }
 
   void _showEditSheet(Category category) {
-    showModalBottomSheet(
+    showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => CategoryFormSheet(category: category),
     );
   }

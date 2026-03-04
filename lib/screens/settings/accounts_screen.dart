@@ -9,7 +9,12 @@ import '../../models/account.dart';
 import '../../providers/providers.dart';
 import '../../utils/account_balance_warning_utils.dart';
 import '../../utils/errors/error_mapper.dart';
+import '../../widgets/common/neo_modal_sheet.dart';
 import '../../widgets/common/neo_page_components.dart';
+import '../../widgets/common/neo_snackbar.dart';
+import '../../widgets/motion/animated_amount_text.dart';
+import '../../widgets/motion/neo_pressable.dart';
+import '../../widgets/motion/neo_staggered_reveal.dart';
 import 'account_form_sheet.dart';
 
 class AccountsScreen extends ConsumerStatefulWidget {
@@ -69,39 +74,59 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
                   const SizedBox(height: AppSpacing.sm),
                   _buildHeader(),
                   const SizedBox(height: NeoLayout.sectionGap),
-                  _buildNetWorthCard(
-                    netWorth: netWorthAsync.value ?? 0,
-                    currencySymbol: currencySymbol,
+                  NeoStaggeredReveal(
+                    revealKey: 'accounts.sections',
+                    index: 0,
+                    child: _buildNetWorthCard(
+                      netWorth: netWorthAsync.value ?? 0,
+                      currencySymbol: currencySymbol,
+                    ),
                   ),
                   if (accounts.isNotEmpty) ...[
                     const SizedBox(height: AppSpacing.sm),
-                    _buildAddAccountRow(onTap: _showCreateSheet),
+                    NeoStaggeredReveal(
+                      revealKey: 'accounts.sections',
+                      index: 1,
+                      child: _buildAddAccountRow(onTap: _showCreateSheet),
+                    ),
                   ],
                   const SizedBox(height: NeoLayout.sectionGap),
-                  _buildSectionCard(
-                    title: 'Active Accounts',
-                    subtitle: 'Drag to reorder',
-                    child: _buildActiveAccountsList(
-                      activeAccounts: activeAccounts,
-                      balances: balances,
-                      currencySymbol: currencySymbol,
+                  NeoStaggeredReveal(
+                    revealKey: 'accounts.sections',
+                    index: 2,
+                    child: _buildSectionCard(
+                      title: 'Active Accounts',
+                      subtitle: 'Drag to reorder',
+                      child: _buildActiveAccountsList(
+                        activeAccounts: activeAccounts,
+                        balances: balances,
+                        currencySymbol: currencySymbol,
+                      ),
                     ),
                   ),
                   if (archivedAccounts.isNotEmpty) ...[
                     const SizedBox(height: NeoLayout.sectionGap),
-                    _buildSectionCard(
-                      title: 'Archived',
-                      subtitle: 'Unavailable for new transactions',
-                      child: _buildArchivedAccountsList(
-                        archivedAccounts: archivedAccounts,
-                        balances: balances,
-                        currencySymbol: currencySymbol,
+                    NeoStaggeredReveal(
+                      revealKey: 'accounts.sections',
+                      index: 3,
+                      child: _buildSectionCard(
+                        title: 'Archived',
+                        subtitle: 'Unavailable for new transactions',
+                        child: _buildArchivedAccountsList(
+                          archivedAccounts: archivedAccounts,
+                          balances: balances,
+                          currencySymbol: currencySymbol,
+                        ),
                       ),
                     ),
                   ],
                   if (accounts.isEmpty) ...[
                     const SizedBox(height: NeoLayout.sectionGap),
-                    _buildEmptyState(),
+                    NeoStaggeredReveal(
+                      revealKey: 'accounts.sections',
+                      index: 4,
+                      child: _buildEmptyState(),
+                    ),
                   ],
                 ],
               );
@@ -193,8 +218,10 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
               children: [
                 Text('Net worth', style: NeoTypography.rowSecondary(context)),
                 const SizedBox(height: 2),
-                Text(
-                  '$currencySymbol${_formatAmount(netWorth)}',
+                AnimatedAmountText(
+                  value: netWorth,
+                  formatter: (value) =>
+                      '$currencySymbol${_formatAmount(value)}',
                   style: NeoTypography.rowAmount(context, accent),
                 ),
               ],
@@ -208,32 +235,29 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
   Widget _buildAddAccountRow({required VoidCallback onTap}) {
     final addColor = NeoTheme.positiveValue(context);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        child: Container(
-          padding: AppSpacing.cardPadding,
-          decoration: BoxDecoration(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-            border: Border.all(color: _palette.stroke),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(LucideIcons.plus, color: addColor, size: NeoIconSizes.lg),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                'Add Account',
-                style: AppTypography.bodyLarge.copyWith(
-                  color: addColor,
-                  fontWeight: FontWeight.w600,
-                ),
+    return NeoPressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+      child: Container(
+        padding: AppSpacing.cardPadding,
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          border: Border.all(color: _palette.stroke),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(LucideIcons.plus, color: addColor, size: NeoIconSizes.lg),
+            const SizedBox(width: AppSpacing.sm),
+            Text(
+              'Add Account',
+              style: AppTypography.bodyLarge.copyWith(
+                color: addColor,
+                fontWeight: FontWeight.w600,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -281,22 +305,26 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
         final account = activeAccounts[index];
         final balance = balances[account.id] ?? 0;
         final isLast = index == activeAccounts.length - 1;
-        return Column(
+        return NeoStaggeredReveal(
           key: ValueKey(account.id),
-          children: [
-            _buildAccountRow(
-              account: account,
-              balance: balance,
-              currencySymbol: currencySymbol,
-              showDragHandle: true,
-              dragIndex: index,
-            ),
-            if (!isLast)
-              Divider(
-                height: 12,
-                color: _palette.stroke.withValues(alpha: 0.85),
+          revealKey: 'accounts.active',
+          index: index,
+          child: Column(
+            children: [
+              _buildAccountRow(
+                account: account,
+                balance: balance,
+                currencySymbol: currencySymbol,
+                showDragHandle: true,
+                dragIndex: index,
               ),
-          ],
+              if (!isLast)
+                Divider(
+                  height: 12,
+                  color: _palette.stroke.withValues(alpha: 0.85),
+                ),
+            ],
+          ),
         );
       },
     );
@@ -316,10 +344,14 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
 
         return Column(
           children: [
-            _buildAccountRow(
-              account: account,
-              balance: balance,
-              currencySymbol: currencySymbol,
+            NeoStaggeredReveal(
+              revealKey: 'accounts.archived',
+              index: index,
+              child: _buildAccountRow(
+                account: account,
+                balance: balance,
+                currencySymbol: currencySymbol,
+              ),
             ),
             if (!isLast)
               Divider(
@@ -346,7 +378,7 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
     final accountColor = _accountTypeColor(account.type);
     final showWarning = shouldWarnNegativeBalance(account.type, balance);
 
-    return InkWell(
+    return NeoPressable(
       onTap: () => _showEditSheet(account),
       borderRadius: BorderRadius.circular(AppSizing.radiusMd),
       child: Padding(
@@ -612,13 +644,9 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
           .reorderAccounts(reordered.map((a) => a.id).toList());
     } catch (error, stackTrace) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
-          ),
-          backgroundColor: NeoTheme.negativeValue(context),
-        ),
+      showNeoErrorSnackBar(
+        context,
+        ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
       );
     }
   }
@@ -649,13 +677,9 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
       }
     } catch (error, stackTrace) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
-          ),
-          backgroundColor: NeoTheme.negativeValue(context),
-        ),
+      showNeoErrorSnackBar(
+        context,
+        ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
       );
     }
   }
@@ -695,24 +719,19 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
 
   void _showSuccess(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    showNeoSuccessSnackBar(context, message);
   }
 
   void _showCreateSheet() {
-    showModalBottomSheet(
+    showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => const AccountFormSheet(),
     );
   }
 
   void _showEditSheet(Account account) {
-    showModalBottomSheet(
+    showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => AccountFormSheet(account: account),
     );
   }

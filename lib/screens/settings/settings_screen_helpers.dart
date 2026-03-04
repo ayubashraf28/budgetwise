@@ -9,7 +9,10 @@ import '../../config/theme.dart';
 import '../../models/bug_report.dart';
 import '../../providers/providers.dart';
 import '../../utils/errors/error_mapper.dart';
+import '../../widgets/common/neo_modal_sheet.dart';
 import '../../widgets/common/neo_page_components.dart';
+import '../../widgets/common/neo_snackbar.dart';
+import '../../widgets/motion/neo_pressable.dart';
 import 'bug_report_form_sheet.dart';
 
 Widget buildSettingsSectionHeader(BuildContext context, String title) {
@@ -85,19 +88,15 @@ Widget buildNotificationToggleTile(
 }
 
 void showBugReportSheet(BuildContext context) {
-  showModalBottomSheet<void>(
+  showNeoModalBottomSheet<void>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
     builder: (context) => const BugReportFormSheet(),
   );
 }
 
 void showFeedbackSheet(BuildContext context) {
-  showModalBottomSheet<void>(
+  showNeoModalBottomSheet<void>(
     context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
     builder: (context) => const BugReportFormSheet(
       feedbackMode: true,
       initialCategory: BugReportCategory.feedback,
@@ -132,7 +131,8 @@ Future<void> updateNotificationPreferences(
               );
           ref.invalidate(userProfileProvider);
           if (!context.mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
+          showNeoSnackBar(
+            context,
             SnackBar(
               content: const Text(
                 'Notification permission denied. You can enable it later in system settings.',
@@ -162,13 +162,9 @@ Future<void> updateNotificationPreferences(
     ref.invalidate(notificationNotifierProvider);
   } catch (error, stackTrace) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
-        ),
-        backgroundColor: NeoTheme.negativeValue(context),
-      ),
+    showNeoErrorSnackBar(
+      context,
+      ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
     );
   }
 }
@@ -245,31 +241,22 @@ Future<void> showLinkedAccountsDialog(
                                 .linkGoogleAccount();
                             ref.invalidate(linkedProvidersProvider);
                             if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text(
-                                    'Google account linked successfully'),
-                                backgroundColor:
-                                    NeoTheme.positiveValue(context),
-                              ),
+                            showNeoSuccessSnackBar(
+                              context,
+                              'Google account linked successfully',
                             );
                             if (dialogContext.mounted) {
                               Navigator.of(dialogContext).pop();
                             }
                           } catch (error, stackTrace) {
                             if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  ErrorMapper.toUserMessage(
-                                    error,
-                                    stackTrace: stackTrace,
-                                    fallbackMessage:
-                                        'Unable to link Google account right now.',
-                                  ),
-                                ),
-                                backgroundColor:
-                                    NeoTheme.negativeValue(context),
+                            showNeoErrorSnackBar(
+                              context,
+                              ErrorMapper.toUserMessage(
+                                error,
+                                stackTrace: stackTrace,
+                                fallbackMessage:
+                                    'Unable to link Google account right now.',
                               ),
                             );
                           } finally {
@@ -314,12 +301,7 @@ Future<void> launchSettingsUrl(BuildContext context, String url) async {
   final uri = Uri.parse(url);
   if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Could not open link'),
-        backgroundColor: NeoTheme.negativeValue(context),
-      ),
-    );
+    showNeoErrorSnackBar(context, 'Could not open link');
   }
 }
 
@@ -373,9 +355,8 @@ void showThemeModeSheet(
   WidgetRef ref,
   ThemeMode currentMode,
 ) {
-  showModalBottomSheet<void>(
+  showNeoModalBottomSheet<void>(
     context: context,
-    backgroundColor: Colors.transparent,
     builder: (sheetContext) {
       final palette = NeoTheme.of(sheetContext);
 
@@ -433,9 +414,8 @@ void showTextSizeSheet(
   WidgetRef ref,
   AppFontSize currentSize,
 ) {
-  showModalBottomSheet<void>(
+  showNeoModalBottomSheet<void>(
     context: context,
-    backgroundColor: Colors.transparent,
     builder: (sheetContext) {
       final palette = NeoTheme.of(sheetContext);
 
@@ -504,9 +484,8 @@ void showBudgetStructureSheet(
   WidgetRef ref,
   BudgetStructure currentStructure,
 ) {
-  showModalBottomSheet<void>(
+  showNeoModalBottomSheet<void>(
     context: context,
-    backgroundColor: Colors.transparent,
     builder: (sheetContext) {
       final palette = NeoTheme.of(sheetContext);
 
@@ -624,13 +603,9 @@ Future<void> handleSettingsSignOut(
       await ref.read(authNotifierProvider.notifier).signOut();
     } catch (error, stackTrace) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
-          ),
-          backgroundColor: NeoTheme.negativeValue(context),
-        ),
+      showNeoErrorSnackBar(
+        context,
+        ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
       );
     }
   }
@@ -660,55 +635,52 @@ class SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final palette = NeoTheme.of(context);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.md,
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: NeoIconSizes.xl,
-                color: titleColor ?? palette.textSecondary,
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+    return NeoPressable(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.md,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: NeoIconSizes.xl,
+              color: titleColor ?? palette.textSecondary,
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: NeoTypography.rowTitle(context).copyWith(
+                      color: titleColor ?? palette.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (subtitle != null)
                     Text(
-                      title,
-                      style: NeoTypography.rowTitle(context).copyWith(
-                        color: titleColor ?? palette.textPrimary,
-                      ),
+                      subtitle!,
+                      style: NeoTypography.rowSecondary(context),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (subtitle != null)
-                      Text(
-                        subtitle!,
-                        style: NeoTypography.rowSecondary(context),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                  ],
-                ),
+                ],
               ),
-              if (trailing != null) trailing!,
-              if (showChevron)
-                Icon(
-                  LucideIcons.chevronRight,
-                  size: NeoIconSizes.lg,
-                  color: palette.textMuted,
-                ),
-            ],
-          ),
+            ),
+            if (trailing != null) trailing!,
+            if (showChevron)
+              Icon(
+                LucideIcons.chevronRight,
+                size: NeoIconSizes.lg,
+                color: palette.textMuted,
+              ),
+          ],
         ),
       ),
     );

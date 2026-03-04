@@ -7,6 +7,7 @@ import '../../models/item.dart';
 import '../../providers/providers.dart';
 import '../../utils/errors/error_mapper.dart';
 import '../../utils/validators/input_validator.dart';
+import '../../widgets/common/neo_snackbar.dart';
 
 class ItemFormSheet extends ConsumerStatefulWidget {
   final String categoryId;
@@ -261,9 +262,7 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
         );
         if (mounted) {
           Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Item updated')),
-          );
+          showNeoSuccessSnackBar(context, 'Item updated');
         }
       } else {
         final newItem = await notifier.addItem(
@@ -274,20 +273,14 @@ class _ItemFormSheetState extends ConsumerState<ItemFormSheet> {
         );
         if (mounted) {
           Navigator.of(context).pop(newItem.id);
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Item added')),
-          );
+          showNeoSuccessSnackBar(context, 'Item added');
         }
       }
     } catch (error, stackTrace) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
-            ),
-            backgroundColor: NeoTheme.negativeValue(context),
-          ),
+        showNeoErrorSnackBar(
+          context,
+          ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
         );
       }
     } finally {

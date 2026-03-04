@@ -11,7 +11,9 @@ import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
 import '../../utils/errors/error_mapper.dart';
+import '../../widgets/common/neo_modal_sheet.dart';
 import '../../widgets/common/neo_page_components.dart';
+import '../../widgets/motion/neo_staggered_reveal.dart';
 import '../expenses/category_form_sheet.dart';
 import '../subscriptions/subscription_form_sheet.dart';
 
@@ -82,43 +84,53 @@ class _ManageScreenState extends ConsumerState<ManageScreen> {
                 subtitle: 'Subscriptions and budgets with inline details',
               ),
               const SizedBox(height: NeoLayout.sectionGap),
-              _buildSectionCard(
-                title: 'Subscriptions',
-                expanded: isSubscriptionsExpanded,
-                onToggle: () =>
-                    ref.read(uiPreferencesProvider.notifier).setSectionExpanded(
-                          UiSectionKeys.manageSubscriptions,
-                          !isSubscriptionsExpanded,
-                        ),
-                onViewAll: () => context.push('/subscriptions'),
-                onAdd: _showAddSubscriptionSheet,
-                child: _buildSubscriptionsContent(
-                  subscriptionsAsync: subscriptionsAsync,
-                  dueSoonCount: dueSoonCount,
-                  monthlySubscriptionCost: monthlySubscriptionCost,
-                  currencySymbol: currencySymbol,
+              NeoStaggeredReveal(
+                revealKey: 'manage.sections',
+                index: 0,
+                child: _buildSectionCard(
+                  title: 'Subscriptions',
+                  expanded: isSubscriptionsExpanded,
+                  onToggle: () => ref
+                      .read(uiPreferencesProvider.notifier)
+                      .setSectionExpanded(
+                        UiSectionKeys.manageSubscriptions,
+                        !isSubscriptionsExpanded,
+                      ),
+                  onViewAll: () => context.push('/subscriptions'),
+                  onAdd: _showAddSubscriptionSheet,
+                  child: _buildSubscriptionsContent(
+                    subscriptionsAsync: subscriptionsAsync,
+                    dueSoonCount: dueSoonCount,
+                    monthlySubscriptionCost: monthlySubscriptionCost,
+                    currencySymbol: currencySymbol,
+                  ),
                 ),
               ),
               const SizedBox(height: NeoLayout.sectionGap),
-              _buildSectionCard(
-                title: 'Budgets',
-                expanded: isBudgetsExpanded,
-                onToggle: () =>
-                    ref.read(uiPreferencesProvider.notifier).setSectionExpanded(
-                          UiSectionKeys.manageBudgets,
-                          !isBudgetsExpanded,
-                        ),
-                onViewAll: () => context.push('/budget-overview'),
-                onAdd: _showAddBudgetCategorySheet,
-                child: _buildBudgetsContent(
-                  categoriesAsync: categoriesAsync,
-                  budgetHealth: budgetHealth,
-                  totalProjected: totalProjected,
-                  totalActual: totalActual,
-                  overBudgetCount: overBudgetCount,
-                  currencySymbol: currencySymbol,
-                  isSimpleMode: isSimpleMode,
-                  txCountByCategory: txCountByCategory,
+              NeoStaggeredReveal(
+                revealKey: 'manage.sections',
+                index: 1,
+                child: _buildSectionCard(
+                  title: 'Budgets',
+                  expanded: isBudgetsExpanded,
+                  onToggle: () => ref
+                      .read(uiPreferencesProvider.notifier)
+                      .setSectionExpanded(
+                        UiSectionKeys.manageBudgets,
+                        !isBudgetsExpanded,
+                      ),
+                  onViewAll: () => context.push('/budget-overview'),
+                  onAdd: _showAddBudgetCategorySheet,
+                  child: _buildBudgetsContent(
+                    categoriesAsync: categoriesAsync,
+                    budgetHealth: budgetHealth,
+                    totalProjected: totalProjected,
+                    totalActual: totalActual,
+                    overBudgetCount: overBudgetCount,
+                    currencySymbol: currencySymbol,
+                    isSimpleMode: isSimpleMode,
+                    txCountByCategory: txCountByCategory,
+                  ),
                 ),
               ),
             ],
@@ -467,19 +479,15 @@ class _ManageScreenState extends ConsumerState<ManageScreen> {
   }
 
   Future<void> _showAddSubscriptionSheet() async {
-    await showModalBottomSheet(
+    await showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => const SubscriptionFormSheet(),
     );
   }
 
   Future<void> _showAddBudgetCategorySheet() async {
-    await showModalBottomSheet(
+    await showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => const CategoryFormSheet(),
     );
   }

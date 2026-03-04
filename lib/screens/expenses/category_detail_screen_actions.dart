@@ -213,10 +213,8 @@ extension _CategoryDetailActions on CategoryDetailScreen {
     Category category, {
     required bool isSimpleMode,
   }) async {
-    await showModalBottomSheet(
+    await showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => isSimpleMode
           ? TransactionFormSheet(initialCategoryId: category.id)
           : ItemFormSheet(
@@ -259,10 +257,8 @@ extension _CategoryDetailActions on CategoryDetailScreen {
 
   void _showEditCategorySheet(
       BuildContext context, WidgetRef ref, Category category) {
-    showModalBottomSheet(
+    showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => CategoryFormSheet(category: category),
     );
   }
@@ -302,9 +298,7 @@ extension _CategoryDetailActions on CategoryDetailScreen {
           .deleteCategory(category.id);
       if (context.mounted) {
         Navigator.of(context).pop(); // Navigate back after deletion
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${category.name} deleted')),
-        );
+        showNeoSuccessSnackBar(context, '${category.name} deleted');
       }
     }
   }

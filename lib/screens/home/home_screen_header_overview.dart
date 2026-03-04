@@ -121,7 +121,7 @@ extension _HomeScreenHeaderOverview on _HomeScreenState {
     required String initial,
     required VoidCallback onTap,
   }) {
-    return InkWell(
+    return NeoPressable(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSizing.radiusFull),
       child: Container(
@@ -149,7 +149,7 @@ extension _HomeScreenHeaderOverview on _HomeScreenState {
     required VoidCallback onTap,
     int badgeCount = 0,
   }) {
-    return InkWell(
+    return NeoPressable(
       onTap: onTap,
       borderRadius: BorderRadius.circular(AppSizing.radiusLg),
       child: SizedBox(
@@ -271,7 +271,7 @@ extension _HomeScreenHeaderOverview on _HomeScreenState {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  InkWell(
+                  NeoPressable(
                     onTap: () {
                       ref
                           .read(uiPreferencesProvider.notifier)

@@ -11,6 +11,7 @@ export 'category_provider.dart';
 export 'income_provider.dart';
 export 'item_provider.dart';
 export 'month_provider.dart';
+export 'motion_provider.dart';
 export 'notification_provider.dart';
 export 'onboarding_provider.dart';
 export 'profile_provider.dart';

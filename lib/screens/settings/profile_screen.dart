@@ -7,7 +7,9 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/theme.dart';
 import '../../providers/providers.dart';
 import '../../utils/validators/input_validator.dart';
+import '../../widgets/common/neo_modal_sheet.dart';
 import '../../widgets/common/neo_page_components.dart';
+import '../../widgets/common/neo_snackbar.dart';
 import 'currency_picker_sheet.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
@@ -85,9 +87,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: GestureDetector(
                 onTap: () {
                   HapticFeedback.selectionClick();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Photo upload coming soon')),
-                  );
+                  showNeoInfoSnackBar(context, 'Photo upload coming soon');
                 },
                 child: Column(
                   children: [
@@ -241,9 +241,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: InkWell(
                       onTap: () {
                         HapticFeedback.selectionClick();
-                        showModalBottomSheet(
+                        showNeoModalBottomSheet(
                           context: context,
-                          backgroundColor: Colors.transparent,
                           builder: (context) => const CurrencyPickerSheet(),
                         );
                       },
@@ -349,9 +348,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       minLength: 1,
     );
     if (nameError != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(nameError)),
-      );
+      showNeoErrorSnackBar(context, nameError);
       return;
     }
 
@@ -368,20 +365,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           _isLoading = false;
           _hasChanges = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated')),
-        );
+        showNeoSuccessSnackBar(context, 'Profile updated');
         Navigator.of(context).pop();
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error updating profile: $e'),
-            backgroundColor: NeoTheme.negativeValue(context),
-          ),
-        );
+        showNeoErrorSnackBar(context, 'Error updating profile: $e');
       }
     }
   }

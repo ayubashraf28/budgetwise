@@ -12,7 +12,9 @@ import '../../models/transaction.dart';
 import '../../providers/providers.dart';
 import '../../utils/app_icon_registry.dart';
 import '../../utils/errors/error_mapper.dart';
+import '../../widgets/common/neo_modal_sheet.dart';
 import '../../widgets/common/neo_page_components.dart';
+import '../../widgets/motion/neo_staggered_reveal.dart';
 import '../expenses/category_form_sheet.dart';
 import '../income/income_form_sheet.dart';
 import '../settings/account_form_sheet.dart';
@@ -83,25 +85,37 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               const SizedBox(height: AppSpacing.sm),
               _buildHeader(),
               const SizedBox(height: NeoLayout.sectionGap),
-              _buildAccountsCard(
-                accountsAsync: accountsAsync,
-                balancesAsync: balancesAsync,
-                currencySymbol: currencySymbol,
-                isExpanded: isAccountsExpanded,
+              NeoStaggeredReveal(
+                revealKey: 'categories.sections',
+                index: 0,
+                child: _buildAccountsCard(
+                  accountsAsync: accountsAsync,
+                  balancesAsync: balancesAsync,
+                  currencySymbol: currencySymbol,
+                  isExpanded: isAccountsExpanded,
+                ),
               ),
               const SizedBox(height: NeoLayout.sectionGap),
-              _buildExpenseCategoriesCard(
-                categoriesAsync: expenseCategoriesAsync,
-                currencySymbol: currencySymbol,
-                isExpanded: isExpenseExpanded,
-                isSimpleMode: isSimpleMode,
-                txCountByCategory: txCountByCategory,
+              NeoStaggeredReveal(
+                revealKey: 'categories.sections',
+                index: 1,
+                child: _buildExpenseCategoriesCard(
+                  categoriesAsync: expenseCategoriesAsync,
+                  currencySymbol: currencySymbol,
+                  isExpanded: isExpenseExpanded,
+                  isSimpleMode: isSimpleMode,
+                  txCountByCategory: txCountByCategory,
+                ),
               ),
               const SizedBox(height: NeoLayout.sectionGap),
-              _buildIncomeCategoriesCard(
-                incomeSourcesAsync: incomeSourcesAsync,
-                currencySymbol: currencySymbol,
-                isExpanded: isIncomeExpanded,
+              NeoStaggeredReveal(
+                revealKey: 'categories.sections',
+                index: 2,
+                child: _buildIncomeCategoriesCard(
+                  incomeSourcesAsync: incomeSourcesAsync,
+                  currencySymbol: currencySymbol,
+                  isExpanded: isIncomeExpanded,
+                ),
               ),
             ],
           ),
@@ -150,19 +164,24 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           return Column(
             children: [
               for (var index = 0; index < accounts.length; index++) ...[
-                NeoHubRow(
-                  icon: _accountTypeIcon(accounts[index].type),
-                  iconColor: _accountTypeColor(accounts[index].type),
-                  title: accounts[index].name,
-                  subtitle: _accountTypeLabel(accounts[index].type),
-                  trailingTop:
-                      '$currencySymbol${_formatAmount(balances[accounts[index].id] ?? 0)}',
-                  trailingBottom:
-                      accounts[index].isArchived ? 'Archived' : 'Active',
-                  trailingColor: (balances[accounts[index].id] ?? 0) < 0
-                      ? NeoTheme.negativeValue(context)
-                      : NeoTheme.positiveValue(context),
-                  onTap: () => context.push('/accounts/${accounts[index].id}'),
+                NeoStaggeredReveal(
+                  revealKey: 'categories.accounts',
+                  index: index,
+                  child: NeoHubRow(
+                    icon: _accountTypeIcon(accounts[index].type),
+                    iconColor: _accountTypeColor(accounts[index].type),
+                    title: accounts[index].name,
+                    subtitle: _accountTypeLabel(accounts[index].type),
+                    trailingTop:
+                        '$currencySymbol${_formatAmount(balances[accounts[index].id] ?? 0)}',
+                    trailingBottom:
+                        accounts[index].isArchived ? 'Archived' : 'Active',
+                    trailingColor: (balances[accounts[index].id] ?? 0) < 0
+                        ? NeoTheme.negativeValue(context)
+                        : NeoTheme.positiveValue(context),
+                    onTap: () =>
+                        context.push('/accounts/${accounts[index].id}'),
+                  ),
                 ),
                 if (index < accounts.length - 1)
                   Divider(
@@ -216,24 +235,28 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           return Column(
             children: [
               for (var index = 0; index < sorted.length; index++) ...[
-                NeoHubRow(
-                  icon: _categoryIcon(sorted[index].icon),
-                  iconColor: sorted[index].colorValue,
-                  title: sorted[index].name,
-                  subtitle: isSimpleMode
-                      ? '${txCountByCategory[sorted[index].id] ?? 0} ${(txCountByCategory[sorted[index].id] ?? 0) == 1 ? 'transaction' : 'transactions'}'
-                      : '${sorted[index].itemCount} item${sorted[index].itemCount == 1 ? '' : 's'}',
-                  trailingTop:
-                      '$currencySymbol${_formatAmount(sorted[index].totalActual)}',
-                  trailingBottom:
-                      sorted[index].isBudgeted ? 'Budgeted' : 'No budget',
-                  trailingColor: sorted[index].isOverBudget
-                      ? NeoTheme.negativeValue(context)
-                      : sorted[index].totalActual > 0
-                          ? NeoTheme.warningValue(context)
-                          : _neoTextSecondary,
-                  onTap: () =>
-                      context.push('/budget/category/${sorted[index].id}'),
+                NeoStaggeredReveal(
+                  revealKey: 'categories.expense',
+                  index: index,
+                  child: NeoHubRow(
+                    icon: _categoryIcon(sorted[index].icon),
+                    iconColor: sorted[index].colorValue,
+                    title: sorted[index].name,
+                    subtitle: isSimpleMode
+                        ? '${txCountByCategory[sorted[index].id] ?? 0} ${(txCountByCategory[sorted[index].id] ?? 0) == 1 ? 'transaction' : 'transactions'}'
+                        : '${sorted[index].itemCount} item${sorted[index].itemCount == 1 ? '' : 's'}',
+                    trailingTop:
+                        '$currencySymbol${_formatAmount(sorted[index].totalActual)}',
+                    trailingBottom:
+                        sorted[index].isBudgeted ? 'Budgeted' : 'No budget',
+                    trailingColor: sorted[index].isOverBudget
+                        ? NeoTheme.negativeValue(context)
+                        : sorted[index].totalActual > 0
+                            ? NeoTheme.warningValue(context)
+                            : _neoTextSecondary,
+                    onTap: () =>
+                        context.push('/budget/category/${sorted[index].id}'),
+                  ),
                 ),
                 if (index < sorted.length - 1)
                   Divider(
@@ -285,19 +308,23 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           return Column(
             children: [
               for (var index = 0; index < sorted.length; index++) ...[
-                NeoHubRow(
-                  icon: LucideIcons.trendingUp,
-                  iconColor: NeoTheme.positiveValue(context),
-                  title: sorted[index].name,
-                  subtitle:
-                      sorted[index].isRecurring ? 'Recurring' : 'One-time',
-                  trailingTop:
-                      '$currencySymbol${_formatAmount(sorted[index].actual)}',
-                  trailingBottom: sorted[index].isRecurring
-                      ? 'Projected $currencySymbol${_formatAmount(sorted[index].projected)}'
-                      : 'Actual received',
-                  trailingColor: NeoTheme.positiveValue(context),
-                  onTap: () => context.push('/income'),
+                NeoStaggeredReveal(
+                  revealKey: 'categories.income',
+                  index: index,
+                  child: NeoHubRow(
+                    icon: LucideIcons.trendingUp,
+                    iconColor: NeoTheme.positiveValue(context),
+                    title: sorted[index].name,
+                    subtitle:
+                        sorted[index].isRecurring ? 'Recurring' : 'One-time',
+                    trailingTop:
+                        '$currencySymbol${_formatAmount(sorted[index].actual)}',
+                    trailingBottom: sorted[index].isRecurring
+                        ? 'Projected $currencySymbol${_formatAmount(sorted[index].projected)}'
+                        : 'Actual received',
+                    trailingColor: NeoTheme.positiveValue(context),
+                    onTap: () => context.push('/income'),
+                  ),
                 ),
                 if (index < sorted.length - 1)
                   Divider(
@@ -507,28 +534,22 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   }
 
   Future<void> _showAddAccountSheet() async {
-    await showModalBottomSheet(
+    await showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => const AccountFormSheet(),
     );
   }
 
   Future<void> _showAddExpenseCategorySheet() async {
-    await showModalBottomSheet(
+    await showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => const CategoryFormSheet(),
     );
   }
 
   Future<void> _showAddIncomeCategorySheet() async {
-    await showModalBottomSheet(
+    await showNeoModalBottomSheet(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
       builder: (context) => const IncomeFormSheet(),
     );
   }

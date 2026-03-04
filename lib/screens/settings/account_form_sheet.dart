@@ -9,6 +9,7 @@ import '../../providers/providers.dart';
 import '../../utils/errors/error_mapper.dart';
 import '../../utils/validators/input_validator.dart';
 import '../../widgets/common/neo_dropdown_form_field.dart';
+import '../../widgets/common/neo_snackbar.dart';
 
 class AccountFormSheet extends ConsumerStatefulWidget {
   final Account? account;
@@ -341,20 +342,15 @@ class _AccountFormSheetState extends ConsumerState<AccountFormSheet> {
 
       if (!mounted) return;
       Navigator.of(context).pop(true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isEditing ? 'Account updated' : 'Account created'),
-        ),
+      showNeoSuccessSnackBar(
+        context,
+        isEditing ? 'Account updated' : 'Account created',
       );
     } catch (error, stackTrace) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
-          ),
-          backgroundColor: NeoTheme.negativeValue(context),
-        ),
+      showNeoErrorSnackBar(
+        context,
+        ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
       );
     } finally {
       if (mounted) {

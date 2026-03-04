@@ -83,9 +83,7 @@ extension _TransactionFormSheetUi on _TransactionFormSheetState {
               label: 'TRANSFER',
               isSelected: false,
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Coming Soon')),
-                );
+                showNeoInfoSnackBar(context, 'Coming Soon');
               },
             ),
           ),

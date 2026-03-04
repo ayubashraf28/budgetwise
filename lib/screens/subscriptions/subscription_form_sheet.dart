@@ -13,6 +13,7 @@ import '../../utils/app_icon_registry.dart';
 import '../../utils/errors/error_mapper.dart';
 import '../../widgets/common/dropdown_menu_item_label.dart';
 import '../../widgets/common/neo_dropdown_form_field.dart';
+import '../../widgets/common/neo_snackbar.dart';
 
 class SubscriptionFormSheet extends ConsumerStatefulWidget {
   final Subscription? subscription;
@@ -690,9 +691,7 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
         );
         if (mounted) {
           Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Subscription updated')),
-          );
+          showNeoSuccessSnackBar(context, 'Subscription updated');
         }
       } else {
         await notifier.addSubscription(
@@ -711,20 +710,14 @@ class _SubscriptionFormSheetState extends ConsumerState<SubscriptionFormSheet> {
         );
         if (mounted) {
           Navigator.of(context).pop();
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Subscription added')),
-          );
+          showNeoSuccessSnackBar(context, 'Subscription added');
         }
       }
     } catch (error, stackTrace) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
-            ),
-            backgroundColor: NeoTheme.negativeValue(context),
-          ),
+        showNeoErrorSnackBar(
+          context,
+          ErrorMapper.toUserMessage(error, stackTrace: stackTrace),
         );
       }
     } finally {
