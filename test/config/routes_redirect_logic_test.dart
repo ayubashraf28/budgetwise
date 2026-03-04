@@ -9,6 +9,7 @@ void main() {
         isLoggedIn: false,
         matchedLocation: '/home',
         onboardingCompleted: false,
+        passwordRecoveryPending: false,
       );
 
       expect(redirect, '/login');
@@ -19,11 +20,13 @@ void main() {
         isLoggedIn: false,
         matchedLocation: '/login',
         onboardingCompleted: false,
+        passwordRecoveryPending: false,
       );
       final registerRedirect = resolveAppRedirect(
         isLoggedIn: false,
         matchedLocation: '/register',
         onboardingCompleted: false,
+        passwordRecoveryPending: false,
       );
 
       expect(loginRedirect, isNull);
@@ -35,6 +38,7 @@ void main() {
         isLoggedIn: true,
         matchedLocation: '/home',
         onboardingCompleted: false,
+        passwordRecoveryPending: false,
       );
 
       expect(redirect, '/onboarding');
@@ -45,6 +49,7 @@ void main() {
         isLoggedIn: true,
         matchedLocation: '/onboarding/template',
         onboardingCompleted: true,
+        passwordRecoveryPending: false,
       );
 
       expect(redirect, '/home');
@@ -55,6 +60,7 @@ void main() {
         isLoggedIn: true,
         matchedLocation: '/onboarding/notifications',
         onboardingCompleted: true,
+        passwordRecoveryPending: false,
       );
 
       expect(redirect, isNull);
@@ -65,9 +71,68 @@ void main() {
         isLoggedIn: true,
         matchedLocation: '/onboarding/complete',
         onboardingCompleted: true,
+        passwordRecoveryPending: false,
       );
 
       expect(redirect, isNull);
+    });
+
+    test('blocks unauthenticated users from reset password route', () {
+      final redirect = resolveAppRedirect(
+        isLoggedIn: false,
+        matchedLocation: '/reset-password',
+        onboardingCompleted: false,
+        passwordRecoveryPending: false,
+      );
+
+      expect(redirect, '/login');
+    });
+
+    test('forces password recovery route before onboarding', () {
+      final redirect = resolveAppRedirect(
+        isLoggedIn: true,
+        matchedLocation: '/home',
+        onboardingCompleted: false,
+        passwordRecoveryPending: true,
+      );
+
+      expect(redirect, '/reset-password');
+    });
+
+    test('allows reset password route while recovery is pending', () {
+      final redirect = resolveAppRedirect(
+        isLoggedIn: true,
+        matchedLocation: '/reset-password',
+        onboardingCompleted: false,
+        passwordRecoveryPending: true,
+      );
+
+      expect(redirect, isNull);
+    });
+
+    test('routes away from reset password after recovery when onboarding done',
+        () {
+      final redirect = resolveAppRedirect(
+        isLoggedIn: true,
+        matchedLocation: '/reset-password',
+        onboardingCompleted: true,
+        passwordRecoveryPending: false,
+      );
+
+      expect(redirect, '/home');
+    });
+
+    test(
+        'routes away from reset password after recovery when onboarding incomplete',
+        () {
+      final redirect = resolveAppRedirect(
+        isLoggedIn: true,
+        matchedLocation: '/reset-password',
+        onboardingCompleted: false,
+        passwordRecoveryPending: false,
+      );
+
+      expect(redirect, '/onboarding');
     });
   });
 

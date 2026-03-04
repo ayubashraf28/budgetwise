@@ -236,7 +236,10 @@ class AuthService {
   }
 
   Future<void> resetPassword(String email) async {
-    await _client.auth.resetPasswordForEmail(email);
+    await sendPasswordResetEmail(
+      email,
+      redirectTo: _googleRedirectUri,
+    );
   }
 
   Future<UserResponse> updatePassword(String newPassword) async {
@@ -286,6 +289,14 @@ class AuthService {
       serverClientId: SupabaseConfig.googleWebClientId,
       scopes: const ['email', 'profile'],
     );
+  }
+
+  @protected
+  Future<void> sendPasswordResetEmail(
+    String email, {
+    required String redirectTo,
+  }) {
+    return _client.auth.resetPasswordForEmail(email, redirectTo: redirectTo);
   }
 
   String _mapGoogleAuthError(Object error) {

@@ -183,7 +183,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Password reset email sent. Check your inbox.'),
+          content: Text(
+            'Password reset email sent. Check your inbox and return to the app from the email link.',
+          ),
         ),
       );
     } catch (error, stackTrace) {

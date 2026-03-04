@@ -12,6 +12,7 @@ class BudgetWiseApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(notificationBootstrapProvider);
+    ref.watch(authRecoveryBootstrapProvider);
     final sessionSecurity = ref.watch(sessionSecurityControllerProvider);
 
     final router = ref.watch(routerProvider);

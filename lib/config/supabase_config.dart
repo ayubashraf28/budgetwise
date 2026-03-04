@@ -13,6 +13,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///     --dart-define=APP_REDIRECT_SCHEME=com.alivastudio.budgetwise \
 ///     --obfuscate --split-debug-info=build/symbols
 ///
+/// Use the app redirect scheme that matches the active Android flavor:
+///   dev -> com.alivastudio.budgetwise.dev
+///   stg -> com.alivastudio.budgetwise.stg
+///   prod -> com.alivastudio.budgetwise
+///
 /// For local development, use a .env file loaded via flutter_dotenv as fallback.
 class SupabaseConfig {
   SupabaseConfig._();
@@ -20,8 +25,7 @@ class SupabaseConfig {
   static SupabaseClient get client => Supabase.instance.client;
 
   // Compile-time constants from --dart-define (preferred, not extractable from APK)
-  static const _dartDefineSupabaseUrl =
-      String.fromEnvironment('SUPABASE_URL');
+  static const _dartDefineSupabaseUrl = String.fromEnvironment('SUPABASE_URL');
   static const _dartDefineSupabaseAnonKey =
       String.fromEnvironment('SUPABASE_ANON_KEY');
   static const _dartDefineGoogleWebClientId =
@@ -47,19 +51,33 @@ class SupabaseConfig {
     // Prefer compile-time --dart-define values
     switch (key) {
       case 'SUPABASE_URL':
-        if (_dartDefineSupabaseUrl.isNotEmpty) return _dartDefineSupabaseUrl;
+        if (_dartDefineSupabaseUrl.isNotEmpty) {
+          return _dartDefineSupabaseUrl;
+        }
       case 'SUPABASE_ANON_KEY':
-        if (_dartDefineSupabaseAnonKey.isNotEmpty) return _dartDefineSupabaseAnonKey;
+        if (_dartDefineSupabaseAnonKey.isNotEmpty) {
+          return _dartDefineSupabaseAnonKey;
+        }
       case 'GOOGLE_WEB_CLIENT_ID':
-        if (_dartDefineGoogleWebClientId.isNotEmpty) return _dartDefineGoogleWebClientId;
+        if (_dartDefineGoogleWebClientId.isNotEmpty) {
+          return _dartDefineGoogleWebClientId;
+        }
       case 'GOOGLE_ANDROID_CLIENT_ID_DEBUG':
-        if (_dartDefineGoogleAndroidClientIdDebug.isNotEmpty) return _dartDefineGoogleAndroidClientIdDebug;
+        if (_dartDefineGoogleAndroidClientIdDebug.isNotEmpty) {
+          return _dartDefineGoogleAndroidClientIdDebug;
+        }
       case 'GOOGLE_ANDROID_CLIENT_ID_RELEASE':
-        if (_dartDefineGoogleAndroidClientIdRelease.isNotEmpty) return _dartDefineGoogleAndroidClientIdRelease;
+        if (_dartDefineGoogleAndroidClientIdRelease.isNotEmpty) {
+          return _dartDefineGoogleAndroidClientIdRelease;
+        }
       case 'GOOGLE_IOS_CLIENT_ID':
-        if (_dartDefineGoogleIosClientId.isNotEmpty) return _dartDefineGoogleIosClientId;
+        if (_dartDefineGoogleIosClientId.isNotEmpty) {
+          return _dartDefineGoogleIosClientId;
+        }
       case 'APP_REDIRECT_SCHEME':
-        if (_dartDefineAppRedirectScheme.isNotEmpty) return _dartDefineAppRedirectScheme;
+        if (_dartDefineAppRedirectScheme.isNotEmpty) {
+          return _dartDefineAppRedirectScheme;
+        }
     }
     // Fall back to runtime .env for local development
     return (_runtimeEnv[key] ?? '').trim();
@@ -93,7 +111,9 @@ class SupabaseConfig {
 
   static String _requiredGoogleClientId(String key) {
     final value = _env(key);
-    if (value.isEmpty || _isPlaceholderClientId(value) || !_isGoogleClientId(value)) {
+    if (value.isEmpty ||
+        _isPlaceholderClientId(value) ||
+        !_isGoogleClientId(value)) {
       throw StateError(
         'Invalid or missing environment variable $key. Expected a real Google OAuth client ID.',
       );

@@ -10,6 +10,7 @@ import '../screens/accounts/account_detail_screen.dart';
 import '../screens/analysis/analysis_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
+import '../screens/auth/reset_password_screen.dart';
 import '../screens/budget/budget_overview_screen.dart';
 import '../screens/categories/categories_screen.dart';
 import '../screens/expenses/category_detail_screen.dart';
@@ -42,9 +43,11 @@ String? resolveAppRedirect({
   required bool isLoggedIn,
   required String matchedLocation,
   required bool onboardingCompleted,
+  required bool passwordRecoveryPending,
 }) {
   final isLoggingIn = matchedLocation == '/login';
   final isRegistering = matchedLocation == '/register';
+  final isResettingPassword = matchedLocation == '/reset-password';
   final isOnboarding = matchedLocation.startsWith('/onboarding');
   final isAllowedCompletedOnboardingRoute =
       matchedLocation == '/onboarding/complete' ||
@@ -53,6 +56,15 @@ String? resolveAppRedirect({
   if (!isLoggedIn) {
     if (isLoggingIn || isRegistering) return null;
     return '/login';
+  }
+
+  if (passwordRecoveryPending) {
+    if (isResettingPassword) return null;
+    return '/reset-password';
+  }
+
+  if (isResettingPassword) {
+    return onboardingCompleted ? '/home' : '/onboarding';
   }
 
   if (isLoggingIn || isRegistering) {
@@ -175,9 +187,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           isLoggedIn: false,
           matchedLocation: matchedLocation,
           onboardingCompleted: false,
+          passwordRecoveryPending: false,
         );
       }
 
+      final passwordRecoveryPending = ref.read(passwordRecoveryPendingProvider);
       final onboardingCompleted = await resolveOnboardingCompletedForRedirect(
         cachedValue: ref.read(onboardingCompletedProvider),
         loadOnboardingCompleted: () =>
@@ -188,6 +202,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         isLoggedIn: true,
         matchedLocation: matchedLocation,
         onboardingCompleted: onboardingCompleted,
+        passwordRecoveryPending: passwordRecoveryPending,
       );
     },
     routes: [
@@ -201,6 +216,11 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/register',
         name: 'register',
         builder: (context, state) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/reset-password',
+        name: 'reset-password',
+        builder: (context, state) => const ResetPasswordScreen(),
       ),
 
       // Onboarding routes (no bottom navigation)
@@ -403,8 +423,7 @@ final routerProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: 'notifications-settings',
                 name: 'settings-notifications',
-                builder: (context, state) =>
-                    const SettingsNotificationsPage(),
+                builder: (context, state) => const SettingsNotificationsPage(),
               ),
               GoRoute(
                 path: 'about',

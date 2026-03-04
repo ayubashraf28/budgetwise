@@ -18,9 +18,35 @@ final authServiceProvider = Provider<AuthService>((ref) {
   return AuthService();
 });
 
+final authStateChangeProvider = StreamProvider<AuthState>((ref) {
+  final authService = ref.watch(authServiceProvider);
+  return authService.authStateChanges;
+});
+
 final authStateProvider = StreamProvider<User?>((ref) {
   final authService = ref.watch(authServiceProvider);
   return authService.authStateChanges.map((state) => state.session?.user);
+});
+
+final passwordRecoveryPendingProvider = StateProvider<bool>((ref) => false);
+
+final authRecoveryBootstrapProvider = Provider<void>((ref) {
+  ref.listen<AsyncValue<AuthState>>(authStateChangeProvider, (previous, next) {
+    final authState = next.valueOrNull;
+    if (authState == null) return;
+
+    final recoveryPending = ref.read(passwordRecoveryPendingProvider.notifier);
+    switch (authState.event) {
+      case AuthChangeEvent.passwordRecovery:
+        recoveryPending.state = true;
+        break;
+      case AuthChangeEvent.signedOut:
+        recoveryPending.state = false;
+        break;
+      default:
+        break;
+    }
+  });
 });
 
 final currentUserProvider = Provider<User?>((ref) {
@@ -46,6 +72,7 @@ final linkedProvidersProvider = FutureProvider<Set<String>>((ref) async {
 void invalidateAllUserProviders(Ref ref) {
   // Auth
   ref.invalidate(linkedProvidersProvider);
+  ref.invalidate(passwordRecoveryPendingProvider);
 
   // Profile & onboarding
   ref.invalidate(userProfileProvider);
