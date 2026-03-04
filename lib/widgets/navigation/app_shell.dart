@@ -139,6 +139,7 @@ class _BottomNavBar extends StatelessWidget {
                             itemHeight: navItemHeight,
                             isSelected: location.startsWith('/manage') ||
                                 location.startsWith('/subscriptions') ||
+                                location.startsWith('/accounts/') ||
                                 location.startsWith('/settings/accounts') ||
                                 location.startsWith('/budget-overview'),
                             onTap: () {

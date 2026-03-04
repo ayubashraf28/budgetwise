@@ -13,6 +13,8 @@ extension _TransactionFormSheetSubmit on _TransactionFormSheetState {
   Future<void> _handleSubmit() async {
     final isSimpleMode = ref.read(isSimpleBudgetModeProvider);
     final activeAccounts = await ref.read(accountsProvider.future);
+    final allAccounts = await ref.read(allAccountsProvider.future);
+    final allBalances = await ref.read(allAccountBalancesProvider.future);
     final currencyCode = ref.read(currencyProvider);
     if (!mounted) return;
 
@@ -72,6 +74,34 @@ extension _TransactionFormSheetSubmit on _TransactionFormSheetState {
     } else {
       if (_selectedIncomeSourceId == null) {
         _showError('Select an income source');
+        return;
+      }
+    }
+
+    final projectedBalances = projectAccountBalancesAfterSubmit(
+      currentBalances: allBalances,
+      selectedAccountId: accountId,
+      transactionType: _transactionType,
+      amount: amount,
+      existingTransaction: widget.transaction,
+    );
+    final warnings = projectedBalances.entries
+        .map((entry) {
+          final account =
+              allAccounts.where((a) => a.id == entry.key).firstOrNull;
+          if (account == null) return null;
+          if (!shouldWarnNegativeBalance(account.type, entry.value)) {
+            return null;
+          }
+          return (account: account, balance: entry.value);
+        })
+        .nonNulls
+        .toList();
+
+    if (warnings.isNotEmpty) {
+      final shouldContinue =
+          await _showNegativeBalanceWarningDialog(warnings, currencyCode);
+      if (!shouldContinue || !mounted) {
         return;
       }
     }
@@ -151,5 +181,42 @@ extension _TransactionFormSheetSubmit on _TransactionFormSheetState {
         _updateState(() => _isLoading = false);
       }
     }
+  }
+
+  Future<bool> _showNegativeBalanceWarningDialog(
+    List<({Account account, double balance})> warnings,
+    String currencyCode,
+  ) async {
+    final decimalPlaces =
+        InputValidator.decimalPlacesForCurrency(currencyCode);
+    final currencySymbol = ref.read(currencySymbolProvider);
+    final title =
+        warnings.length == 1 ? 'Negative Balance Warning' : 'Negative Balances';
+    final message = warnings.length == 1
+        ? 'This transaction will make your ${warnings.first.account.name} balance negative '
+            '($currencySymbol${InputValidator.normalizeAmount(warnings.first.balance, decimalPlaces: decimalPlaces).toStringAsFixed(decimalPlaces)}). Continue anyway?'
+        : 'This transaction will leave these accounts negative after saving: '
+            '${warnings.map((warning) => '${warning.account.name} ($currencySymbol${InputValidator.normalizeAmount(warning.balance, decimalPlaces: decimalPlaces).toStringAsFixed(decimalPlaces)})').join(', ')}. '
+            'Continue anyway?';
+
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: NeoTheme.of(context).surface1,
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Continue'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
   }
 }

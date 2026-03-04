@@ -2,11 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/account.dart';
 import '../models/account_transfer.dart';
+import '../models/transaction.dart';
 import '../services/account_service.dart';
+import '../services/transaction_service.dart';
 import '../services/transfer_service.dart';
 
 final accountServiceProvider = Provider<AccountService>((ref) {
   return AccountService();
+});
+
+final _accountTransactionServiceProvider = Provider<TransactionService>((ref) {
+  return TransactionService();
 });
 
 final transferServiceProvider = Provider<TransferService>((ref) {
@@ -31,6 +37,13 @@ final allAccountsProvider = FutureProvider<List<Account>>((ref) async {
   }
   return service.getAccounts(includeArchived: true);
 });
+
+final accountByIdProvider = FutureProvider.family<Account?, String>(
+  (ref, accountId) async {
+    final service = ref.read(accountServiceProvider);
+    return service.getAccountById(accountId);
+  },
+);
 
 final accountBalancesProvider =
     FutureProvider<Map<String, double>>((ref) async {
@@ -60,6 +73,12 @@ final transfersByAccountProvider =
         (ref, accountId) async {
   final service = ref.read(transferServiceProvider);
   return service.getTransfers(accountId: accountId);
+});
+
+final transactionsByAccountProvider =
+    FutureProvider.family<List<Transaction>, String>((ref, accountId) async {
+  final service = ref.read(_accountTransactionServiceProvider);
+  return service.getTransactionsForAccount(accountId);
 });
 
 class AccountNotifier extends AsyncNotifier<List<Account>> {
@@ -143,9 +162,11 @@ class AccountNotifier extends AsyncNotifier<List<Account>> {
     ref.invalidateSelf();
     ref.invalidate(accountsProvider);
     ref.invalidate(allAccountsProvider);
+    ref.invalidate(accountByIdProvider);
     ref.invalidate(accountBalancesProvider);
     ref.invalidate(allAccountBalancesProvider);
     ref.invalidate(netWorthProvider);
+    ref.invalidate(transactionsByAccountProvider);
   }
 }
 

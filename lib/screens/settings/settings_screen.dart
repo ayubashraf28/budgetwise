@@ -1,21 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/constants.dart';
 import '../../config/supabase_config.dart';
 import '../../config/theme.dart';
-import '../../models/bug_report.dart';
 import '../../providers/providers.dart';
 import '../../utils/errors/error_mapper.dart';
 import '../../widgets/common/neo_page_components.dart';
-import 'bug_report_form_sheet.dart';
-import 'currency_picker_sheet.dart';
-
-part 'settings_screen_helpers.dart';
+import 'settings_screen_helpers.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -25,17 +19,8 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool _isLinkingGoogle = false;
   bool _isDeletingAllData = false;
   bool _isDeletingAccount = false;
-
-  void _setIsLinkingGoogle(bool value) {
-    if (!mounted) {
-      _isLinkingGoogle = value;
-      return;
-    }
-    setState(() => _isLinkingGoogle = value);
-  }
 
   void _setIsDeletingAllData(bool value) {
     if (!mounted) {
@@ -58,27 +43,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final palette = NeoTheme.of(context);
     final authState = ref.watch(authStateProvider);
     final user = authState.valueOrNull;
-    final linkedProviders = ref.watch(linkedProvidersProvider);
-    final linkedSet = linkedProviders.valueOrNull ?? <String>{};
-    final hasGoogleLinked = linkedSet.contains('google');
-    final hasEmailLinked = user?.email != null || linkedSet.contains('email');
     final profile = ref.watch(userProfileProvider).valueOrNull;
-    final notificationsEnabled = profile?.notificationsEnabled ?? true;
-    final subscriptionRemindersEnabled =
-        profile?.subscriptionRemindersEnabled ?? true;
-    final budgetAlertsEnabled = profile?.budgetAlertsEnabled ?? true;
-    final monthlyRemindersEnabled = profile?.monthlyRemindersEnabled ?? true;
-    final linkedSummary = [
-      if (hasEmailLinked) 'Email linked',
-      if (hasGoogleLinked) 'Google linked',
-      if (!hasEmailLinked && !hasGoogleLinked) 'No linked providers',
-    ].join(' - ');
-    final currentCurrency = ref.watch(currencyProvider);
-    final currentSymbol = ref.watch(currencySymbolProvider);
     final currentThemeMode = ref.watch(themeModeProvider);
-    final currentAppFontSize = ref.watch(appFontSizeProvider);
     final currentBudgetStructure = ref.watch(budgetStructureProvider);
-    final stayLoggedIn = ref.watch(stayLoggedInProvider);
 
     return Scaffold(
       backgroundColor: palette.appBg,
@@ -99,269 +66,62 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               subtitle: 'Account, budget preferences, and app controls',
             ),
             const SizedBox(height: NeoLayout.sectionGap),
-            _buildSectionHeader(context, 'Account'),
-            const SizedBox(height: AppSpacing.sm),
-            _buildSettingsCard(
+            buildSettingsCard(
               context,
               children: [
-                _SettingsTile(
+                SettingsGroupTile(
                   icon: LucideIcons.user,
-                  title: 'Profile',
+                  title: 'Account & Profile',
                   subtitle:
                       profile?.displayName ?? user?.email ?? 'Not signed in',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    context.push('/settings/profile');
-                  },
+                  onTap: () => context.push('/settings/account'),
                 ),
                 const Divider(height: 1),
-                _SettingsTile(
-                  icon: LucideIcons.link2,
-                  title: 'Linked Accounts',
-                  subtitle: linkedSummary,
-                  trailing: linkedProviders.isLoading
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : hasGoogleLinked
-                          ? Icon(
-                              LucideIcons.checkCircle2,
-                              size: NeoIconSizes.lg,
-                              color: NeoTheme.positiveValue(context),
-                            )
-                          : null,
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    _showLinkedAccountsDialog(
-                      context,
-                      hasEmailLinked: hasEmailLinked,
-                      hasGoogleLinked: hasGoogleLinked,
-                    );
-                  },
+                SettingsGroupTile(
+                  icon: LucideIcons.wallet,
+                  title: 'Budget',
+                  subtitle: currentBudgetStructure == BudgetStructure.simple
+                      ? 'Simple mode'
+                      : 'Detailed mode',
+                  onTap: () => context.push('/settings/budget'),
                 ),
-              ],
-            ),
-            const SizedBox(height: NeoLayout.sectionGap),
-            _buildSectionHeader(context, 'Security'),
-            const SizedBox(height: AppSpacing.sm),
-            _buildSettingsCard(
-              context,
-              children: [
-                _buildNotificationToggleTile(
-                  context,
-                  title: 'Stay Logged In',
-                  subtitle: stayLoggedIn
-                      ? 'Auto-logout disabled on inactivity'
-                      : 'Auto-logout after 15 minutes of inactivity',
-                  icon: LucideIcons.shield,
-                  value: stayLoggedIn,
-                  onChanged: (enabled) {
-                    ref
-                        .read(uiPreferencesProvider.notifier)
-                        .setStayLoggedIn(enabled);
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: NeoLayout.sectionGap),
-            _buildSectionHeader(context, 'Budget'),
-            const SizedBox(height: AppSpacing.sm),
-            _buildSettingsCard(
-              context,
-              children: [
-                _SettingsTile(
-                  icon: LucideIcons.poundSterling,
-                  title: 'Currency',
-                  trailing: Text(
-                    '$currentSymbol $currentCurrency',
-                    style: NeoTypography.rowSecondary(context),
-                  ),
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    showModalBottomSheet(
-                      context: context,
-                      backgroundColor: Colors.transparent,
-                      builder: (context) => const CurrencyPickerSheet(),
-                    );
-                  },
-                ),
-                _SettingsTile(
-                  icon: LucideIcons.layers,
-                  title: 'Budget Structure',
-                  trailing: Text(
-                    currentBudgetStructure == BudgetStructure.simple
-                        ? 'Simple'
-                        : 'Detailed',
-                    style: NeoTypography.rowSecondary(context),
-                  ),
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    _showBudgetStructureSheet(
-                      context,
-                      ref,
-                      currentBudgetStructure,
-                    );
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: NeoLayout.sectionGap),
-            _buildSectionHeader(context, 'Appearance'),
-            const SizedBox(height: AppSpacing.sm),
-            _buildSettingsCard(
-              context,
-              children: [
-                _SettingsTile(
+                const Divider(height: 1),
+                SettingsGroupTile(
                   icon: LucideIcons.palette,
-                  title: 'Theme',
-                  subtitle: 'System default, light, or dark',
-                  trailing: Text(
-                    themeModeLabel(currentThemeMode),
-                    style: NeoTypography.rowSecondary(context),
-                  ),
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    _showThemeModeSheet(context, ref, currentThemeMode);
-                  },
+                  title: 'Appearance',
+                  subtitle: themeModeLabel(currentThemeMode),
+                  onTap: () => context.push('/settings/appearance'),
                 ),
-                _SettingsTile(
-                  icon: LucideIcons.type,
-                  title: 'Text Size',
-                  subtitle: 'Small, medium, large, or extra large',
-                  trailing: Text(
-                    appFontSizeLabel(currentAppFontSize),
-                    style: NeoTypography.rowSecondary(context),
-                  ),
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    _showTextSizeSheet(context, ref, currentAppFontSize);
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: NeoLayout.sectionGap),
-            _buildSectionHeader(context, 'Notifications'),
-            const SizedBox(height: AppSpacing.sm),
-            _buildSettingsCard(
-              context,
-              children: [
-                _buildNotificationToggleTile(
-                  context,
-                  title: 'Enable Notifications',
-                  subtitle: 'Master switch for all reminders and alerts',
+                const Divider(height: 1),
+                SettingsGroupTile(
                   icon: LucideIcons.bell,
-                  value: notificationsEnabled,
-                  onChanged: (enabled) =>
-                      _updateNotificationPreferences(masterEnabled: enabled),
+                  title: 'Notifications',
+                  subtitle: (profile?.notificationsEnabled ?? true)
+                      ? 'On'
+                      : 'Off',
+                  onTap: () => context.push('/settings/notifications-settings'),
                 ),
                 const Divider(height: 1),
-                _buildNotificationToggleTile(
-                  context,
-                  title: 'Subscription Reminders',
-                  subtitle: 'Upcoming recurring payment alerts',
-                  icon: LucideIcons.repeat,
-                  value: notificationsEnabled && subscriptionRemindersEnabled,
-                  enabled: notificationsEnabled,
-                  onChanged: (enabled) => _updateNotificationPreferences(
-                    subscriptionRemindersEnabled: enabled,
-                  ),
-                ),
-                const Divider(height: 1),
-                _buildNotificationToggleTile(
-                  context,
-                  title: 'Budget Alerts',
-                  subtitle: 'Alerts when category spend exceeds budget',
-                  icon: LucideIcons.alertTriangle,
-                  value: notificationsEnabled && budgetAlertsEnabled,
-                  enabled: notificationsEnabled,
-                  onChanged: (enabled) => _updateNotificationPreferences(
-                    budgetAlertsEnabled: enabled,
-                  ),
-                ),
-                const Divider(height: 1),
-                _buildNotificationToggleTile(
-                  context,
-                  title: 'Monthly Reminder',
-                  subtitle: 'Nudge at the start of a new month',
-                  icon: LucideIcons.calendar,
-                  value: notificationsEnabled && monthlyRemindersEnabled,
-                  enabled: notificationsEnabled,
-                  onChanged: (enabled) => _updateNotificationPreferences(
-                    monthlyRemindersEnabled: enabled,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: NeoLayout.sectionGap),
-            _buildSectionHeader(context, 'App'),
-            const SizedBox(height: AppSpacing.sm),
-            _buildSettingsCard(
-              context,
-              children: [
-                _SettingsTile(
+                SettingsGroupTile(
                   icon: LucideIcons.info,
-                  title: 'About',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    _showAboutDialog(context);
-                  },
+                  title: 'About & Legal',
+                  onTap: () => context.push('/settings/about'),
                 ),
                 const Divider(height: 1),
-                _SettingsTile(
-                  icon: LucideIcons.shieldCheck,
-                  title: 'Privacy Policy',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    _launchUrl(AppConstants.privacyPolicyUrl);
-                  },
-                ),
-                const Divider(height: 1),
-                _SettingsTile(
-                  icon: LucideIcons.fileText,
-                  title: 'Terms of Service',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    _launchUrl(AppConstants.termsOfServiceUrl);
-                  },
+                SettingsGroupTile(
+                  icon: LucideIcons.helpCircle,
+                  title: 'Help & Support',
+                  onTap: () => context.push('/settings/support'),
                 ),
               ],
             ),
             const SizedBox(height: NeoLayout.sectionGap),
-            _buildSectionHeader(context, 'Help & Support'),
+            buildSettingsSectionHeader(context, 'Danger Zone'),
             const SizedBox(height: AppSpacing.sm),
-            _buildSettingsCard(
+            buildSettingsCard(
               context,
               children: [
-                _SettingsTile(
-                  icon: LucideIcons.bug,
-                  title: 'Report a Bug',
-                  subtitle: 'Share an issue with app and device details',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    _showBugReportSheet(context);
-                  },
-                ),
-                const Divider(height: 1),
-                _SettingsTile(
-                  icon: LucideIcons.messageSquare,
-                  title: 'Send Feedback',
-                  subtitle: 'Share suggestions and product feedback',
-                  onTap: () {
-                    HapticFeedback.selectionClick();
-                    _showFeedbackSheet(context);
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: NeoLayout.sectionGap),
-            _buildSectionHeader(context, 'Danger Zone'),
-            const SizedBox(height: AppSpacing.sm),
-            _buildSettingsCard(
-              context,
-              children: [
-                _SettingsTile(
+                SettingsTile(
                   icon: LucideIcons.trash2,
                   title: 'Delete All Data',
                   subtitle: 'Permanently remove your app data',
@@ -380,7 +140,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: _isDeletingAllData ? () {} : _confirmDeleteAllData,
                 ),
                 const Divider(height: 1),
-                _SettingsTile(
+                SettingsTile(
                   icon: LucideIcons.userX,
                   title: 'Delete Account',
                   subtitle: 'Permanently delete your account and all data',
@@ -401,15 +161,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
             const SizedBox(height: NeoLayout.sectionGap),
-            _buildSettingsCard(
+            buildSettingsCard(
               context,
               children: [
-                _SettingsTile(
+                SettingsTile(
                   icon: LucideIcons.logOut,
                   title: 'Sign Out',
                   titleColor: NeoTheme.negativeValue(context),
                   showChevron: false,
-                  onTap: () => _handleSignOut(context, ref),
+                  onTap: () => handleSettingsSignOut(context, ref),
                 ),
               ],
             ),
@@ -424,5 +184,318 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDeleteAccount() async {
+    final palette = NeoTheme.of(context);
+    final controller = TextEditingController();
+    var canDelete = false;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          return AlertDialog(
+            backgroundColor: palette.surface1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+              side: BorderSide(color: palette.stroke),
+            ),
+            title: Text(
+              'Delete Account',
+              style: AppTypography.h3.copyWith(
+                color: NeoTheme.negativeValue(context),
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'This will permanently delete your account and all associated data. This action cannot be undone.',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: palette.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'You will be signed out and will not be able to recover your data.',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: NeoTheme.negativeValue(context),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Type DELETE to confirm:',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: palette.textMuted,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                TextField(
+                  controller: controller,
+                  onChanged: (value) {
+                    setDialogState(() => canDelete = value.trim() == 'DELETE');
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'DELETE',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: _isDeletingAccount
+                    ? null
+                    : () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: (!canDelete || _isDeletingAccount)
+                    ? null
+                    : () => Navigator.of(dialogContext).pop(true),
+                style: TextButton.styleFrom(
+                  foregroundColor: NeoTheme.negativeValue(context),
+                ),
+                child: const Text('Delete Account'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    controller.dispose();
+
+    if (!mounted) return;
+    if (confirmed == true) {
+      await _deleteAccount();
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    if (_isDeletingAccount) return;
+    _setIsDeletingAccount(true);
+
+    var loadingDialogShown = false;
+    if (mounted) {
+      loadingDialogShown = true;
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    try {
+      await SupabaseConfig.client.functions.invoke('delete-user');
+
+      if (!mounted) return;
+      if (loadingDialogShown) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+
+      await ref.read(authNotifierProvider.notifier).signOut();
+
+      if (!mounted) return;
+      context.go('/login');
+    } catch (error, stackTrace) {
+      if (!mounted) return;
+      if (loadingDialogShown) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ErrorMapper.toUserMessage(
+              error,
+              stackTrace: stackTrace,
+              fallbackMessage: 'Failed to delete account. Please try again.',
+            ),
+          ),
+          backgroundColor: NeoTheme.negativeValue(context),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        _setIsDeletingAccount(false);
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteAllData() async {
+    final palette = NeoTheme.of(context);
+    final controller = TextEditingController();
+    var canDelete = false;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          return AlertDialog(
+            backgroundColor: palette.surface1,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+              side: BorderSide(color: palette.stroke),
+            ),
+            title: Text(
+              'Delete All Data',
+              style: AppTypography.h3.copyWith(
+                color: NeoTheme.negativeValue(context),
+              ),
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'This will permanently delete all app data in Supabase while keeping your auth account.',
+                  style: AppTypography.bodyMedium.copyWith(
+                    color: palette.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  'Type DELETE to confirm:',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: palette.textMuted,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                TextField(
+                  controller: controller,
+                  onChanged: (value) {
+                    setDialogState(() => canDelete = value.trim() == 'DELETE');
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'DELETE',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: _isDeletingAllData
+                    ? null
+                    : () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: (!canDelete || _isDeletingAllData)
+                    ? null
+                    : () => Navigator.of(dialogContext).pop(true),
+                style: TextButton.styleFrom(
+                  foregroundColor: NeoTheme.negativeValue(context),
+                ),
+                child: const Text('Delete'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    controller.dispose();
+
+    if (!mounted) return;
+    if (confirmed == true) {
+      final finalConfirmation = await _showFinalDeleteAllDataConfirmation();
+      if (!mounted || !finalConfirmation) return;
+      await _deleteAllData();
+    }
+  }
+
+  Future<bool> _showFinalDeleteAllDataConfirmation() async {
+    final palette = NeoTheme.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: palette.surface1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          side: BorderSide(color: palette.stroke),
+        ),
+        title: Text(
+          'Final Confirmation',
+          style: AppTypography.h3.copyWith(
+            color: NeoTheme.negativeValue(context),
+          ),
+        ),
+        content: Text(
+          'This will permanently delete all categories, items, transactions, accounts, subscriptions, and reports. This cannot be undone.',
+          style: AppTypography.bodyMedium.copyWith(
+            color: palette.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: NeoTheme.negativeValue(context),
+            ),
+            child: const Text('Delete Permanently'),
+          ),
+        ],
+      ),
+    );
+
+    return confirmed == true;
+  }
+
+  Future<void> _deleteAllData() async {
+    if (_isDeletingAllData) return;
+    _setIsDeletingAllData(true);
+
+    var loadingDialogShown = false;
+    if (mounted) {
+      loadingDialogShown = true;
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    try {
+      await ref.read(profileResetNotifierProvider.notifier).deleteAllDataAndSignOut();
+      if (!mounted) return;
+
+      if (loadingDialogShown) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      context.go('/login');
+    } catch (error, stackTrace) {
+      if (!mounted) return;
+      if (loadingDialogShown) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            ErrorMapper.toUserMessage(
+              error,
+              stackTrace: stackTrace,
+              fallbackMessage: 'Failed to delete data. Please try again.',
+            ),
+          ),
+          backgroundColor: NeoTheme.negativeValue(context),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        _setIsDeletingAllData(false);
+      }
+    }
   }
 }

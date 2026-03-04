@@ -7,6 +7,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/theme.dart';
 import '../../models/account.dart';
 import '../../providers/providers.dart';
+import '../../utils/account_balance_warning_utils.dart';
 import '../../utils/errors/error_mapper.dart';
 import '../../widgets/common/neo_page_components.dart';
 import 'account_form_sheet.dart';
@@ -343,6 +344,7 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
         ? NeoTheme.negativeValue(context)
         : NeoTheme.positiveValue(context);
     final accountColor = _accountTypeColor(account.type);
+    final showWarning = shouldWarnNegativeBalance(account.type, balance);
 
     return InkWell(
       onTap: () => _showEditSheet(account),
@@ -417,9 +419,25 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  '$currencySymbol${_formatAmount(balance)}',
-                  style: NeoTypography.rowAmount(context, balanceColor),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (showWarning) ...[
+                      Tooltip(
+                        message: 'Balance is negative',
+                        child: Icon(
+                          LucideIcons.alertTriangle,
+                          size: NeoIconSizes.sm,
+                          color: NeoTheme.warningValue(context),
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                    ],
+                    Text(
+                      '$currencySymbol${_formatAmount(balance)}',
+                      style: NeoTypography.rowAmount(context, balanceColor),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 2),
                 Text(

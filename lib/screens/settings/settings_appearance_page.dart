@@ -1,0 +1,74 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+
+import '../../config/theme.dart';
+import '../../providers/providers.dart';
+import '../../widgets/common/neo_page_components.dart';
+import 'settings_screen_helpers.dart';
+
+class SettingsAppearancePage extends ConsumerWidget {
+  const SettingsAppearancePage({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentThemeMode = ref.watch(themeModeProvider);
+    final currentAppFontSize = ref.watch(appFontSizeProvider);
+    final palette = NeoTheme.of(context);
+
+    return Scaffold(
+      backgroundColor: palette.appBg,
+      appBar: AppBar(
+        backgroundColor: palette.appBg,
+        title: const Text('Appearance'),
+      ),
+      body: NeoPageBackground(
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+            NeoLayout.screenPadding,
+            AppSpacing.md,
+            NeoLayout.screenPadding,
+            AppSpacing.xl +
+                MediaQuery.paddingOf(context).bottom +
+                NeoLayout.bottomNavSafeBuffer,
+          ),
+          children: [
+            buildSettingsCard(
+              context,
+              children: [
+                SettingsTile(
+                  icon: LucideIcons.palette,
+                  title: 'Theme',
+                  subtitle: 'System default, light, or dark',
+                  trailing: Text(
+                    themeModeLabel(currentThemeMode),
+                    style: NeoTypography.rowSecondary(context),
+                  ),
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    showThemeModeSheet(context, ref, currentThemeMode);
+                  },
+                ),
+                const Divider(height: 1),
+                SettingsTile(
+                  icon: LucideIcons.type,
+                  title: 'Text Size',
+                  subtitle: 'Small, medium, large, or extra large',
+                  trailing: Text(
+                    appFontSizeLabel(currentAppFontSize),
+                    style: NeoTypography.rowSecondary(context),
+                  ),
+                  onTap: () {
+                    HapticFeedback.selectionClick();
+                    showTextSizeSheet(context, ref, currentAppFontSize);
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

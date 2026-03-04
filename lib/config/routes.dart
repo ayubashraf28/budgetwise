@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../providers/providers.dart';
+import '../screens/accounts/account_detail_screen.dart';
 import '../screens/analysis/analysis_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
@@ -25,7 +26,13 @@ import '../screens/onboarding/template_selection_screen.dart';
 import '../screens/onboarding/welcome_screen.dart';
 import '../screens/settings/accounts_screen.dart';
 import '../screens/settings/profile_screen.dart';
+import '../screens/settings/settings_about_page.dart';
+import '../screens/settings/settings_account_page.dart';
+import '../screens/settings/settings_appearance_page.dart';
+import '../screens/settings/settings_budget_page.dart';
+import '../screens/settings/settings_notifications_page.dart';
 import '../screens/settings/settings_screen.dart';
+import '../screens/settings/settings_support_page.dart';
 import '../screens/subscriptions/subscriptions_screen.dart';
 import '../screens/transactions/transactions_screen.dart';
 import '../widgets/navigation/app_shell.dart';
@@ -261,6 +268,14 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const TransactionsScreen(),
           ),
           GoRoute(
+            path: '/accounts/:id',
+            name: 'account-detail',
+            builder: (context, state) {
+              final id = state.pathParameters['id']!;
+              return AccountDetailScreen(accountId: id);
+            },
+          ),
+          GoRoute(
             path: '/budget',
             name: 'budget',
             builder: (context, state) => const ExpenseCategoriesScreen(),
@@ -369,6 +384,37 @@ final routerProvider = Provider<GoRouter>((ref) {
                 builder: (context, state) => AccountsScreen(
                   initialAccountId: state.uri.queryParameters['accountId'],
                 ),
+              ),
+              GoRoute(
+                path: 'account',
+                name: 'settings-account',
+                builder: (context, state) => const SettingsAccountPage(),
+              ),
+              GoRoute(
+                path: 'budget',
+                name: 'settings-budget',
+                builder: (context, state) => const SettingsBudgetPage(),
+              ),
+              GoRoute(
+                path: 'appearance',
+                name: 'settings-appearance',
+                builder: (context, state) => const SettingsAppearancePage(),
+              ),
+              GoRoute(
+                path: 'notifications-settings',
+                name: 'settings-notifications',
+                builder: (context, state) =>
+                    const SettingsNotificationsPage(),
+              ),
+              GoRoute(
+                path: 'about',
+                name: 'settings-about',
+                builder: (context, state) => const SettingsAboutPage(),
+              ),
+              GoRoute(
+                path: 'support',
+                name: 'settings-support',
+                builder: (context, state) => const SettingsSupportPage(),
               ),
             ],
           ),

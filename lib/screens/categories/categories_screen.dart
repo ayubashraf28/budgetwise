@@ -162,9 +162,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                   trailingColor: (balances[accounts[index].id] ?? 0) < 0
                       ? NeoTheme.negativeValue(context)
                       : NeoTheme.positiveValue(context),
-                  onTap: () => context.push(
-                    '/settings/accounts?accountId=${Uri.encodeComponent(accounts[index].id)}',
-                  ),
+                  onTap: () => context.push('/accounts/${accounts[index].id}'),
                 ),
                 if (index < accounts.length - 1)
                   Divider(

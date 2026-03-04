@@ -209,8 +209,7 @@ extension _AnalysisScreenModes on _AnalysisScreenState {
                 context.push('/transactions');
                 return;
               }
-              context.push(
-                  '/settings/accounts?accountId=${Uri.encodeComponent(r.accountId)}');
+              context.push('/accounts/${r.accountId}');
             },
           );
         }),

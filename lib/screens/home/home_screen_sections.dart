@@ -9,7 +9,7 @@ extension _HomeScreenSections on _HomeScreenState {
   ) {
     if (accounts.isEmpty) return const SizedBox.shrink();
 
-    final visible = accounts.take(3).toList();
+    final visible = accounts;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -58,9 +58,7 @@ extension _HomeScreenSections on _HomeScreenState {
                   visible[i],
                   accountBalances[visible[i].id] ?? visible[i].openingBalance,
                   currencySymbol,
-                  onTap: () => context.push(
-                    '/settings/accounts?accountId=${Uri.encodeComponent(visible[i].id)}',
-                  ),
+                  onTap: () => context.push('/accounts/${visible[i].id}'),
                 ),
                 if (i < visible.length - 1)
                   Divider(
@@ -80,6 +78,7 @@ extension _HomeScreenSections on _HomeScreenState {
       {VoidCallback? onTap}) {
     final isNegative = balance < 0;
     final amountColor = isNegative ? _negativeColor : _positiveColor;
+    final showWarning = shouldWarnNegativeBalance(account.type, balance);
 
     return InkWell(
       onTap: onTap,
@@ -113,9 +112,25 @@ extension _HomeScreenSections on _HomeScreenState {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            Text(
-              '$currencySymbol${_formatAmount(balance)}',
-              style: _rowAmountStyle(amountColor),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (showWarning) ...[
+                  Tooltip(
+                    message: 'Balance is negative',
+                    child: Icon(
+                      LucideIcons.alertTriangle,
+                      size: NeoIconSizes.sm,
+                      color: _warningColor,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                ],
+                Text(
+                  '$currencySymbol${_formatAmount(balance)}',
+                  style: _rowAmountStyle(amountColor),
+                ),
+              ],
             ),
           ],
         ),
@@ -213,14 +228,13 @@ extension _HomeScreenSections on _HomeScreenState {
                       ),
                       const SizedBox(width: 6),
                       Expanded(
-                        child: AdaptiveHeadingText(
-                          text: title,
-                          maxLines: 2,
-                          softWrap: false,
+                        child: Text(
+                          title,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: textColor,
-                            fontSize: 15,
+                            fontSize: 13,
                             fontWeight: FontWeight.w600,
                             height: 1.02,
                           ),
