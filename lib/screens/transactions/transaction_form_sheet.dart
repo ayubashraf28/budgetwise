@@ -15,6 +15,7 @@ import '../../utils/account_balance_warning_utils.dart';
 import '../../utils/app_icon_registry.dart';
 import '../../utils/errors/error_mapper.dart';
 import '../../utils/validators/input_validator.dart';
+import '../../widgets/common/app_button.dart';
 import '../../widgets/common/calculator_keypad.dart';
 import '../../widgets/common/neo_modal_sheet.dart';
 import '../../widgets/common/neo_snackbar.dart';
@@ -208,7 +209,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
               padding: const EdgeInsets.all(AppSpacing.md),
               child: Column(
                 children: [
-                  _buildTopBar(),
+                  _buildDateTimeBar(),
                   const SizedBox(height: AppSpacing.md),
                   _buildTypeToggle(),
                   const SizedBox(height: AppSpacing.md),
@@ -278,7 +279,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                     onBackspace: _handleBackspace,
                   ),
                   const SizedBox(height: AppSpacing.sm),
-                  _buildBottomBar(),
+                  _buildActionBar(),
                 ],
               ),
             ),

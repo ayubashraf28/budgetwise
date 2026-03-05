@@ -156,12 +156,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   void _showSuccessDialog() {
     final color = NeoTheme.positiveValue(context);
+    final parentContext = context;
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: NeoTheme.of(context).surface1,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: NeoTheme.of(dialogContext).surface1,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
         ),
@@ -189,7 +190,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
-                color: NeoTheme.of(context).textPrimary,
+                color: NeoTheme.of(dialogContext).textPrimary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -198,7 +199,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               'Please check your email to verify your account before logging in.',
               style: TextStyle(
                 fontSize: 13,
-                color: NeoTheme.of(context).textSecondary,
+                color: NeoTheme.of(dialogContext).textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -208,8 +209,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               height: 48,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  Navigator.of(context).pop();
-                  context.go('/login');
+                  Navigator.of(dialogContext).pop();
+                  if (!mounted) return;
+                  parentContext.go('/login');
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: color.withValues(alpha: 0.15),

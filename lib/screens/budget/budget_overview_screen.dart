@@ -152,6 +152,7 @@ class _BudgetOverviewScreenState extends ConsumerState<BudgetOverviewScreen> {
   }
 
   Widget _buildSectionHeader(String text) {
+    final palette = NeoTheme.of(context);
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.md,
@@ -159,7 +160,10 @@ class _BudgetOverviewScreenState extends ConsumerState<BudgetOverviewScreen> {
         AppSpacing.md,
         AppSpacing.sm,
       ),
-      child: Text(text, style: AppTypography.h3),
+      child: Text(
+        text,
+        style: AppTypography.h3.copyWith(color: palette.textPrimary),
+      ),
     );
   }
 
@@ -234,7 +238,9 @@ class _BudgetOverviewScreenState extends ConsumerState<BudgetOverviewScreen> {
                       category.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTypography.labelLarge,
+                      style: AppTypography.labelLarge.copyWith(
+                        color: palette.textPrimary,
+                      ),
                     ),
                   ),
                   Icon(
@@ -366,7 +372,9 @@ class _BudgetOverviewScreenState extends ConsumerState<BudgetOverviewScreen> {
                   category.name,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.labelLarge,
+                  style: AppTypography.labelLarge.copyWith(
+                    color: palette.textPrimary,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -408,6 +416,7 @@ class _BudgetOverviewScreenState extends ConsumerState<BudgetOverviewScreen> {
   }
 
   Widget _buildNoCategoriesState() {
+    final palette = NeoTheme.of(context);
     return Container(
       margin: const EdgeInsets.all(AppSpacing.md),
       padding: const EdgeInsets.all(AppSpacing.xl),
@@ -421,17 +430,19 @@ class _BudgetOverviewScreenState extends ConsumerState<BudgetOverviewScreen> {
           Icon(
             LucideIcons.folderOpen,
             size: 48,
-            color: NeoTheme.of(context).textMuted,
+            color: palette.textMuted,
           ),
           const SizedBox(height: AppSpacing.md),
-          const Text(
+          Text(
             'No categories yet',
-            style: AppTypography.h3,
+            style: AppTypography.h3.copyWith(color: palette.textPrimary),
           ),
           const SizedBox(height: AppSpacing.sm),
-          const Text(
+          Text(
             'Create categories in Expenses first, then set their budgets here.',
-            style: AppTypography.bodyMedium,
+            style: AppTypography.bodyMedium.copyWith(
+              color: palette.textSecondary,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -476,6 +487,7 @@ class _BudgetOverviewScreenState extends ConsumerState<BudgetOverviewScreen> {
   }
 
   Widget _buildErrorState(String error) {
+    final palette = NeoTheme.of(context);
     return Center(
       child: Container(
         margin: const EdgeInsets.all(AppSpacing.md),
@@ -493,11 +505,16 @@ class _BudgetOverviewScreenState extends ConsumerState<BudgetOverviewScreen> {
               color: NeoTheme.negativeValue(context),
             ),
             const SizedBox(height: AppSpacing.md),
-            const Text('Something went wrong', style: AppTypography.h3),
+            Text(
+              'Something went wrong',
+              style: AppTypography.h3.copyWith(color: palette.textPrimary),
+            ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               error,
-              style: AppTypography.bodyMedium,
+              style: AppTypography.bodyMedium.copyWith(
+                color: palette.textSecondary,
+              ),
               textAlign: TextAlign.center,
             ),
           ],

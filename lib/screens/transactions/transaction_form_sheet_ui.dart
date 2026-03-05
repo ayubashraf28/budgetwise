@@ -1,40 +1,24 @@
 part of 'transaction_form_sheet.dart';
 
 extension _TransactionFormSheetUi on _TransactionFormSheetState {
-  Widget _buildTopBar() {
-    final palette = NeoTheme.of(context);
+  Widget _buildDateTimeBar() {
     return Row(
       children: [
-        TextButton.icon(
-          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
-          icon: const Icon(LucideIcons.x, size: AppSizing.iconSm),
-          label: Text(
-            'CANCEL',
-            style: AppTypography.labelLarge.copyWith(letterSpacing: 0.2),
-          ),
-          style: TextButton.styleFrom(
-            foregroundColor: palette.textSecondary,
+        Expanded(
+          child: _buildTopMetaAction(
+            icon: LucideIcons.calendar,
+            label: 'Date',
+            value: DateFormat('MMM d, yyyy').format(_selectedDate),
+            onTap: _isLoading ? null : _selectDate,
           ),
         ),
-        const Spacer(),
-        TextButton.icon(
-          onPressed: _isLoading ? null : _handleSubmit,
-          icon: _isLoading
-              ? SizedBox(
-                  width: 16,
-                  height: 16,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: palette.accent,
-                  ),
-                )
-              : const Icon(LucideIcons.check, size: AppSizing.iconSm),
-          label: Text(
-            _isLoading ? 'SAVING' : 'SAVE',
-            style: AppTypography.labelLarge.copyWith(letterSpacing: 0.2),
-          ),
-          style: TextButton.styleFrom(
-            foregroundColor: palette.accent,
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: _buildTopMetaAction(
+            icon: LucideIcons.clock3,
+            label: 'Time',
+            value: DateFormat('h:mm a').format(_selectedDate),
+            onTap: _isLoading ? null : _selectTime,
           ),
         ),
       ],
@@ -242,7 +226,68 @@ extension _TransactionFormSheetUi on _TransactionFormSheetState {
     );
   }
 
-  Widget _buildBottomBar() {
+  Widget _buildTopMetaAction({
+    required IconData icon,
+    required String label,
+    required String value,
+    required VoidCallback? onTap,
+  }) {
+    final palette = NeoTheme.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+          decoration: BoxDecoration(
+            color: palette.surface2,
+            borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+            border: Border.all(color: palette.stroke),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                size: AppSizing.iconSm,
+                color: palette.textSecondary,
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: palette.textMuted,
+                      ),
+                    ),
+                    Text(
+                      value,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.bodyMedium.copyWith(
+                        color: palette.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionBar() {
     final palette = NeoTheme.of(context);
     return Container(
       padding: const EdgeInsets.only(top: AppSpacing.sm),
@@ -254,65 +299,24 @@ extension _TransactionFormSheetUi on _TransactionFormSheetState {
       child: Row(
         children: [
           Expanded(
-            child: _buildBottomAction(
-              icon: LucideIcons.calendar,
-              value: DateFormat('MMM d, yyyy').format(_selectedDate),
-              onTap: _isLoading ? null : _selectDate,
+            child: AppButton(
+              text: 'Cancel',
+              onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+              variant: AppButtonVariant.outline,
+              height: AppSizing.buttonHeight,
             ),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: AppSizing.fabSize + AppSpacing.xl),
           Expanded(
-            child: _buildBottomAction(
-              icon: LucideIcons.clock3,
-              value: DateFormat('h:mm a').format(_selectedDate),
-              onTap: _isLoading ? null : _selectTime,
+            child: AppButton(
+              text: _isLoading ? 'Saving' : 'Save',
+              onPressed: _isLoading ? null : _handleSubmit,
+              icon: _isLoading ? null : LucideIcons.check,
+              isLoading: _isLoading,
+              height: AppSizing.buttonHeight,
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBottomAction({
-    required IconData icon,
-    required String value,
-    required VoidCallback? onTap,
-  }) {
-    final palette = NeoTheme.of(context);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-        child: Ink(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
-            vertical: AppSpacing.sm,
-          ),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppSizing.radiusSm),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: AppSizing.iconSm,
-                color: palette.textSecondary,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Expanded(
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.bodyMedium.copyWith(
-                    color: palette.textPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
