@@ -11,62 +11,62 @@ import 'config/firebase_env.dart';
 import 'config/supabase_config.dart';
 import 'services/notification_service.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
-  Object? bootstrapError;
-
-  try {
-    // Load repo-managed fallback config first. Compile-time dart-defines still
-    // take precedence inside SupabaseConfig, so CI/release can override safely.
-    try {
-      await dotenv.load(fileName: '.env');
-      SupabaseConfig.setRuntimeEnv(dotenv.env);
-    } catch (_) {
-      // Asset may be absent in some build contexts; validation below will
-      // surface a clear startup error if config is still missing.
-    }
-
-    await SupabaseConfig.initialize();
-
-    // Initialize Firebase and crash reporting (mobile only).
-    await FirebaseEnv.initializeFirebase();
-    await CrashReporter.initialize(
-      enabledByDefault: FirebaseEnv.crashReportingEnabled,
-    );
-
-    FlutterError.onError = (details) {
-      unawaited(CrashReporter.recordFlutterFatalError(details));
-    };
-
-    PlatformDispatcher.instance.onError = (error, stack) {
-      unawaited(
-        CrashReporter.recordError(
-          error,
-          stack,
-          fatal: true,
-          reason: 'Unhandled platform-dispatcher error',
-          context: const <String, Object?>{
-            'feature_area': 'app_bootstrap',
-          },
-        ),
-      );
-      return true;
-    };
-
-    // Initialize notifications/timezone before app startup.
-    await NotificationService.instance.initialize();
-  } catch (error) {
-    bootstrapError = error;
-  }
-
-  if (bootstrapError != null) {
-    runApp(_BootstrapErrorApp(error: bootstrapError));
-    return;
-  }
-
+void main() {
   runZonedGuarded(
-    () {
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+
+      Object? bootstrapError;
+
+      try {
+        // Load repo-managed fallback config first. Compile-time dart-defines still
+        // take precedence inside SupabaseConfig, so CI/release can override safely.
+        try {
+          await dotenv.load(fileName: '.env');
+          SupabaseConfig.setRuntimeEnv(dotenv.env);
+        } catch (_) {
+          // Asset may be absent in some build contexts; validation below will
+          // surface a clear startup error if config is still missing.
+        }
+
+        await SupabaseConfig.initialize();
+
+        // Initialize Firebase and crash reporting (mobile only).
+        await FirebaseEnv.initializeFirebase();
+        await CrashReporter.initialize(
+          enabledByDefault: FirebaseEnv.crashReportingEnabled,
+        );
+
+        FlutterError.onError = (details) {
+          unawaited(CrashReporter.recordFlutterFatalError(details));
+        };
+
+        PlatformDispatcher.instance.onError = (error, stack) {
+          unawaited(
+            CrashReporter.recordError(
+              error,
+              stack,
+              fatal: true,
+              reason: 'Unhandled platform-dispatcher error',
+              context: const <String, Object?>{
+                'feature_area': 'app_bootstrap',
+              },
+            ),
+          );
+          return true;
+        };
+
+        // Initialize notifications/timezone before app startup.
+        await NotificationService.instance.initialize();
+      } catch (error) {
+        bootstrapError = error;
+      }
+
+      if (bootstrapError != null) {
+        runApp(_BootstrapErrorApp(error: bootstrapError));
+        return;
+      }
+
       runApp(
         const ProviderScope(
           child: BudgetWiseApp(),
