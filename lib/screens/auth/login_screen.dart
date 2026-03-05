@@ -25,6 +25,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isEmailExpanded = false;
   bool _isEmailLoading = false;
   bool _isGoogleLoading = false;
   bool _isGuestLoading = false;
@@ -45,6 +46,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     setState(() {
       _isEmailLoading = true;
+      _isEmailExpanded = true;
       _errorMessage = null;
       _isCredentialError = false;
     });
@@ -150,6 +152,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   }
 
   Future<void> _handleForgotPassword() async {
+    if (!_isEmailExpanded) {
+      setState(() {
+        _isEmailExpanded = true;
+      });
+    }
+
     final emailController = TextEditingController(
       text: _emailController.text.trim(),
     );
@@ -291,7 +299,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         _buildErrorCard(),
                         const SizedBox(height: AppSpacing.md),
                       ],
-                      _buildFormCard(color),
+                      _buildGuestButton(color),
+                      const SizedBox(height: AppSpacing.lg),
+                      _buildMethodDivider('OR'),
+                      const SizedBox(height: AppSpacing.lg),
+                      _buildAuthOptionsCard(color),
                       const SizedBox(height: AppSpacing.lg),
                       Wrap(
                         alignment: WrapAlignment.center,
@@ -313,26 +325,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                         ],
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      TextButton(
-                        onPressed: _isBusy ? null : _handleContinueAsGuest,
-                        style: TextButton.styleFrom(
-                          foregroundColor: palette.textMuted,
-                        ),
-                        child: _isGuestLoading
-                            ? SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: palette.textMuted,
-                                ),
-                              )
-                            : const Text(
-                                'Continue without account',
-                                style: TextStyle(fontSize: 13),
-                              ),
                       ),
                     ],
                   ),
@@ -482,9 +474,43 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  Widget _buildFormCard(Color color) {
+  Widget _buildGuestButton(Color color) {
     final palette = NeoTheme.of(context);
-    final isLight = NeoTheme.isLight(context);
+
+    return SizedBox(
+      height: 52,
+      child: ElevatedButton(
+        onPressed: _isBusy ? null : _handleContinueAsGuest,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: palette.surface1,
+          foregroundColor: palette.textPrimary,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+            side: BorderSide(color: palette.stroke),
+          ),
+        ),
+        child: _isGuestLoading
+            ? SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: color,
+                ),
+              )
+            : const Text(
+                'Continue as Guest',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+      ),
+    );
+  }
+
+  Widget _buildAuthOptionsCard(Color color) {
     final showGoogleButton = !kIsWeb &&
         (defaultTargetPlatform == TargetPlatform.android ||
             defaultTargetPlatform == TargetPlatform.iOS);
@@ -494,207 +520,265 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Welcome back',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: palette.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'Sign in to your account',
-            style: TextStyle(
-              fontSize: 12,
-              color: palette.textSecondary,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          Container(
-            decoration: _isCredentialError
-                ? BoxDecoration(
-                    border: Border.all(
-                      color: NeoTheme.negativeValue(context),
-                      width: 1.5,
-                    ),
-                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                  )
-                : null,
-            child: AppTextField(
-              controller: _emailController,
-              labelText: 'Email',
-              hintText: 'Enter your email',
-              keyboardType: TextInputType.emailAddress,
-              textInputAction: TextInputAction.next,
-              prefixIcon: Icon(
-                LucideIcons.mail,
-                size: 18,
-                color: _isCredentialError
-                    ? NeoTheme.negativeValue(context)
-                    : color,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildAuthMethodButton(
+                icon: LucideIcons.mail,
+                semanticLabel: 'Continue with Email',
+                isSelected: _isEmailExpanded,
+                isLoading: _isEmailLoading,
+                onTap: _isBusy && !_isEmailExpanded
+                    ? null
+                    : () {
+                        setState(() {
+                          _isEmailExpanded = !_isEmailExpanded;
+                        });
+                      },
               ),
-              validator: EmailValidator.validate,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Container(
-            decoration: _isCredentialError
-                ? BoxDecoration(
-                    border: Border.all(
-                      color: NeoTheme.negativeValue(context),
-                      width: 1.5,
-                    ),
-                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                  )
-                : null,
-            child: AppTextField(
-              controller: _passwordController,
-              labelText: 'Password',
-              hintText: 'Enter your password',
-              obscureText: _obscurePassword,
-              textInputAction: TextInputAction.done,
-              prefixIcon: Icon(
-                LucideIcons.lock,
-                size: 18,
-                color: _isCredentialError
-                    ? NeoTheme.negativeValue(context)
-                    : color,
-              ),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword ? LucideIcons.eye : LucideIcons.eyeOff,
-                  size: 18,
+              if (showGoogleButton) ...[
+                const SizedBox(width: AppSpacing.md),
+                _buildAuthMethodButton(
+                  semanticLabel: 'Continue with Google',
+                  isSelected: false,
+                  isLoading: _isGoogleLoading,
+                  onTap: _isBusy ? null : _handleGoogleSignIn,
+                  child: SvgPicture.asset(
+                    'assets/icons/google_g_logo.svg',
+                    width: 22,
+                    height: 22,
+                  ),
                 ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
-              ),
-              validator: PasswordValidator.validateForSignIn,
-              onSubmitted: (_) => _handleLogin(),
-            ),
+              ],
+            ],
           ),
-          const SizedBox(height: AppSpacing.xs),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              onPressed: _isBusy ? null : _handleForgotPassword,
-              style: TextButton.styleFrom(
-                foregroundColor: color,
-                padding: EdgeInsets.zero,
-                minimumSize: const Size(0, 32),
-              ),
-              child: const Text(
-                'Forgot Password?',
-                style: TextStyle(fontSize: 12),
+          AnimatedCrossFade(
+            firstChild: const SizedBox.shrink(),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.lg),
+              child: _buildEmailForm(color),
+            ),
+            crossFadeState: _isEmailExpanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            duration: AppConstants.shortAnimation,
+            firstCurve: Curves.easeOut,
+            secondCurve: Curves.easeOut,
+            sizeCurve: Curves.easeInOut,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuthMethodButton({
+    required String semanticLabel,
+    required bool isSelected,
+    required bool isLoading,
+    required VoidCallback? onTap,
+    IconData? icon,
+    Widget? child,
+  }) {
+    final palette = NeoTheme.of(context);
+    final accent = palette.accent;
+
+    return Semantics(
+      button: true,
+      label: semanticLabel,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+          child: AnimatedContainer(
+            duration: AppConstants.shortAnimation,
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? accent.withValues(alpha: 0.14)
+                  : palette.surface2,
+              borderRadius: BorderRadius.circular(AppSizing.radiusFull),
+              border: Border.all(
+                color:
+                    isSelected ? accent.withValues(alpha: 0.5) : palette.stroke,
               ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.md),
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: _isBusy ? null : _handleLogin,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: color,
-                foregroundColor:
-                    isLight ? palette.textPrimary : palette.surface1,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                ),
-              ),
-              icon: _isEmailLoading
+            child: Center(
+              child: isLoading
                   ? SizedBox(
                       width: 18,
                       height: 18,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: isLight ? palette.textPrimary : palette.surface1,
+                        color: accent,
                       ),
                     )
-                  : const Icon(LucideIcons.logIn, size: 18),
-              label: Text(
-                _isEmailLoading ? 'Signing in...' : 'Log In',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                ),
+                  : child ??
+                      Icon(
+                        icon,
+                        size: 22,
+                        color: isSelected ? accent : palette.textPrimary,
+                      ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmailForm(Color color) {
+    final palette = NeoTheme.of(context);
+    final isLight = NeoTheme.isLight(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          decoration: _isCredentialError
+              ? BoxDecoration(
+                  border: Border.all(
+                    color: NeoTheme.negativeValue(context),
+                    width: 1.5,
+                  ),
+                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                )
+              : null,
+          child: AppTextField(
+            controller: _emailController,
+            labelText: 'Email',
+            hintText: 'Enter your email',
+            keyboardType: TextInputType.emailAddress,
+            textInputAction: TextInputAction.next,
+            prefixIcon: Icon(
+              LucideIcons.mail,
+              size: 18,
+              color:
+                  _isCredentialError ? NeoTheme.negativeValue(context) : color,
+            ),
+            validator: EmailValidator.validate,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        Container(
+          decoration: _isCredentialError
+              ? BoxDecoration(
+                  border: Border.all(
+                    color: NeoTheme.negativeValue(context),
+                    width: 1.5,
+                  ),
+                  borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+                )
+              : null,
+          child: AppTextField(
+            controller: _passwordController,
+            labelText: 'Password',
+            hintText: 'Enter your password',
+            obscureText: _obscurePassword,
+            textInputAction: TextInputAction.done,
+            prefixIcon: Icon(
+              LucideIcons.lock,
+              size: 18,
+              color:
+                  _isCredentialError ? NeoTheme.negativeValue(context) : color,
+            ),
+            suffixIcon: IconButton(
+              icon: Icon(
+                _obscurePassword ? LucideIcons.eye : LucideIcons.eyeOff,
+                size: 18,
+              ),
+              onPressed: () {
+                setState(() {
+                  _obscurePassword = !_obscurePassword;
+                });
+              },
+            ),
+            validator: PasswordValidator.validateForSignIn,
+            onSubmitted: (_) => _handleLogin(),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton(
+            onPressed: _isBusy ? null : _handleForgotPassword,
+            style: TextButton.styleFrom(
+              foregroundColor: color,
+              padding: EdgeInsets.zero,
+              minimumSize: const Size(0, 32),
+            ),
+            child: const Text(
+              'Forgot Password?',
+              style: TextStyle(fontSize: 12),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton.icon(
+            onPressed: _isBusy ? null : _handleLogin,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: color,
+              foregroundColor: isLight ? palette.textPrimary : palette.surface1,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+              ),
+            ),
+            icon: _isEmailLoading
+                ? SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: isLight ? palette.textPrimary : palette.surface1,
+                    ),
+                  )
+                : const Icon(LucideIcons.logIn, size: 18),
+            label: Text(
+              _isEmailLoading ? 'Signing in...' : 'Log In',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
               ),
             ),
           ),
-          if (showGoogleButton) ...[
-            const SizedBox(height: AppSpacing.md),
-            Row(
-              children: [
-                Expanded(
-                  child: Divider(
-                    color: palette.stroke,
-                    height: 1,
-                  ),
-                ),
-                Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                  child: Text(
-                    'or continue with',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: palette.textMuted,
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Divider(
-                    color: palette.stroke,
-                    height: 1,
-                  ),
-                ),
-              ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMethodDivider(String label) {
+    final palette = NeoTheme.of(context);
+
+    return Row(
+      children: [
+        Expanded(
+          child: Divider(
+            color: palette.stroke,
+            height: 1,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.6,
+              color: palette.textMuted,
             ),
-            const SizedBox(height: AppSpacing.md),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: OutlinedButton.icon(
-                onPressed: _isBusy ? null : _handleGoogleSignIn,
-                style: OutlinedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: Colors.black87,
-                  side: BorderSide(color: palette.stroke),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppSizing.radiusMd),
-                  ),
-                ),
-                icon: _isGoogleLoading
-                    ? SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: color,
-                        ),
-                      )
-                    : SvgPicture.asset(
-                        'assets/icons/google_g_logo.svg',
-                        width: 18,
-                        height: 18,
-                      ),
-                label: const Text(
-                  'Continue with Google',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ],
-      ),
+          ),
+        ),
+        Expanded(
+          child: Divider(
+            color: palette.stroke,
+            height: 1,
+          ),
+        ),
+      ],
     );
   }
 }

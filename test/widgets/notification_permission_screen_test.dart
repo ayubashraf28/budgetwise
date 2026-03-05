@@ -1,5 +1,6 @@
 import 'package:budgetwise/config/theme.dart';
 import 'package:budgetwise/models/user_profile.dart';
+import 'package:budgetwise/providers/auth_provider.dart';
 import 'package:budgetwise/providers/notification_provider.dart';
 import 'package:budgetwise/providers/profile_provider.dart';
 import 'package:budgetwise/screens/onboarding/notification_permission_screen.dart';
@@ -46,6 +47,7 @@ void main() {
     expect(fakeProfileService.current.subscriptionRemindersEnabled, isFalse);
     expect(fakeProfileService.current.budgetAlertsEnabled, isFalse);
     expect(fakeProfileService.current.monthlyRemindersEnabled, isFalse);
+    expect(fakeProfileService.completeCallCount, 1);
   });
 
   testWidgets('enable requests permission, saves enabled prefs, navigates home',
@@ -69,6 +71,7 @@ void main() {
     expect(fakeProfileService.current.subscriptionRemindersEnabled, isTrue);
     expect(fakeProfileService.current.budgetAlertsEnabled, isTrue);
     expect(fakeProfileService.current.monthlyRemindersEnabled, isTrue);
+    expect(fakeProfileService.completeCallCount, 1);
   });
 }
 
@@ -96,6 +99,7 @@ Future<void> _pumpScreen(
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
+        currentUserProvider.overrideWith((ref) => _fakeUser()),
         profileServiceProvider.overrideWithValue(fakeProfileService),
         notificationServiceProvider.overrideWithValue(fakeNotificationService),
       ],
@@ -106,6 +110,18 @@ Future<void> _pumpScreen(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+User _fakeUser() {
+  return User.fromJson({
+    'id': 'user-1',
+    'aud': 'authenticated',
+    'role': 'authenticated',
+    'email': 'user@example.com',
+    'created_at': DateTime.utc(2026, 1, 1).toIso8601String(),
+    'app_metadata': <String, dynamic>{},
+    'user_metadata': <String, dynamic>{},
+  })!;
 }
 
 class _FakeNotificationService extends NotificationService {
@@ -130,6 +146,7 @@ class _FakeProfileService extends ProfileService {
     updatedAt: DateTime.utc(2026, 1, 1),
   );
   int updateCallCount = 0;
+  int completeCallCount = 0;
 
   @override
   Future<UserProfile?> getCurrentProfile() async => current;
@@ -156,6 +173,16 @@ class _FakeProfileService extends ProfileService {
       budgetAlertsEnabled: budgetAlertsEnabled,
       monthlyRemindersEnabled: monthlyRemindersEnabled,
       updatedAt: DateTime.utc(2026, 1, 2),
+    );
+    return current;
+  }
+
+  @override
+  Future<UserProfile> completeOnboarding() async {
+    completeCallCount += 1;
+    current = current.copyWith(
+      onboardingCompleted: true,
+      updatedAt: DateTime.utc(2026, 1, 3),
     );
     return current;
   }

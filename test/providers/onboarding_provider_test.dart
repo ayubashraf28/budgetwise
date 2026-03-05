@@ -42,14 +42,15 @@ void main() {
     expect(result, isFalse);
   });
 
-  test('applyTemplate throws unauthenticated when no current user', () async {
+  test('applySelectedCategories throws unauthenticated when no current user',
+      () async {
     final container = ProviderContainer();
     addTearDown(container.dispose);
 
     final notifier = container.read(onboardingNotifierProvider.notifier);
 
     await expectLater(
-      () => notifier.applyTemplate('individual'),
+      () => notifier.applySelectedCategories(_selectedCategoryNames()),
       throwsA(
         isA<AppError>().having(
           (error) => error.code,
@@ -60,7 +61,7 @@ void main() {
     );
   });
 
-  test('applyTemplate creates categories and completes onboarding', () async {
+  test('applySelectedCategories rejects an empty selection', () async {
     final month = _fakeMonth();
     final monthService = _FakeMonthService(month);
     final categoryService = _FakeCategoryService(existingCategories: []);
@@ -79,29 +80,56 @@ void main() {
     addTearDown(container.dispose);
 
     final notifier = container.read(onboardingNotifierProvider.notifier);
-    final result = await notifier.applyTemplate('individual');
+
+    await expectLater(
+      () => notifier.applySelectedCategories(const []),
+      throwsA(
+        isA<AppError>().having(
+          (error) => error.code,
+          'code',
+          AppErrorCode.validation,
+        ),
+      ),
+    );
+  });
+
+  test(
+      'applySelectedCategories creates categories without completing onboarding',
+      () async {
+    final month = _fakeMonth();
+    final monthService = _FakeMonthService(month);
+    final categoryService = _FakeCategoryService(existingCategories: []);
+    final itemService = _FakeItemService();
+    final profileService = _FakeProfileService();
+
+    final container = ProviderContainer(
+      overrides: [
+        currentUserProvider.overrideWith((ref) => _fakeUser()),
+        monthServiceProvider.overrideWithValue(monthService),
+        categoryServiceProvider.overrideWithValue(categoryService),
+        itemServiceProvider.overrideWithValue(itemService),
+        profileServiceProvider.overrideWithValue(profileService),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final notifier = container.read(onboardingNotifierProvider.notifier);
+    final selectedCategories = _selectedCategoryNames();
+    final result = await notifier.applySelectedCategories(selectedCategories);
 
     expect(result.id, month.id);
     expect(monthService.getOrCreateCalls, 1);
-    expect(categoryService.createdNames, isNotEmpty);
+    expect(categoryService.createdNames, selectedCategories);
     expect(
       categoryService.createdNames.any(isReservedCategoryName),
       isFalse,
     );
-    expect(profileService.completeCalls, 1);
+    expect(profileService.completeCalls, 0);
   });
 
-  test('applyTemplate is idempotent when categories already exist', () async {
+  test('applySelectedCategories skips categories that already exist', () async {
     final month = _fakeMonth();
-    final existingCategory = Category(
-      id: 'existing-cat',
-      userId: 'user-1',
-      monthId: month.id,
-      name: 'Housing',
-      createdAt: DateTime.utc(2026, 1, 1),
-      updatedAt: DateTime.utc(2026, 1, 1),
-      items: const [],
-    );
+    final existingCategory = _fakeCategory(monthId: month.id, name: 'Housing');
     final monthService = _FakeMonthService(month);
     final categoryService = _FakeCategoryService(
       existingCategories: [existingCategory],
@@ -121,12 +149,70 @@ void main() {
     addTearDown(container.dispose);
 
     final notifier = container.read(onboardingNotifierProvider.notifier);
-    final result = await notifier.applyTemplate('individual');
+    final result = await notifier.applySelectedCategories(
+      _selectedCategoryNames(),
+    );
+
+    expect(result.id, month.id);
+    expect(monthService.getOrCreateCalls, 1);
+    expect(categoryService.createdNames, ['Food', 'Education']);
+    expect(
+      itemService.createdItems.map((item) => item.categoryId).toSet(),
+      {'cat-1', 'cat-2'},
+    );
+    expect(profileService.completeCalls, 0);
+  });
+
+  test('applySelectedCategories is idempotent when all selections exist',
+      () async {
+    final month = _fakeMonth();
+    final monthService = _FakeMonthService(month);
+    final categoryService = _FakeCategoryService(
+      existingCategories: [
+        _fakeCategory(monthId: month.id, name: 'Housing'),
+        _fakeCategory(monthId: month.id, name: 'Food'),
+        _fakeCategory(monthId: month.id, name: 'Education'),
+      ],
+    );
+    final itemService = _FakeItemService();
+    final profileService = _FakeProfileService();
+
+    final container = ProviderContainer(
+      overrides: [
+        currentUserProvider.overrideWith((ref) => _fakeUser()),
+        monthServiceProvider.overrideWithValue(monthService),
+        categoryServiceProvider.overrideWithValue(categoryService),
+        itemServiceProvider.overrideWithValue(itemService),
+        profileServiceProvider.overrideWithValue(profileService),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final notifier = container.read(onboardingNotifierProvider.notifier);
+    final result = await notifier.applySelectedCategories(
+      _selectedCategoryNames(),
+    );
 
     expect(result.id, month.id);
     expect(monthService.getOrCreateCalls, 1);
     expect(categoryService.createdNames, isEmpty);
     expect(itemService.createdItems, isEmpty);
+    expect(profileService.completeCalls, 0);
+  });
+
+  test('completeOnboarding marks onboarding complete', () async {
+    final profileService = _FakeProfileService();
+    final container = ProviderContainer(
+      overrides: [
+        currentUserProvider.overrideWith((ref) => _fakeUser()),
+        profileServiceProvider.overrideWithValue(profileService),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    final notifier = container.read(onboardingNotifierProvider.notifier);
+    await notifier.completeOnboarding();
+
     expect(profileService.completeCalls, 1);
   });
 }
@@ -154,6 +240,23 @@ Month _fakeMonth() {
     updatedAt: DateTime.utc(2026, 1, 1),
   );
 }
+
+Category _fakeCategory({
+  required String monthId,
+  required String name,
+}) {
+  return Category(
+    id: 'existing-$name',
+    userId: 'user-1',
+    monthId: monthId,
+    name: name,
+    createdAt: DateTime.utc(2026, 1, 1),
+    updatedAt: DateTime.utc(2026, 1, 1),
+    items: const [],
+  );
+}
+
+List<String> _selectedCategoryNames() => ['Housing', 'Food', 'Education'];
 
 class _FakeMonthService extends MonthService {
   _FakeMonthService(this._month);

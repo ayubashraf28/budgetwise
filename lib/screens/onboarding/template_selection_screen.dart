@@ -7,6 +7,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../config/constants.dart';
 import '../../config/theme.dart';
 import '../../providers/providers.dart';
+import '../../utils/app_icon_registry.dart';
 import '../../utils/errors/error_mapper.dart';
 
 class TemplateSelectionScreen extends ConsumerStatefulWidget {
@@ -19,50 +20,37 @@ class TemplateSelectionScreen extends ConsumerStatefulWidget {
 
 class _TemplateSelectionScreenState
     extends ConsumerState<TemplateSelectionScreen> {
-  String? _selectedTemplate;
+  late final List<_CategoryOption> _categories;
+  late final Set<String> _selectedCategoryNames;
   bool _isLoading = false;
 
-  List<_TemplateOption> _templatesFor(BuildContext context) => [
-        _TemplateOption(
-          id: 'individual',
-          title: 'Individual',
-          description: 'Perfect for personal budgeting',
-          icon: LucideIcons.user,
-          color: NeoTheme.infoValue(context),
-        ),
-        _TemplateOption(
-          id: 'student',
-          title: 'Student',
-          description: 'Optimized for student life',
-          icon: LucideIcons.graduationCap,
-          color: NeoTheme.warningValue(context),
-        ),
-        _TemplateOption(
-          id: 'family',
-          title: 'Family',
-          description: 'Manage household expenses',
-          icon: LucideIcons.users,
-          color: NeoTheme.positiveValue(context),
-        ),
-        _TemplateOption(
-          id: 'freelancer',
-          title: 'Freelancer',
-          description: 'Track business and personal',
-          icon: LucideIcons.briefcase,
-          color: NeoTheme.of(context).accent,
-        ),
-      ];
+  @override
+  void initState() {
+    super.initState();
+    _categories = defaultCategories
+        .map(
+          (category) => _CategoryOption(
+            name: category['name'] as String,
+            iconName: category['icon'] as String? ?? 'wallet',
+            colorHex: category['color'] as String? ?? '#6366F1',
+            itemCount: (category['items'] as List<dynamic>? ?? const []).length,
+          ),
+        )
+        .toList(growable: false);
+    _selectedCategoryNames =
+        _categories.map((category) => category.name).toSet();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final templates = _templatesFor(context);
+    final palette = NeoTheme.of(context);
     return Scaffold(
-      backgroundColor: NeoTheme.of(context).appBg,
+      backgroundColor: palette.appBg,
       appBar: AppBar(
-        backgroundColor: NeoTheme.of(context).appBg,
+        backgroundColor: palette.appBg,
         leading: IconButton(
           icon: const Icon(LucideIcons.arrowLeft),
-          onPressed: () => context.go('/onboarding'),
+          onPressed: () => context.go('/onboarding/budget-structure'),
         ),
       ),
       body: SafeArea(
@@ -72,29 +60,68 @@ class _TemplateSelectionScreenState
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Choose your\nbudget template',
+                'Choose your\nstarting categories',
                 style: AppTypography.h2,
               ),
               const SizedBox(height: AppSpacing.sm),
               Text(
-                'Select the option that best describes your situation',
+                'Pick the categories you want to start with. You can edit them later.',
                 style: AppTypography.bodyMedium.copyWith(
-                  color: NeoTheme.of(context).textSecondary,
+                  color: palette.textSecondary,
                 ),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Row(
+                children: [
+                  Text(
+                    '${_selectedCategoryNames.length} selected',
+                    style: AppTypography.labelMedium.copyWith(
+                      color: palette.textSecondary,
+                    ),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            HapticFeedback.selectionClick();
+                            setState(() {
+                              _selectedCategoryNames
+                                ..clear()
+                                ..addAll(
+                                  _categories.map((category) => category.name),
+                                );
+                            });
+                          },
+                    child: const Text('Select all'),
+                  ),
+                  TextButton(
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            HapticFeedback.selectionClick();
+                            setState(() {
+                              _selectedCategoryNames.clear();
+                            });
+                          },
+                    child: const Text('Clear'),
+                  ),
+                ],
               ),
               const SizedBox(height: AppSpacing.xl),
 
-              // Template Options
+              // Category Options
               Expanded(
                 child: ListView.separated(
-                  itemCount: templates.length,
+                  itemCount: _categories.length,
                   separatorBuilder: (_, __) =>
                       const SizedBox(height: AppSpacing.md),
                   itemBuilder: (context, index) {
-                    final template = templates[index];
-                    final isSelected = _selectedTemplate == template.id;
+                    final category = _categories[index];
+                    final isSelected =
+                        _selectedCategoryNames.contains(category.name);
 
-                    return _buildTemplateCard(template, isSelected);
+                    return _buildCategoryCard(category, isSelected);
                   },
                 ),
               ),
@@ -106,7 +133,7 @@ class _TemplateSelectionScreenState
                 width: double.infinity,
                 height: AppSizing.buttonHeight,
                 child: ElevatedButton(
-                  onPressed: _selectedTemplate == null || _isLoading
+                  onPressed: _selectedCategoryNames.isEmpty || _isLoading
                       ? null
                       : _handleContinue,
                   child: _isLoading
@@ -129,22 +156,28 @@ class _TemplateSelectionScreenState
     );
   }
 
-  Widget _buildTemplateCard(_TemplateOption template, bool isSelected) {
+  Widget _buildCategoryCard(_CategoryOption category, bool isSelected) {
+    final color = _parseColor(category.colorHex);
+    final palette = NeoTheme.of(context);
     return GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
-        setState(() => _selectedTemplate = template.id);
+        setState(() {
+          if (isSelected) {
+            _selectedCategoryNames.remove(category.name);
+          } else {
+            _selectedCategoryNames.add(category.name);
+          }
+        });
       },
       child: AnimatedContainer(
         duration: AppConstants.shortAnimation,
         padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: isSelected
-              ? template.color.withValues(alpha: 0.1)
-              : NeoTheme.of(context).surface1,
+          color: isSelected ? color.withValues(alpha: 0.1) : palette.surface1,
           borderRadius: BorderRadius.circular(AppSizing.radiusLg),
           border: Border.all(
-            color: isSelected ? template.color : NeoTheme.of(context).stroke,
+            color: isSelected ? color : palette.stroke,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -154,12 +187,12 @@ class _TemplateSelectionScreenState
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: template.color.withValues(alpha: 0.15),
+                color: color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(AppSizing.radiusMd),
               ),
               child: Icon(
-                template.icon,
-                color: template.color,
+                resolveAppIcon(category.iconName, fallback: LucideIcons.wallet),
+                color: color,
                 size: 28,
               ),
             ),
@@ -169,16 +202,16 @@ class _TemplateSelectionScreenState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    template.title,
+                    category.name,
                     style: AppTypography.labelLarge.copyWith(
-                      color: isSelected
-                          ? template.color
-                          : NeoTheme.of(context).textPrimary,
+                      color: isSelected ? color : palette.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    template.description,
+                    category.itemCount == 1
+                        ? '1 starter item'
+                        : '${category.itemCount} starter items',
                     style: AppTypography.bodySmall,
                   ),
                 ],
@@ -187,7 +220,7 @@ class _TemplateSelectionScreenState
             if (isSelected)
               Icon(
                 LucideIcons.checkCircle,
-                color: template.color,
+                color: color,
                 size: 24,
               ),
           ],
@@ -197,17 +230,22 @@ class _TemplateSelectionScreenState
   }
 
   Future<void> _handleContinue() async {
-    if (_selectedTemplate == null) return;
+    if (_selectedCategoryNames.isEmpty) return;
 
     setState(() => _isLoading = true);
 
     try {
+      final selectedCategoryNames = _categories
+          .where((category) => _selectedCategoryNames.contains(category.name))
+          .map((category) => category.name)
+          .toList(growable: false);
+
       await ref
           .read(onboardingNotifierProvider.notifier)
-          .applyTemplate(_selectedTemplate!);
+          .applySelectedCategories(selectedCategoryNames);
 
       if (mounted) {
-        context.go('/onboarding/complete');
+        context.go('/onboarding/notifications');
       }
     } catch (error, stackTrace) {
       if (mounted) {
@@ -223,20 +261,27 @@ class _TemplateSelectionScreenState
       }
     }
   }
+
+  Color _parseColor(String hex) {
+    try {
+      final hexCode = hex.replaceFirst('#', '');
+      return Color(int.parse('FF$hexCode', radix: 16));
+    } catch (_) {
+      return NeoTheme.of(context).accent;
+    }
+  }
 }
 
-class _TemplateOption {
-  final String id;
-  final String title;
-  final String description;
-  final IconData icon;
-  final Color color;
+class _CategoryOption {
+  final String name;
+  final String iconName;
+  final String colorHex;
+  final int itemCount;
 
-  const _TemplateOption({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.icon,
-    required this.color,
+  const _CategoryOption({
+    required this.name,
+    required this.iconName,
+    required this.colorHex,
+    required this.itemCount,
   });
 }

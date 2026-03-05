@@ -96,7 +96,7 @@ class WelcomeScreen extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {
                     HapticFeedback.mediumImpact();
-                    context.go('/onboarding/template');
+                    context.go('/onboarding/currency');
                   },
                   child: const Text('Get Started'),
                 ),

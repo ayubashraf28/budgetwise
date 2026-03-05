@@ -26,6 +26,13 @@ void main() {
   testWidgets('login screen opens forgot password dialog', (tester) async {
     await pumpAuthScreen(tester, const LoginScreen());
 
+    expect(find.text('Continue as Guest'), findsOneWidget);
+    expect(find.bySemanticsLabel('Continue with Email'), findsOneWidget);
+    expect(find.bySemanticsLabel('Continue with Google'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Continue with Email'));
+    await tester.pumpAndSettle();
+
     await tester.tap(find.text('Forgot Password?'));
     await tester.pumpAndSettle();
 

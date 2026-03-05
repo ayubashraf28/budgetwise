@@ -109,45 +109,57 @@ const List<Map<String, dynamic>> defaultCategories = [
       {'name': 'Holiday Fund', 'projected': 0},
     ],
   },
+  {
+    'name': 'Education',
+    'icon': 'graduation-cap',
+    'color': '#8B5CF6',
+    'items': [
+      {'name': 'Tuition', 'projected': 0},
+      {'name': 'Books', 'projected': 0},
+      {'name': 'Courses', 'projected': 0},
+    ],
+  },
+  {
+    'name': 'Children',
+    'icon': 'baby',
+    'color': '#F43F5E',
+    'items': [
+      {'name': 'Childcare', 'projected': 0},
+      {'name': 'School Costs', 'projected': 0},
+      {'name': 'Activities', 'projected': 0},
+    ],
+  },
+  {
+    'name': 'Healthcare',
+    'icon': 'heart',
+    'color': '#EF4444',
+    'items': [
+      {'name': 'Doctor Visits', 'projected': 0},
+      {'name': 'Prescriptions', 'projected': 0},
+      {'name': 'Health Insurance', 'projected': 0},
+    ],
+  },
+  {
+    'name': 'Business Expenses',
+    'icon': 'briefcase',
+    'color': '#6366F1',
+    'items': [
+      {'name': 'Software', 'projected': 0},
+      {'name': 'Equipment', 'projected': 0},
+      {'name': 'Office Supplies', 'projected': 0},
+    ],
+  },
+  {
+    'name': 'Taxes',
+    'icon': 'file-text',
+    'color': '#64748B',
+    'items': [
+      {'name': 'Income Tax', 'projected': 0},
+      {'name': 'Council Tax', 'projected': 0},
+      {'name': 'Tax Savings', 'projected': 0},
+    ],
+  },
 ];
-
-/// Budget templates for different user types
-const Map<String, List<String>> budgetTemplates = {
-  'individual': [
-    'Housing',
-    'Food',
-    'Transport',
-    'Personal',
-    'Entertainment',
-    'Savings',
-  ],
-  'student': [
-    'Housing',
-    'Food',
-    'Transport',
-    'Personal',
-    'Education',
-    'Entertainment',
-  ],
-  'family': [
-    'Housing',
-    'Food',
-    'Transport',
-    'Personal',
-    'Children',
-    'Healthcare',
-    'Savings',
-  ],
-  'freelancer': [
-    'Housing',
-    'Food',
-    'Transport',
-    'Personal',
-    'Business Expenses',
-    'Taxes',
-    'Savings',
-  ],
-};
 
 /// Available category icons
 const List<String> categoryIcons = [

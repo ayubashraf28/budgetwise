@@ -24,7 +24,14 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.text('Continue as Guest'), findsOneWidget);
+    expect(find.text('OR'), findsOneWidget);
+    expect(find.bySemanticsLabel('Continue with Email'), findsOneWidget);
+    expect(find.bySemanticsLabel('Continue with Google'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Continue with Email'));
+    await tester.pumpAndSettle();
+
     expect(find.text('Forgot Password?'), findsOneWidget);
     expect(find.text('Log In'), findsWidgets);
     expect(tester.takeException(), isNull);

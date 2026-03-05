@@ -25,6 +25,14 @@ class _NotificationPermissionScreenState
     final palette = NeoTheme.of(context);
     return Scaffold(
       backgroundColor: palette.appBg,
+      appBar: AppBar(
+        backgroundColor: palette.appBg,
+        leading: IconButton(
+          icon: const Icon(LucideIcons.arrowLeft),
+          onPressed:
+              _isSubmitting ? null : () => context.go('/onboarding/categories'),
+        ),
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.lg),
@@ -123,6 +131,7 @@ class _NotificationPermissionScreenState
 
       if (!granted) {
         await _setNotificationPreferences(enabled: false);
+        await _completeOnboarding();
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -137,6 +146,7 @@ class _NotificationPermissionScreenState
       }
 
       await _setNotificationPreferences(enabled: true);
+      await _completeOnboarding();
       if (!mounted) return;
       context.go('/home');
     } catch (error, stackTrace) {
@@ -161,6 +171,7 @@ class _NotificationPermissionScreenState
     setState(() => _isSubmitting = true);
     try {
       await _setNotificationPreferences(enabled: false);
+      await _completeOnboarding();
       if (!mounted) return;
       context.go('/home');
     } catch (error, stackTrace) {
@@ -187,6 +198,11 @@ class _NotificationPermissionScreenState
           budgetAlertsEnabled: enabled,
           monthlyRemindersEnabled: enabled,
         );
+    ref.invalidate(userProfileProvider);
+  }
+
+  Future<void> _completeOnboarding() async {
+    await ref.read(onboardingNotifierProvider.notifier).completeOnboarding();
     ref.invalidate(userProfileProvider);
   }
 }

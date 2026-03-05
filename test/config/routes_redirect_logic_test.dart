@@ -47,7 +47,7 @@ void main() {
     test('blocks returning to onboarding once completed', () {
       final redirect = resolveAppRedirect(
         isLoggedIn: true,
-        matchedLocation: '/onboarding/template',
+        matchedLocation: '/onboarding/categories',
         onboardingCompleted: true,
         passwordRecoveryPending: false,
       );

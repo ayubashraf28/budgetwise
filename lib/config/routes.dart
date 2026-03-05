@@ -21,6 +21,8 @@ import '../screens/home/home_screen.dart';
 import '../screens/income/income_screen.dart';
 import '../screens/manage/manage_screen.dart';
 import '../screens/notifications/notification_center_screen.dart';
+import '../screens/onboarding/budget_structure_selection_screen.dart';
+import '../screens/onboarding/currency_selection_screen.dart';
 import '../screens/onboarding/notification_permission_screen.dart';
 import '../screens/onboarding/setup_complete_screen.dart';
 import '../screens/onboarding/template_selection_screen.dart';
@@ -250,8 +252,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const WelcomeScreen(),
         routes: [
           _neoRoute(
-            path: 'template',
-            name: 'onboarding-template',
+            path: 'currency',
+            name: 'onboarding-currency',
+            builder: (context, state) => const CurrencySelectionScreen(),
+          ),
+          _neoRoute(
+            path: 'budget-structure',
+            name: 'onboarding-budget-structure',
+            builder: (context, state) => const BudgetStructureSelectionScreen(),
+          ),
+          _neoRoute(
+            path: 'categories',
+            name: 'onboarding-categories',
             builder: (context, state) => const TemplateSelectionScreen(),
           ),
           _neoRoute(
