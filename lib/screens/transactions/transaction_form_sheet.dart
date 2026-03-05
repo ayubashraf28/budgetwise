@@ -196,93 +196,140 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
         ),
       ),
       child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: MediaQuery.of(context).size.height * 0.94,
-          child: AnimatedPadding(
-            duration: const Duration(milliseconds: 180),
-            curve: Curves.easeOut,
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Column(
-                children: [
-                  _buildDateTimeBar(),
-                  const SizedBox(height: AppSpacing.md),
-                  _buildTypeToggle(),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildSelectorPill(
-                          icon: LucideIcons.landmark,
-                          label: 'Account',
-                          value: accountPillValue,
-                          onTap: _isLoading
-                              ? null
-                              : () => _pickAccount(formAccounts),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: _buildSelectorPill(
-                          icon: _transactionType == TransactionType.expense
-                              ? LucideIcons.tag
-                              : LucideIcons.wallet,
-                          label: _transactionType == TransactionType.expense
-                              ? 'Category'
-                              : 'Source',
-                          value: _transactionType == TransactionType.expense
-                              ? categoryPillValue
-                              : sourcePillValue,
-                          onTap: _isLoading
-                              ? null
-                              : () {
-                                  if (_transactionType ==
-                                      TransactionType.expense) {
-                                    _pickCategoryAndItem(
-                                      categories,
-                                      isSimpleMode: isSimpleMode,
-                                    );
-                                  } else {
-                                    _pickIncomeSource(incomeSources);
-                                  }
-                                },
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (activeAccounts.isEmpty) ...[
-                    const SizedBox(height: AppSpacing.xs),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'No active accounts found. Add one in Settings > Accounts.',
-                        style: AppTypography.bodySmall.copyWith(
-                          color: NeoTheme.negativeValue(context),
+        top: true,
+        bottom: false,
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOut,
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final availableHeight = constraints.maxHeight;
+              final isCompactHeight = availableHeight < 700;
+              final sectionGap =
+                  isCompactHeight ? AppSpacing.sm : AppSpacing.md;
+              final contentPadding =
+                  isCompactHeight ? AppSpacing.sm + 2 : AppSpacing.md;
+
+              final actionBarEstimatedHeight = (isCompactHeight
+                      ? AppSizing.buttonHeightCompact
+                      : AppSizing.buttonHeight) +
+                  AppSpacing.sm +
+                  AppSpacing.sm;
+              final keypadVerticalGap =
+                  isCompactHeight ? AppSpacing.xs : AppSpacing.sm;
+
+              var keypadHeight =
+                  availableHeight * (isCompactHeight ? 0.44 : 0.50);
+              keypadHeight = keypadHeight.clamp(170.0, 430.0);
+              final maxKeypadHeight = (availableHeight -
+                      actionBarEstimatedHeight -
+                      (keypadVerticalGap * 2))
+                  .clamp(120.0, 430.0);
+              if (keypadHeight > maxKeypadHeight) {
+                keypadHeight = maxKeypadHeight;
+              }
+
+              return Padding(
+                padding: EdgeInsets.all(contentPadding),
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        physics: const ClampingScrollPhysics(),
+                        padding: EdgeInsets.only(bottom: sectionGap),
+                        child: Column(
+                          children: [
+                            _buildDateTimeBar(),
+                            SizedBox(height: sectionGap),
+                            _buildTypeToggle(),
+                            SizedBox(height: sectionGap),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _buildSelectorPill(
+                                    icon: LucideIcons.landmark,
+                                    label: 'Account',
+                                    value: accountPillValue,
+                                    onTap: _isLoading
+                                        ? null
+                                        : () => _pickAccount(formAccounts),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.sm),
+                                Expanded(
+                                  child: _buildSelectorPill(
+                                    icon: _transactionType ==
+                                            TransactionType.expense
+                                        ? LucideIcons.tag
+                                        : LucideIcons.wallet,
+                                    label: _transactionType ==
+                                            TransactionType.expense
+                                        ? 'Category'
+                                        : 'Source',
+                                    value: _transactionType ==
+                                            TransactionType.expense
+                                        ? categoryPillValue
+                                        : sourcePillValue,
+                                    onTap: _isLoading
+                                        ? null
+                                        : () {
+                                            if (_transactionType ==
+                                                TransactionType.expense) {
+                                              _pickCategoryAndItem(
+                                                categories,
+                                                isSimpleMode: isSimpleMode,
+                                              );
+                                            } else {
+                                              _pickIncomeSource(incomeSources);
+                                            }
+                                          },
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (activeAccounts.isEmpty) ...[
+                              const SizedBox(height: AppSpacing.xs),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  'No active accounts found. Add one in Settings > Accounts.',
+                                  style: AppTypography.bodySmall.copyWith(
+                                    color: NeoTheme.negativeValue(context),
+                                  ),
+                                ),
+                              ),
+                            ],
+                            SizedBox(height: sectionGap),
+                            _buildNotesField(),
+                          ],
                         ),
                       ),
                     ),
+                    SizedBox(height: keypadVerticalGap),
+                    SizedBox(
+                      height: keypadHeight,
+                      child: CalculatorKeypad(
+                        displayValue: _displayValue,
+                        activeOperator: _pendingOperator,
+                        currencySymbol: currencySymbol,
+                        onDigit: _handleDigit,
+                        onOperator: _handleOperator,
+                        onEquals: _handleEquals,
+                        onBackspace: _handleBackspace,
+                      ),
+                    ),
+                    SizedBox(height: keypadVerticalGap),
+                    _buildActionBar(
+                      isCompact: isCompactHeight,
+                      availableWidth: constraints.maxWidth,
+                    ),
                   ],
-                  const SizedBox(height: AppSpacing.md),
-                  _buildNotesField(),
-                  const Spacer(),
-                  CalculatorKeypad(
-                    displayValue: _displayValue,
-                    activeOperator: _pendingOperator,
-                    currencySymbol: currencySymbol,
-                    onDigit: _handleDigit,
-                    onOperator: _handleOperator,
-                    onEquals: _handleEquals,
-                    onBackspace: _handleBackspace,
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-                  _buildActionBar(),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ),
       ),

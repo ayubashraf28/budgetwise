@@ -98,27 +98,41 @@ extension _TransactionFormSheetUi on _TransactionFormSheetState {
                 : Colors.transparent,
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (isSelected) ...[
-              Icon(
-                LucideIcons.check,
-                size: AppSizing.iconXs,
-                color: NeoTheme.controlSelectedForeground(context),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-            ],
-            Text(
-              label,
-              style: AppTypography.labelMedium.copyWith(
-                color: isSelected
-                    ? NeoTheme.controlSelectedForeground(context)
-                    : palette.textSecondary,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              ),
-            ),
-          ],
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 108;
+            final labelStyle = AppTypography.labelMedium.copyWith(
+              color: isSelected
+                  ? NeoTheme.controlSelectedForeground(context)
+                  : palette.textSecondary,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+              fontSize: isNarrow ? 11 : 12,
+            );
+
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isSelected) ...[
+                  Icon(
+                    LucideIcons.check,
+                    size: isNarrow ? 12 : AppSizing.iconXs,
+                    color: NeoTheme.controlSelectedForeground(context),
+                  ),
+                  const SizedBox(width: 3),
+                ],
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.fade,
+                    softWrap: false,
+                    style: labelStyle,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -287,10 +301,19 @@ extension _TransactionFormSheetUi on _TransactionFormSheetState {
     );
   }
 
-  Widget _buildActionBar() {
+  Widget _buildActionBar({
+    required bool isCompact,
+    required double availableWidth,
+  }) {
     final palette = NeoTheme.of(context);
+    final centerGap = (availableWidth * 0.08).clamp(8.0, 28.0).toDouble();
+    final buttonHeight =
+        isCompact ? AppSizing.buttonHeightCompact : AppSizing.buttonHeight;
+    final topPadding = isCompact ? AppSpacing.xs : AppSpacing.sm;
+    final showSaveIcon = !isCompact || availableWidth > 360;
+
     return Container(
-      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      padding: EdgeInsets.only(top: topPadding),
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(color: palette.stroke.withValues(alpha: 0.8)),
@@ -303,17 +326,17 @@ extension _TransactionFormSheetUi on _TransactionFormSheetState {
               text: 'Cancel',
               onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
               variant: AppButtonVariant.outline,
-              height: AppSizing.buttonHeight,
+              height: buttonHeight,
             ),
           ),
-          const SizedBox(width: AppSizing.fabSize + AppSpacing.xl),
+          SizedBox(width: centerGap),
           Expanded(
             child: AppButton(
               text: _isLoading ? 'Saving' : 'Save',
               onPressed: _isLoading ? null : _handleSubmit,
-              icon: _isLoading ? null : LucideIcons.check,
+              icon: _isLoading || !showSaveIcon ? null : LucideIcons.check,
               isLoading: _isLoading,
-              height: AppSizing.buttonHeight,
+              height: buttonHeight,
             ),
           ),
         ],

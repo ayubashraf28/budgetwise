@@ -78,7 +78,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('SAVE'), findsWidgets);
+    expect(find.text('Save'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 }
