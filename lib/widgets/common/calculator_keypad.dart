@@ -71,12 +71,9 @@ class CalculatorKeypad extends StatelessWidget {
         final backspaceIconSize =
             (backspaceButtonSize * 0.50).clamp(18.0, 24.0).toDouble();
 
-        final gridCellWidth = (width - (gridSpacing * 3)) / 4;
         final gridCellHeight = (gridHeight - (gridSpacing * 3)) / 4;
-        final childAspectRatio =
-            (gridCellWidth / gridCellHeight).clamp(0.8, 1.2).toDouble();
-        final keyFontSize =
-            (gridCellHeight * 0.36).clamp(20.0, 36.0).toDouble();
+        final keyRowExtent = gridCellHeight.clamp(34.0, 120.0).toDouble();
+        final keyFontSize = (keyRowExtent * 0.36).clamp(16.0, 36.0).toDouble();
 
         return Column(
           mainAxisSize: MainAxisSize.min,
@@ -156,7 +153,7 @@ class CalculatorKeypad extends StatelessWidget {
                   crossAxisCount: 4,
                   mainAxisSpacing: gridSpacing,
                   crossAxisSpacing: gridSpacing,
-                  childAspectRatio: childAspectRatio,
+                  mainAxisExtent: keyRowExtent,
                 ),
                 itemBuilder: (context, index) {
                   final key = keys[index];

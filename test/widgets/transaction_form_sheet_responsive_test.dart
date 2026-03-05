@@ -106,6 +106,9 @@ void main() {
     expect(find.text('Cancel'), findsOneWidget);
     expect(find.text('Save'), findsOneWidget);
     expect(find.byType(CalculatorKeypad), findsOneWidget);
+    expect(find.text('\u00F7'), findsOneWidget);
+    expect(find.text('='), findsOneWidget);
+    expect(find.text('0'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 }

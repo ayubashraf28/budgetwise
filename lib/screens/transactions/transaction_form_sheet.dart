@@ -220,6 +220,8 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                   AppSpacing.sm;
               final keypadVerticalGap =
                   isCompactHeight ? AppSpacing.xs : AppSpacing.sm;
+              final notesToKeypadGap =
+                  isCompactHeight ? AppSpacing.xs : AppSpacing.sm;
 
               var keypadHeight =
                   availableHeight * (isCompactHeight ? 0.44 : 0.50);
@@ -236,10 +238,11 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                 padding: EdgeInsets.all(contentPadding),
                 child: Column(
                   children: [
-                    Expanded(
+                    Flexible(
+                      fit: FlexFit.loose,
                       child: SingleChildScrollView(
                         physics: const ClampingScrollPhysics(),
-                        padding: EdgeInsets.only(bottom: sectionGap),
+                        padding: EdgeInsets.only(bottom: notesToKeypadGap),
                         child: Column(
                           children: [
                             _buildDateTimeBar(),
@@ -308,7 +311,7 @@ class _TransactionFormSheetState extends ConsumerState<TransactionFormSheet> {
                         ),
                       ),
                     ),
-                    SizedBox(height: keypadVerticalGap),
+                    SizedBox(height: notesToKeypadGap),
                     SizedBox(
                       height: keypadHeight,
                       child: CalculatorKeypad(
