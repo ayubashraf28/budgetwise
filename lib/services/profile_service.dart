@@ -28,7 +28,7 @@ class ProfileService {
         .insert({
           'user_id': _userId,
           'display_name':
-              _client.auth.currentUser?.email?.split('@').first ?? 'User',
+              _client.auth.currentUser?.email?.split('@').first ?? 'Guest',
           'currency': AppConstants.defaultCurrency,
           'locale': AppConstants.defaultLocale,
           'onboarding_completed': false,

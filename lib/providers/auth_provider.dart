@@ -59,6 +59,11 @@ final isAuthenticatedProvider = Provider<bool>((ref) {
   return user != null;
 });
 
+final isAnonymousProvider = Provider<bool>((ref) {
+  final user = ref.watch(currentUserProvider);
+  return user?.isAnonymous ?? false;
+});
+
 final linkedProvidersProvider = FutureProvider<Set<String>>((ref) async {
   final user = ref.watch(currentUserProvider);
   if (user == null) return <String>{};
@@ -126,6 +131,18 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
     }
   }
 
+  Future<void> signInAnonymously() async {
+    state = const AsyncValue.loading();
+    try {
+      final response = await _authService.signInAnonymously();
+      state = AsyncValue.data(response.user);
+    } catch (e, st) {
+      final mappedError = ErrorMapper.toAppError(e, stackTrace: st);
+      state = AsyncValue.error(mappedError, st);
+      throw mappedError;
+    }
+  }
+
   Future<void> signUp({
     required String email,
     required String password,
@@ -139,6 +156,26 @@ class AuthNotifier extends StateNotifier<AsyncValue<User?>> {
         displayName: displayName,
       );
       state = AsyncValue.data(response.user);
+    } catch (e, st) {
+      final mappedError = ErrorMapper.toAppError(e, stackTrace: st);
+      state = AsyncValue.error(mappedError, st);
+      throw mappedError;
+    }
+  }
+
+  Future<void> upgradeAnonymousAccount({
+    required String email,
+    required String password,
+    String? displayName,
+  }) async {
+    state = const AsyncValue.loading();
+    try {
+      final response = await _authService.upgradeAnonymousAccount(
+        email: email,
+        password: password,
+        displayName: displayName,
+      );
+      state = AsyncValue.data(response.user ?? _authService.currentUser);
     } catch (e, st) {
       final mappedError = ErrorMapper.toAppError(e, stackTrace: st);
       state = AsyncValue.error(mappedError, st);

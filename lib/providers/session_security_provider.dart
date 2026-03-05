@@ -15,12 +15,16 @@ final sessionSecurityControllerProvider = Provider<SessionSecurityController>(
 
     controller.onAuthChanged(ref.read(isAuthenticatedProvider));
     controller.setStayLoggedIn(ref.read(stayLoggedInProvider));
+    controller.setAnonymous(ref.read(isAnonymousProvider));
 
     ref.listen<bool>(isAuthenticatedProvider, (previous, next) {
       controller.onAuthChanged(next);
     });
     ref.listen<bool>(stayLoggedInProvider, (previous, next) {
       controller.setStayLoggedIn(next);
+    });
+    ref.listen<bool>(isAnonymousProvider, (previous, next) {
+      controller.setAnonymous(next);
     });
 
     return controller;
@@ -37,9 +41,11 @@ class SessionSecurityController with WidgetsBindingObserver {
   DateTime _lastInteractionUtc = DateTime.now().toUtc();
   bool _isAuthenticated = false;
   bool _stayLoggedIn = false;
+  bool _isAnonymous = false;
   bool _isSigningOut = false;
 
-  bool get _shouldEnforceTimeout => _isAuthenticated && !_stayLoggedIn;
+  bool get _shouldEnforceTimeout =>
+      _isAuthenticated && !_stayLoggedIn && !_isAnonymous;
 
   void recordUserInteraction() {
     if (!_shouldEnforceTimeout) return;
@@ -59,6 +65,15 @@ class SessionSecurityController with WidgetsBindingObserver {
 
   void setStayLoggedIn(bool stayLoggedIn) {
     _stayLoggedIn = stayLoggedIn;
+    if (_shouldEnforceTimeout) {
+      _scheduleIdleTimer();
+    } else {
+      _cancelIdleTimer();
+    }
+  }
+
+  void setAnonymous(bool isAnonymous) {
+    _isAnonymous = isAnonymous;
     if (_shouldEnforceTimeout) {
       _scheduleIdleTimer();
     } else {

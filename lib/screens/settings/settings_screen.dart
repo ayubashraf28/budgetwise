@@ -47,6 +47,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final profile = ref.watch(userProfileProvider).valueOrNull;
     final currentThemeMode = ref.watch(themeModeProvider);
     final currentBudgetStructure = ref.watch(budgetStructureProvider);
+    final isAnonymous = ref.watch(isAnonymousProvider);
 
     return Scaffold(
       backgroundColor: palette.appBg,
@@ -67,6 +68,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               subtitle: 'Account, budget preferences, and app controls',
             ),
             const SizedBox(height: NeoLayout.sectionGap),
+            if (isAnonymous) ...[
+              _buildAnonymousBanner(context),
+              const SizedBox(height: NeoLayout.sectionGap),
+            ],
             buildSettingsCard(
               context,
               children: [
@@ -204,7 +209,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: Text(
               'Delete Account',
               style: AppTypography.h3.copyWith(
-                color: NeoTheme.negativeValue(context),
+                color: NeoTheme.negativeValue(dialogContext),
               ),
             ),
             content: Column(
@@ -221,7 +226,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 Text(
                   'You will be signed out and will not be able to recover your data.',
                   style: AppTypography.bodyMedium.copyWith(
-                    color: NeoTheme.negativeValue(context),
+                    color: NeoTheme.negativeValue(dialogContext),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -259,7 +264,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ? null
                     : () => Navigator.of(dialogContext).pop(true),
                 style: TextButton.styleFrom(
-                  foregroundColor: NeoTheme.negativeValue(context),
+                  foregroundColor: NeoTheme.negativeValue(dialogContext),
                 ),
                 child: const Text('Delete Account'),
               ),
@@ -341,7 +346,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: Text(
               'Delete All Data',
               style: AppTypography.h3.copyWith(
-                color: NeoTheme.negativeValue(context),
+                color: NeoTheme.negativeValue(dialogContext),
               ),
             ),
             content: Column(
@@ -388,7 +393,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     ? null
                     : () => Navigator.of(dialogContext).pop(true),
                 style: TextButton.styleFrom(
-                  foregroundColor: NeoTheme.negativeValue(context),
+                  foregroundColor: NeoTheme.negativeValue(dialogContext),
                 ),
                 child: const Text('Delete'),
               ),
@@ -421,7 +426,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         title: Text(
           'Final Confirmation',
           style: AppTypography.h3.copyWith(
-            color: NeoTheme.negativeValue(context),
+            color: NeoTheme.negativeValue(dialogContext),
           ),
         ),
         content: Text(
@@ -438,7 +443,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(true),
             style: TextButton.styleFrom(
-              foregroundColor: NeoTheme.negativeValue(context),
+              foregroundColor: NeoTheme.negativeValue(dialogContext),
             ),
             child: const Text('Delete Permanently'),
           ),
@@ -491,5 +496,64 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         _setIsDeletingAllData(false);
       }
     }
+  }
+
+  Widget _buildAnonymousBanner(BuildContext context) {
+    final warningColor = NeoTheme.warningValue(context);
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: warningColor.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+        border: Border.all(color: warningColor.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(LucideIcons.alertTriangle, color: warningColor, size: 20),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Guest Mode',
+                  style: TextStyle(
+                    color: warningColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Your data is not saved to an account. Create an account to keep your budget data.',
+                  style: TextStyle(
+                    color: warningColor.withValues(alpha: 0.8),
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                TextButton(
+                  onPressed: () => context.push('/register'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: warningColor,
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 28),
+                  ),
+                  child: const Text(
+                    'Create Account',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

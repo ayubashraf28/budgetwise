@@ -51,11 +51,23 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     });
 
     try {
-      await ref.read(authNotifierProvider.notifier).signUp(
-            email: _emailController.text.trim(),
-            password: _passwordController.text,
-            displayName: _nameController.text.trim(),
-          );
+      final isAnonymous = ref.read(isAnonymousProvider);
+
+      if (isAnonymous) {
+        await ref.read(authNotifierProvider.notifier).upgradeAnonymousAccount(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+              displayName: _nameController.text.trim().isNotEmpty
+                  ? _nameController.text.trim()
+                  : null,
+            );
+      } else {
+        await ref.read(authNotifierProvider.notifier).signUp(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+              displayName: _nameController.text.trim(),
+            );
+      }
 
       if (mounted) {
         _showSuccessDialog();

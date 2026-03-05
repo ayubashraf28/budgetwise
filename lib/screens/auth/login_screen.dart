@@ -27,10 +27,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _obscurePassword = true;
   bool _isEmailLoading = false;
   bool _isGoogleLoading = false;
+  bool _isGuestLoading = false;
   String? _errorMessage;
   bool _isCredentialError = false;
 
-  bool get _isBusy => _isEmailLoading || _isGoogleLoading;
+  bool get _isBusy => _isEmailLoading || _isGoogleLoading || _isGuestLoading;
 
   @override
   void dispose() {
@@ -119,6 +120,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  Future<void> _handleContinueAsGuest() async {
+    setState(() {
+      _isGuestLoading = true;
+      _errorMessage = null;
+      _isCredentialError = false;
+    });
+
+    try {
+      await ref.read(authNotifierProvider.notifier).signInAnonymously();
+    } catch (error, stackTrace) {
+      final appError = ErrorMapper.toAppError(
+        error,
+        stackTrace: stackTrace,
+      );
+      if (mounted) {
+        setState(() {
+          _errorMessage = appError.userMessage;
+          _isCredentialError = false;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGuestLoading = false;
+        });
+      }
+    }
+  }
+
   Future<void> _handleForgotPassword() async {
     final emailController = TextEditingController(
       text: _emailController.text.trim(),
@@ -128,15 +158,15 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          backgroundColor: NeoTheme.of(context).surface1,
+          backgroundColor: NeoTheme.of(dialogContext).surface1,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-            side: BorderSide(color: NeoTheme.of(context).stroke),
+            side: BorderSide(color: NeoTheme.of(dialogContext).stroke),
           ),
           title: Text(
             'Reset Password',
             style: AppTypography.h3.copyWith(
-              color: NeoTheme.of(context).textPrimary,
+              color: NeoTheme.of(dialogContext).textPrimary,
             ),
           ),
           content: TextField(
@@ -283,6 +313,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      TextButton(
+                        onPressed: _isBusy ? null : _handleContinueAsGuest,
+                        style: TextButton.styleFrom(
+                          foregroundColor: palette.textMuted,
+                        ),
+                        child: _isGuestLoading
+                            ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: palette.textMuted,
+                                ),
+                              )
+                            : const Text(
+                                'Continue without account',
+                                style: TextStyle(fontSize: 13),
+                              ),
                       ),
                     ],
                   ),

@@ -93,6 +93,34 @@ class AuthService {
     }
   }
 
+  Future<AuthResponse> signInAnonymously() async {
+    try {
+      final response = await _client.auth.signInAnonymously();
+      final user = response.user;
+      if (user != null) {
+        await CrashReporter.setUser(id: user.id);
+      }
+      await CrashReporter.recordBreadcrumb(
+        'bw_auth_signin_anonymous',
+        parameters: const <String, Object?>{
+          'provider': 'anonymous',
+        },
+      );
+      return response;
+    } catch (error, stackTrace) {
+      await CrashReporter.recordError(
+        error,
+        stackTrace,
+        reason: 'Anonymous sign-in failed',
+        context: const <String, Object?>{
+          'feature_area': 'auth',
+          'operation': 'sign_in_anonymous',
+        },
+      );
+      rethrow;
+    }
+  }
+
   Future<void> signInWithGoogle() async {
     _assertGoogleSignInSupportedPlatform();
 
@@ -204,6 +232,50 @@ class AuthService {
         },
       );
       throw AuthServiceException(_mapGoogleAuthError(e));
+    }
+  }
+
+  /// Converts an anonymous session into a permanent account by attaching
+  /// an email and password. The user's UUID (and all their data) is preserved.
+  Future<UserResponse> upgradeAnonymousAccount({
+    required String email,
+    required String password,
+    String? displayName,
+  }) async {
+    if (_client.auth.currentUser?.isAnonymous != true) {
+      throw const AuthServiceException(
+        'upgradeAnonymousAccount called for a non-anonymous user.',
+      );
+    }
+
+    await _rejectBreachedPassword(password);
+
+    try {
+      final response = await _client.auth.updateUser(
+        UserAttributes(
+          email: email,
+          password: password,
+          data: displayName != null ? {'display_name': displayName} : null,
+        ),
+      );
+      await CrashReporter.recordBreadcrumb(
+        'bw_auth_anonymous_upgrade',
+        parameters: const <String, Object?>{
+          'provider': 'password',
+        },
+      );
+      return response;
+    } catch (error, stackTrace) {
+      await CrashReporter.recordError(
+        error,
+        stackTrace,
+        reason: 'Anonymous account upgrade failed',
+        context: const <String, Object?>{
+          'feature_area': 'auth',
+          'operation': 'upgrade_anonymous',
+        },
+      );
+      rethrow;
     }
   }
 

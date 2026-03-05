@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -179,6 +180,7 @@ Future<void> showLinkedAccountsDialog(
   var isLinkingGoogle = false;
 
   Widget linkedProviderRow({
+    required BuildContext rowContext,
     required String provider,
     required bool linked,
   }) {
@@ -187,7 +189,8 @@ Future<void> showLinkedAccountsDialog(
         Icon(
           linked ? LucideIcons.checkCircle2 : LucideIcons.circle,
           size: NeoIconSizes.lg,
-          color: linked ? NeoTheme.positiveValue(context) : palette.textMuted,
+          color:
+              linked ? NeoTheme.positiveValue(rowContext) : palette.textMuted,
         ),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
@@ -199,7 +202,8 @@ Future<void> showLinkedAccountsDialog(
         Text(
           linked ? 'Linked' : 'Not linked',
           style: AppTypography.bodySmall.copyWith(
-            color: linked ? NeoTheme.positiveValue(context) : palette.textMuted,
+            color:
+                linked ? NeoTheme.positiveValue(rowContext) : palette.textMuted,
           ),
         ),
       ],
@@ -223,9 +227,9 @@ Future<void> showLinkedAccountsDialog(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            linkedProviderRow(provider: 'Email', linked: hasEmailLinked),
+            linkedProviderRow(rowContext: dialogContext, provider: 'Email', linked: hasEmailLinked),
             const SizedBox(height: AppSpacing.sm),
-            linkedProviderRow(provider: 'Google', linked: hasGoogleLinked),
+            linkedProviderRow(rowContext: dialogContext, provider: 'Google', linked: hasGoogleLinked),
             if (!hasGoogleLinked) ...[
               const SizedBox(height: AppSpacing.lg),
               SizedBox(
@@ -267,7 +271,7 @@ Future<void> showLinkedAccountsDialog(
                         },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: palette.accent,
-                    foregroundColor: NeoTheme.isLight(context)
+                    foregroundColor: NeoTheme.isLight(dialogContext)
                         ? palette.textPrimary
                         : palette.surface1,
                     shape: RoundedRectangleBorder(
@@ -566,7 +570,64 @@ Future<void> handleSettingsSignOut(
   HapticFeedback.mediumImpact();
   final palette = NeoTheme.of(context);
 
-  final confirmed = await showDialog<bool>(
+  // Anonymous data-loss warning
+  final isAnonymous = ref.read(isAnonymousProvider);
+  if (isAnonymous) {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: palette.surface1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+          side: BorderSide(color: palette.stroke),
+        ),
+        title: Text(
+          'Your data will be lost',
+          style: AppTypography.h3.copyWith(
+            color: NeoTheme.negativeValue(dialogContext),
+          ),
+        ),
+        content: Text(
+          'You are using a guest session. Signing out will permanently delete all your data. '
+          'Create an account first to keep your budget data.',
+          style: AppTypography.bodyMedium.copyWith(
+            color: palette.textSecondary,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(null),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: palette.accent),
+            child: const Text('Create Account'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            style: TextButton.styleFrom(
+              foregroundColor: NeoTheme.negativeValue(dialogContext),
+            ),
+            child: const Text('Sign Out & Lose Data'),
+          ),
+        ],
+      ),
+    );
+
+    if (!context.mounted) return;
+
+    if (result == true) {
+      context.push('/register');
+      return;
+    }
+    if (result == null) {
+      return;
+    }
+    // result == false: proceed to sign out below
+  }
+
+  final confirmed = isAnonymous || await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
       backgroundColor: palette.surface1,
@@ -596,9 +657,9 @@ Future<void> handleSettingsSignOut(
         ),
       ],
     ),
-  );
+  ) == true;
 
-  if (confirmed == true && context.mounted) {
+  if (confirmed && context.mounted) {
     try {
       await ref.read(authNotifierProvider.notifier).signOut();
     } catch (error, stackTrace) {
