@@ -76,15 +76,19 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
   Future<void> _handleCancel() async {
     ref.read(passwordRecoveryPendingProvider.notifier).state = false;
+    var signOutSucceeded = false;
 
     try {
       await ref.read(authNotifierProvider.notifier).signOut();
+      signOutSucceeded = true;
     } catch (_) {
       // Best-effort cleanup; route the user back to login either way.
     }
 
     if (!mounted) return;
-    context.go('/login');
+    if (!signOutSucceeded) {
+      context.go('/login');
+    }
   }
 
   void _returnToLogin() {

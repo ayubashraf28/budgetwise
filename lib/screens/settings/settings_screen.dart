@@ -12,6 +12,14 @@ import '../../widgets/common/neo_page_components.dart';
 import '../../widgets/common/neo_snackbar.dart';
 import 'settings_screen_helpers.dart';
 
+typedef DeleteUserAccountCallback = Future<void> Function();
+
+final deleteUserAccountProvider = Provider<DeleteUserAccountCallback>((ref) {
+  return () async {
+    await SupabaseConfig.client.functions.invoke('delete-user');
+  };
+});
+
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
@@ -193,7 +201,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _confirmDeleteAccount() async {
     final palette = NeoTheme.of(context);
-    final controller = TextEditingController();
     var canDelete = false;
 
     final confirmed = await showDialog<bool>(
@@ -239,7 +246,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 TextField(
-                  controller: controller,
                   onChanged: (value) {
                     setDialogState(() => canDelete = value.trim() == 'DELETE');
                   },
@@ -274,8 +280,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
     );
 
-    controller.dispose();
-
     if (!mounted) return;
     if (confirmed == true) {
       await _deleteAccount();
@@ -285,34 +289,38 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _deleteAccount() async {
     if (_isDeletingAccount) return;
     _setIsDeletingAccount(true);
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
 
     var loadingDialogShown = false;
-    if (mounted) {
+    void dismissLoadingDialog() {
+      if (!loadingDialogShown) return;
+      if (rootNavigator.mounted && rootNavigator.canPop()) {
+        rootNavigator.pop();
+      }
+      loadingDialogShown = false;
+    }
+
+    if (mounted && rootNavigator.mounted) {
       loadingDialogShown = true;
       showDialog<void>(
         context: context,
+        useRootNavigator: true,
         barrierDismissible: false,
         builder: (_) => const Center(child: CircularProgressIndicator()),
       );
     }
 
     try {
-      await SupabaseConfig.client.functions.invoke('delete-user');
+      await ref.read(deleteUserAccountProvider)();
 
-      if (!mounted) return;
-      if (loadingDialogShown) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
+      dismissLoadingDialog();
 
       await ref.read(authNotifierProvider.notifier).signOut();
 
       if (!mounted) return;
-      context.go('/login');
     } catch (error, stackTrace) {
+      dismissLoadingDialog();
       if (!mounted) return;
-      if (loadingDialogShown) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
       showNeoErrorSnackBar(
         context,
         ErrorMapper.toUserMessage(
@@ -322,6 +330,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       );
     } finally {
+      dismissLoadingDialog();
       if (mounted) {
         _setIsDeletingAccount(false);
       }
@@ -330,7 +339,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _confirmDeleteAllData() async {
     final palette = NeoTheme.of(context);
-    final controller = TextEditingController();
     var canDelete = false;
 
     final confirmed = await showDialog<bool>(
@@ -368,7 +376,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 TextField(
-                  controller: controller,
                   onChanged: (value) {
                     setDialogState(() => canDelete = value.trim() == 'DELETE');
                   },
@@ -402,8 +409,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         },
       ),
     );
-
-    controller.dispose();
 
     if (!mounted) return;
     if (confirmed == true) {
@@ -457,12 +462,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _deleteAllData() async {
     if (_isDeletingAllData) return;
     _setIsDeletingAllData(true);
+    final rootNavigator = Navigator.of(context, rootNavigator: true);
 
     var loadingDialogShown = false;
-    if (mounted) {
+    void dismissLoadingDialog() {
+      if (!loadingDialogShown) return;
+      if (rootNavigator.mounted && rootNavigator.canPop()) {
+        rootNavigator.pop();
+      }
+      loadingDialogShown = false;
+    }
+
+    if (mounted && rootNavigator.mounted) {
       loadingDialogShown = true;
       showDialog<void>(
         context: context,
+        useRootNavigator: true,
         barrierDismissible: false,
         builder: (_) => const Center(child: CircularProgressIndicator()),
       );
@@ -472,17 +487,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await ref
           .read(profileResetNotifierProvider.notifier)
           .deleteAllDataAndSignOut();
-      if (!mounted) return;
+      dismissLoadingDialog();
 
-      if (loadingDialogShown) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
-      context.go('/login');
-    } catch (error, stackTrace) {
       if (!mounted) return;
-      if (loadingDialogShown) {
-        Navigator.of(context, rootNavigator: true).pop();
-      }
+    } catch (error, stackTrace) {
+      dismissLoadingDialog();
+      if (!mounted) return;
       showNeoErrorSnackBar(
         context,
         ErrorMapper.toUserMessage(
@@ -492,6 +502,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
       );
     } finally {
+      dismissLoadingDialog();
       if (mounted) {
         _setIsDeletingAllData(false);
       }

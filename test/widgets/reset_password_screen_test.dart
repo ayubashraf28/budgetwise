@@ -138,7 +138,8 @@ void main() {
     expect(find.text('home'), findsOneWidget);
   });
 
-  testWidgets('cancel signs out, clears recovery state, and routes to login',
+  testWidgets(
+      'cancel signs out and clears recovery state without forcing manual route',
       (tester) async {
     final service = _FakeAuthService(currentUser: _fakeUser());
     late _FakeAuthNotifier notifier;
@@ -149,6 +150,33 @@ void main() {
         passwordRecoveryPendingProvider.overrideWith((ref) => true),
         authNotifierProvider.overrideWith((ref) {
           notifier = _FakeAuthNotifier(service, ref);
+          return notifier;
+        }),
+      ],
+    );
+
+    await pumpResetScreen(tester, container: container);
+
+    await tester.tap(find.text('Cancel and return to login'));
+    await tester.pumpAndSettle();
+
+    expect(notifier.signOutCalls, 1);
+    expect(container.read(passwordRecoveryPendingProvider), isFalse);
+    expect(find.text('login'), findsNothing);
+    expect(find.text('Set New Password'), findsOneWidget);
+  });
+
+  testWidgets('cancel falls back to login route when sign out fails',
+      (tester) async {
+    final service = _FakeAuthService(currentUser: _fakeUser());
+    late _FailingAuthNotifier notifier;
+    final container = ProviderContainer(
+      overrides: [
+        authServiceProvider.overrideWithValue(service),
+        currentUserProvider.overrideWith((ref) => _fakeUser()),
+        passwordRecoveryPendingProvider.overrideWith((ref) => true),
+        authNotifierProvider.overrideWith((ref) {
+          notifier = _FailingAuthNotifier(service, ref);
           return notifier;
         }),
       ],
@@ -197,6 +225,18 @@ class _FakeAuthNotifier extends AuthNotifier {
   Future<void> signOut() async {
     signOutCalls += 1;
     state = const AsyncValue.data(null);
+  }
+}
+
+class _FailingAuthNotifier extends AuthNotifier {
+  _FailingAuthNotifier(super.authService, super.ref);
+
+  var signOutCalls = 0;
+
+  @override
+  Future<void> signOut() async {
+    signOutCalls += 1;
+    throw Exception('sign out failed');
   }
 }
 

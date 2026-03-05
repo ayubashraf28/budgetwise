@@ -1,4 +1,3 @@
-import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -16,48 +15,11 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final location = GoRouterState.of(context).matchedLocation;
-    final sectionBucket = _sectionBucketForLocation(location);
-
     return Scaffold(
-      body: PageTransitionSwitcher(
-        duration: NeoMotionDuration.medium,
-        reverse: false,
-        transitionBuilder: (child, primaryAnimation, secondaryAnimation) {
-          if (!neoAnimationsEnabled(context)) {
-            return child;
-          }
-
-          return FadeThroughTransition(
-            animation: primaryAnimation,
-            secondaryAnimation: secondaryAnimation,
-            fillColor: Colors.transparent,
-            child: child,
-          );
-        },
-        child: KeyedSubtree(
-          key: ValueKey<String>(sectionBucket),
-          child: child,
-        ),
-      ),
+      body: child,
       bottomNavigationBar: const _BottomNavBar(),
     );
   }
-}
-
-String _sectionBucketForLocation(String location) {
-  if (location.startsWith('/home')) {
-    return 'home';
-  }
-  if (location.startsWith('/analysis') ||
-      location.startsWith('/budget') ||
-      location.startsWith('/expenses')) {
-    return 'analysis';
-  }
-  if (location.startsWith('/categories') || location.startsWith('/income')) {
-    return 'categories';
-  }
-  return 'manage';
 }
 
 class _BottomNavBar extends StatefulWidget {
