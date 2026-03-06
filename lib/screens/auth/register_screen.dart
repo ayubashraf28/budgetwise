@@ -579,6 +579,36 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               ),
             ),
           ),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: NeoTheme.of(context).surface2.withValues(alpha: 0.65),
+              borderRadius: BorderRadius.circular(AppSizing.radiusMd),
+              border: Border.all(color: NeoTheme.of(context).stroke),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  LucideIcons.clock3,
+                  size: 16,
+                  color: NeoTheme.of(context).textMuted,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    'Inactive guest sessions may be removed after 90 days, and inactive registered accounts after 180 days. Using the app while signed in resets this timer. See the Privacy Policy for details.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      height: 1.35,
+                      color: NeoTheme.of(context).textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
           if (showGoogleButton) ...[
             const SizedBox(height: AppSpacing.md),
             Row(

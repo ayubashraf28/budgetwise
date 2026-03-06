@@ -47,6 +47,11 @@ void main() {
 
     expect(find.text('Create your account'), findsOneWidget);
     expect(find.text('Create Account'), findsOneWidget);
+    expect(
+      find.textContaining(
+          'Inactive guest sessions may be removed after 90 days'),
+      findsOneWidget,
+    );
     expect(find.text('Continue with Google'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

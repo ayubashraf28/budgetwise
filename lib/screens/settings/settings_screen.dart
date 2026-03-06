@@ -538,7 +538,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Your data is not saved to an account. Create an account to keep your budget data.',
+                  'Your data is stored in the backend, but this guest session is not recoverable after sign-out unless you create an account first. Inactive guest accounts may be removed after 90 days.',
                   style: TextStyle(
                     color: warningColor.withValues(alpha: 0.8),
                     fontSize: 12,

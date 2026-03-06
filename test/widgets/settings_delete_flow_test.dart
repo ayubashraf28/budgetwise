@@ -108,18 +108,64 @@ void main() {
     expect(find.text('Settings'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('guest sign out copy is accurate and still signs out',
+      (tester) async {
+    await pumpSettingsScreen(
+      tester,
+      overrides: [
+        authStateProvider.overrideWith(
+          (ref) => Stream<User?>.value(_fakeUser()),
+        ),
+        userProfileProvider.overrideWith((ref) async => _fakeProfile()),
+        themeModeProvider.overrideWith((ref) => ThemeMode.dark),
+        budgetStructureProvider.overrideWith((ref) => BudgetStructure.detailed),
+        isAnonymousProvider.overrideWith((ref) => true),
+        authNotifierProvider.overrideWith(
+          (ref) => _FakeAuthNotifier(_FakeAuthService(), ref),
+        ),
+      ],
+    );
+
+    expect(
+      find.textContaining(
+          'Inactive guest accounts may be removed after 90 days'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('Sign Out').first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign out of guest session?'), findsOneWidget);
+    expect(find.textContaining('Your guest data stays stored for now'),
+        findsOneWidget);
+    expect(find.textContaining('deleted after 90 days'), findsOneWidget);
+    expect(find.text('Sign Out & Lose Data'), findsNothing);
+
+    await tester.tap(find.widgetWithText(TextButton, 'Sign Out'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Sign out of guest session?'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 class _FakeAuthService extends AuthService {}
 
 class _FakeAuthNotifier extends AuthNotifier {
-  _FakeAuthNotifier(super.authService, super.ref);
+  _FakeAuthNotifier(
+    super.authService,
+    super.ref, {
+    this.onSignOut,
+  });
 
   var signOutCalls = 0;
+  final VoidCallback? onSignOut;
 
   @override
   Future<void> signOut() async {
     signOutCalls += 1;
+    onSignOut?.call();
     state = const AsyncValue.data(null);
   }
 }

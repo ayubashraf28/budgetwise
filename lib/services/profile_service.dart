@@ -36,6 +36,7 @@ class ProfileService {
           'subscription_reminders_enabled': true,
           'budget_alerts_enabled': true,
           'monthly_reminders_enabled': true,
+          'last_active_at': now.toIso8601String(),
           'created_at': now.toIso8601String(),
           'updated_at': now.toIso8601String(),
         })
@@ -134,5 +135,10 @@ class ProfileService {
   /// Delete all app data for the current user while preserving auth account
   Future<void> deleteAllUserData() async {
     await _client.rpc('delete_all_user_data');
+  }
+
+  /// Best-effort activity heartbeat used for inactive-account retention.
+  Future<void> touchLastActive() async {
+    await _client.rpc('touch_profile_last_active');
   }
 }

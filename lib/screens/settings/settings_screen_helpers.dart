@@ -227,9 +227,15 @@ Future<void> showLinkedAccountsDialog(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            linkedProviderRow(rowContext: dialogContext, provider: 'Email', linked: hasEmailLinked),
+            linkedProviderRow(
+                rowContext: dialogContext,
+                provider: 'Email',
+                linked: hasEmailLinked),
             const SizedBox(height: AppSpacing.sm),
-            linkedProviderRow(rowContext: dialogContext, provider: 'Google', linked: hasGoogleLinked),
+            linkedProviderRow(
+                rowContext: dialogContext,
+                provider: 'Google',
+                linked: hasGoogleLinked),
             if (!hasGoogleLinked) ...[
               const SizedBox(height: AppSpacing.lg),
               SizedBox(
@@ -570,7 +576,7 @@ Future<void> handleSettingsSignOut(
   HapticFeedback.mediumImpact();
   final palette = NeoTheme.of(context);
 
-  // Anonymous data-loss warning
+  // Anonymous guest-session warning
   final isAnonymous = ref.read(isAnonymousProvider);
   if (isAnonymous) {
     final result = await showDialog<bool>(
@@ -582,14 +588,11 @@ Future<void> handleSettingsSignOut(
           side: BorderSide(color: palette.stroke),
         ),
         title: Text(
-          'Your data will be lost',
-          style: AppTypography.h3.copyWith(
-            color: NeoTheme.negativeValue(dialogContext),
-          ),
+          'Sign out of guest session?',
+          style: AppTypography.h3.copyWith(color: palette.textPrimary),
         ),
         content: Text(
-          'You are using a guest session. Signing out will permanently delete all your data. '
-          'Create an account first to keep your budget data.',
+          'Your guest data stays stored for now, but signing out may make this session unrecoverable unless you create an account first. Inactive guest accounts may be deleted after 90 days.',
           style: AppTypography.bodyMedium.copyWith(
             color: palette.textSecondary,
           ),
@@ -606,10 +609,8 @@ Future<void> handleSettingsSignOut(
           ),
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
-            style: TextButton.styleFrom(
-              foregroundColor: NeoTheme.negativeValue(dialogContext),
-            ),
-            child: const Text('Sign Out & Lose Data'),
+            style: TextButton.styleFrom(foregroundColor: palette.textPrimary),
+            child: const Text('Sign Out'),
           ),
         ],
       ),
@@ -627,37 +628,40 @@ Future<void> handleSettingsSignOut(
     // result == false: proceed to sign out below
   }
 
-  final confirmed = isAnonymous || await showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      backgroundColor: palette.surface1,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppSizing.radiusLg),
-        side: BorderSide(color: palette.stroke),
-      ),
-      title: Text(
-        'Sign Out',
-        style: AppTypography.h3.copyWith(color: palette.textPrimary),
-      ),
-      content: Text(
-        'Are you sure you want to sign out?',
-        style: AppTypography.bodyLarge.copyWith(color: palette.textSecondary),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(false),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          style: TextButton.styleFrom(
-            foregroundColor: NeoTheme.negativeValue(context),
-          ),
-          child: const Text('Sign Out'),
-        ),
-      ],
-    ),
-  ) == true;
+  final confirmed = isAnonymous ||
+      await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              backgroundColor: palette.surface1,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSizing.radiusLg),
+                side: BorderSide(color: palette.stroke),
+              ),
+              title: Text(
+                'Sign Out',
+                style: AppTypography.h3.copyWith(color: palette.textPrimary),
+              ),
+              content: Text(
+                'Are you sure you want to sign out?',
+                style: AppTypography.bodyLarge
+                    .copyWith(color: palette.textSecondary),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: TextButton.styleFrom(
+                    foregroundColor: NeoTheme.negativeValue(context),
+                  ),
+                  child: const Text('Sign Out'),
+                ),
+              ],
+            ),
+          ) ==
+          true;
 
   if (confirmed && context.mounted) {
     try {

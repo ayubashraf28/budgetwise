@@ -63,6 +63,47 @@ class SettingsAboutPage extends ConsumerWidget {
                 ),
               ],
             ),
+            const SizedBox(height: NeoLayout.sectionGap),
+            buildSettingsCard(
+              context,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        LucideIcons.clock3,
+                        color: palette.accent,
+                        size: 20,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Data Retention',
+                              style: AppTypography.bodyLarge.copyWith(
+                                color: palette.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(
+                              'Guest sessions may be deleted after 90 days of inactivity. Registered accounts may be deleted after 180 days of inactivity. Opening and using the app while signed in resets the timer.',
+                              style: AppTypography.bodySmall.copyWith(
+                                color: palette.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),

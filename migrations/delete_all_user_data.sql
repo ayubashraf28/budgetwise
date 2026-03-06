@@ -111,6 +111,7 @@ BEGIN
       subscription_reminders_enabled = TRUE,
       budget_alerts_enabled = TRUE,
       monthly_reminders_enabled = TRUE,
+      last_active_at = NOW(),
       updated_at = NOW()
     WHERE user_id = v_user_id;
 END;
